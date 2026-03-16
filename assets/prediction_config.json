@@ -1,0 +1,56 @@
+{
+  "prediction": {
+    "model": "doubao-seed-1-8-251228",
+    "temperature": 0.3,
+    "max_tokens": 4000,
+    "prediction_horizon_days": 7,
+    "confidence_level": 0.95,
+    "update_frequency_hours": 6
+  },
+  "factors": {
+    "weather_impact": {
+      "weight": 0.3,
+      "high_temperature_threshold": 35,
+      "heavy_rain_conditions": ["大雨", "暴雨", "雷阵雨"],
+      "high_temperature_factor": 1.3,
+      "heavy_rain_factor": 1.5,
+      "description": "天气对业务量的影响权重和阈值"
+    },
+    "holiday_impact": {
+      "weight": 0.2,
+      "holiday_reduction_factor": 0.6,
+      "weekend_reduction_factor": 0.8,
+      "special_holiday_factor": 0.5,
+      "description": "节假日对业务量的影响"
+    },
+    "seasonal_impact": {
+      "weight": 0.25,
+      "peak_months": [6, 7, 8, 12],
+      "peak_factor": 1.2,
+      "normal_months": [3, 4, 5, 9, 10, 11],
+      "normal_factor": 1.0,
+      "low_months": [1, 2],
+      "low_factor": 0.9,
+      "description": "季节性波动影响"
+    },
+    "equipment_impact": {
+      "weight": 0.25,
+      "fault_threshold": 0.1,
+      "warning_threshold": 0.05,
+      "equipment_fault_factor": 1.4,
+      "description": "设备状态对业务量的影响"
+    }
+  },
+  "validation": {
+    "min_prediction_confidence": 0.6,
+    "anomaly_detection_enabled": true,
+    "historical_comparison_enabled": true,
+    "cross_validation_folds": 5
+  },
+  "output": {
+    "include_daily_predictions": true,
+    "include_risk_warnings": true,
+    "include_factor_analysis": true,
+    "include_recommendations": true
+  }
+}

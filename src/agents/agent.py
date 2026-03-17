@@ -16,6 +16,7 @@
 import os
 import json
 from typing import Annotated
+from pathlib import Path
 from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
 from langgraph.graph import MessagesState
@@ -23,6 +24,18 @@ from langgraph.graph.message import add_messages
 from langchain_core.messages import AnyMessage
 from coze_coding_utils.runtime_ctx.context import default_headers
 from storage.memory.memory_saver import get_memory_saver
+
+# 尝试加载 .env 文件
+try:
+    from dotenv import load_dotenv
+    # 从项目根目录加载 .env
+    env_path = Path(__file__).parent.parent.parent / ".env"
+    if env_path.exists():
+        load_dotenv(env_path)
+        print(f"✅ 已加载环境变量文件: {env_path}")
+except ImportError:
+    print("⚠️  未安装 python-dotenv，跳过 .env 文件加载")
+    print("   提示：运行 'pip install python-dotenv' 可启用此功能")
 
 # 导入工具模块
 from tools.data_fusion import (
@@ -84,6 +97,23 @@ def build_agent(ctx=None):
     # 获取认证信息
     api_key = os.getenv("COZE_WORKLOAD_IDENTITY_API_KEY")
     base_url = os.getenv("COZE_INTEGRATION_MODEL_BASE_URL")
+    
+    # 环境变量检查
+    if not api_key:
+        raise ValueError(
+            "❌ 缺少必要的环境变量: COZE_WORKLOAD_IDENTITY_API_KEY\n\n"
+            "解决方法：\n"
+            "1. 在项目根目录创建 .env 文件\n"
+            "2. 添加以下内容：\n"
+            "   COZE_WORKLOAD_IDENTITY_API_KEY=your_api_key_here\n"
+            "   COZE_INTEGRATION_MODEL_BASE_URL=https://api.coze.cn/v1\n"
+            "3. 或在 Coze 云端环境中运行（会自动注入环境变量）\n\n"
+            "详细配置请参考 .env.example 文件"
+        )
+    
+    if not base_url:
+        base_url = "https://api.coze.cn/v1"  # 默认使用 Coze API
+        print(f"⚠️  未设置 COZE_INTEGRATION_MODEL_BASE_URL，使用默认值: {base_url}")
     
     # 初始化LLM
     llm = ChatOpenAI(

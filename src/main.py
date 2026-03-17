@@ -54,9 +54,12 @@ class GraphService:
         self._graph_lock = threading.Lock()
 
     def _get_graph(self, ctx=Context):
-        if graph_helper.is_agent_proj():
+        # 强制使用 Agent 模式（配网调度业务量智能预测系统）
+        try:
             return graph_helper.get_agent_instance("agents.agent", ctx)
-
+        except Exception as e:
+            logger.warning(f"Failed to load agent, trying workflow mode: {e}")
+        
         if self._graph is not None:
             return self._graph
         with self._graph_lock:

@@ -231,33 +231,54 @@ service = GraphService()
 app = FastAPI()
 
 # 配置静态文件服务（前端界面）
-FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
+# 使用环境变量或当前工作目录来确定项目根目录
+workspace_path = os.getenv("COZE_WORKSPACE_PATH", os.getcwd())
+FRONTEND_DIR = Path(workspace_path) / "frontend"
+
+logger.info(f"🔍 检查前端目录: {FRONTEND_DIR}")
+logger.info(f"   目录存在: {FRONTEND_DIR.exists()}")
+
 if FRONTEND_DIR.exists():
     # 挂载静态文件目录（逐个检查目录是否存在）
     css_dir = FRONTEND_DIR / "css"
     js_dir = FRONTEND_DIR / "js"
     assets_dir = FRONTEND_DIR / "assets"
     
+    logger.info(f"   CSS目录: {css_dir} - {css_dir.exists()}")
+    logger.info(f"   JS目录: {js_dir} - {js_dir.exists()}")
+    logger.info(f"   Assets目录: {assets_dir} - {assets_dir.exists()}")
+    
     if css_dir.exists():
-        app.mount("/css", StaticFiles(directory=css_dir), name="css")
+        app.mount("/css", StaticFiles(directory=str(css_dir)), name="css")
+        logger.info(f"   ✅ CSS静态文件已挂载")
     if js_dir.exists():
-        app.mount("/js", StaticFiles(directory=js_dir), name="js")
+        app.mount("/js", StaticFiles(directory=str(js_dir)), name="js")
+        logger.info(f"   ✅ JS静态文件已挂载")
     if assets_dir.exists():
-        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+        logger.info(f"   ✅ Assets静态文件已挂载")
     
     logger.info(f"✅ 前端界面已加载: {FRONTEND_DIR}")
 else:
     logger.warning(f"⚠️ 前端目录不存在: {FRONTEND_DIR}")
+    logger.warning(f"   当前工作目录: {os.getcwd()}")
 
 # 前端首页路由
-@app.get("/", response_class=FileResponse)
+@app.get("/")
 async def read_root():
     """返回前端首页"""
-    index_file = FRONTEND_DIR / "index.html"
-    if index_file.exists():
-        return FileResponse(index_file)
-    else:
-        return {"message": "配网调度业务量智能预测系统 API 服务已启动", "docs": "/docs"}
+    try:
+        index_file = FRONTEND_DIR / "index.html"
+        logger.info(f"🔍 尝试访问首页: {index_file}")
+        logger.info(f"   文件存在: {index_file.exists()}")
+        
+        if index_file.exists():
+            return FileResponse(str(index_file))
+        else:
+            return {"message": "配网调度业务量智能预测系统 API 服务已启动", "docs": "/docs", "frontend_path": str(FRONTEND_DIR)}
+    except Exception as e:
+        logger.error(f"❌ 返回首页失败: {e}")
+        return {"error": str(e), "frontend_path": str(FRONTEND_DIR)}
 
 # 健康检查接口
 @app.get("/health")

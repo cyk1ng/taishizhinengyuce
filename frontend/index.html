@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>配网调度业务量智能预测系统</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- Markdown-it -->
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js"></script>
+    
+    <!-- Highlight.js for code highlighting -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js"></script>
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-blue-900 to-purple-900 shadow-lg border-b border-blue-700">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="text-3xl">⚡</div>
+                    <div>
+                        <h1 class="text-xl font-bold text-white">配网调度业务量智能预测系统</h1>
+                        <p class="text-xs text-blue-200">AI-Powered Dispatch Volume Prediction</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2 text-sm">
+                        <span class="flex items-center">
+                            <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2"></span>
+                            <span class="text-green-300">系统在线</span>
+                        </span>
+                    </div>
+                    <button onclick="showHelp()" class="px-3 py-1 bg-blue-700 hover:bg-blue-600 rounded text-sm transition">
+                        ❓ 帮助
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container mx-auto px-4 py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            
+            <!-- Left Sidebar - Quick Actions -->
+            <div class="lg:col-span-1">
+                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden">
+                    <div class="bg-gradient-to-r from-blue-800 to-blue-900 px-4 py-3 border-b border-blue-700">
+                        <h2 class="font-semibold text-white flex items-center">
+                            <span class="mr-2">🎯</span> 快速预测
+                        </h2>
+                    </div>
+                    <div class="p-4 space-y-3">
+                        <button onclick="quickPredict('today')" class="w-full px-4 py-2 bg-blue-700 hover:bg-blue-600 rounded-lg text-left transition flex items-center">
+                            <span class="mr-2">📊</span> 今日预测
+                        </button>
+                        <button onclick="quickPredict('week')" class="w-full px-4 py-2 bg-purple-700 hover:bg-purple-600 rounded-lg text-left transition flex items-center">
+                            <span class="mr-2">📈</span> 未来7天预测
+                        </button>
+                        <button onclick="quickPredict('month')" class="w-full px-4 py-2 bg-green-700 hover:bg-green-600 rounded-lg text-left transition flex items-center">
+                            <span class="mr-2">📅</span> 本月预测
+                        </button>
+                        <hr class="border-gray-700 my-3">
+                        <button onclick="quickAction('staffing')" class="w-full px-4 py-2 bg-orange-700 hover:bg-orange-600 rounded-lg text-left transition flex items-center">
+                            <span class="mr-2">👥</span> 人员调整建议
+                        </button>
+                        <button onclick="quickAction('risk')" class="w-full px-4 py-2 bg-red-700 hover:bg-red-600 rounded-lg text-left transition flex items-center">
+                            <span class="mr-2">⚠️</span> 风险预警分析
+                        </button>
+                        <button onclick="quickAction('report')" class="w-full px-4 py-2 bg-teal-700 hover:bg-teal-600 rounded-lg text-left transition flex items-center">
+                            <span class="mr-2">📋</span> 生成决策报告
+                        </button>
+                    </div>
+                </div>
+
+                <!-- System Status -->
+                <div class="mt-6 bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden">
+                    <div class="bg-gradient-to-r from-gray-700 to-gray-800 px-4 py-3 border-b border-gray-600">
+                        <h2 class="font-semibold text-white flex items-center">
+                            <span class="mr-2">📡</span> 系统状态
+                        </h2>
+                    </div>
+                    <div class="p-4 space-y-3 text-sm">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-400">模型状态</span>
+                            <span class="text-green-400">● 正常</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-400">数据源</span>
+                            <span class="text-green-400">● 已连接</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-400">最后更新</span>
+                            <span class="text-blue-300" id="lastUpdate">--</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-400">预测准确率</span>
+                            <span class="text-purple-300">92.5%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Chat Area -->
+            <div class="lg:col-span-2">
+                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden h-[calc(100vh-200px)] flex flex-col">
+                    <!-- Chat Header -->
+                    <div class="bg-gradient-to-r from-purple-800 to-purple-900 px-4 py-3 border-b border-purple-700 flex items-center justify-between">
+                        <h2 class="font-semibold text-white flex items-center">
+                            <span class="mr-2">💬</span> 智能对话
+                        </h2>
+                        <button onclick="clearChat()" class="text-sm px-3 py-1 bg-purple-700 hover:bg-purple-600 rounded transition">
+                            🗑️ 清空对话
+                        </button>
+                    </div>
+                    
+                    <!-- Messages Container -->
+                    <div id="messagesContainer" class="flex-1 overflow-y-auto p-4 space-y-4">
+                        <!-- Welcome Message -->
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-xl">
+                                🤖
+                            </div>
+                            <div class="flex-1">
+                                <div class="bg-gray-700 rounded-lg px-4 py-3 shadow">
+                                    <p class="text-gray-100">您好！我是配网调度业务量智能预测助手。</p>
+                                    <p class="text-gray-300 text-sm mt-2">我可以帮您：</p>
+                                    <ul class="text-gray-300 text-sm mt-1 ml-4 list-disc">
+                                        <li>预测未来调度业务量趋势</li>
+                                        <li>分析多源数据（天气、节假日、设备状态等）</li>
+                                        <li>提供人员调整决策建议</li>
+                                        <li>识别风险并生成预警</li>
+                                    </ul>
+                                    <p class="text-gray-400 text-xs mt-3">请输入您的问题或选择左侧快速预测功能开始使用。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Input Area -->
+                    <div class="border-t border-gray-700 p-4 bg-gray-850">
+                        <div class="flex items-center space-x-3">
+                            <textarea 
+                                id="userInput" 
+                                placeholder="请输入预测需求，例如：预测未来7天的调度业务量..."
+                                class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"
+                                rows="2"
+                                onkeydown="handleKeyDown(event)"
+                            ></textarea>
+                            <button 
+                                onclick="sendMessage()"
+                                id="sendBtn"
+                                class="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-lg font-semibold transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                发送 ⚡
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Sidebar - Prediction Results -->
+            <div class="lg:col-span-1">
+                <!-- Prediction Chart -->
+                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden">
+                    <div class="bg-gradient-to-r from-green-800 to-green-900 px-4 py-3 border-b border-green-700">
+                        <h2 class="font-semibold text-white flex items-center">
+                            <span class="mr-2">📈</span> 预测趋势
+                        </h2>
+                    </div>
+                    <div class="p-4">
+                        <canvas id="predictionChart" height="200"></canvas>
+                    </div>
+                </div>
+
+                <!-- Staffing Recommendations -->
+                <div class="mt-6 bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden">
+                    <div class="bg-gradient-to-r from-orange-800 to-orange-900 px-4 py-3 border-b border-orange-700">
+                        <h2 class="font-semibold text-white flex items-center">
+                            <span class="mr-2">👥</span> 人员建议
+                        </h2>
+                    </div>
+                    <div class="p-4 space-y-3" id="staffingRecommendations">
+                        <div class="text-center text-gray-400 text-sm py-4">
+                            暂无人员建议
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Risk Alerts -->
+                <div class="mt-6 bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden">
+                    <div class="bg-gradient-to-r from-red-800 to-red-900 px-4 py-3 border-b border-red-700">
+                        <h2 class="font-semibold text-white flex items-center">
+                            <span class="mr-2">⚠️</span> 风险预警
+                        </h2>
+                    </div>
+                    <div class="p-4 space-y-3" id="riskAlerts">
+                        <div class="text-center text-gray-400 text-sm py-4">
+                            暂无风险预警
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto border border-gray-700">
+            <div class="bg-gradient-to-r from-blue-800 to-purple-800 px-6 py-4 border-b border-blue-700 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-white">📖 使用帮助</h3>
+                <button onclick="closeHelp()" class="text-white hover:text-gray-300 text-2xl">&times;</button>
+            </div>
+            <div class="p-6 space-y-4 text-gray-300">
+                <div>
+                    <h4 class="font-semibold text-white mb-2">🚀 快速开始</h4>
+                    <ul class="list-disc ml-4 space-y-1">
+                        <li>在对话框输入预测需求，如"预测未来7天业务量"</li>
+                        <li>点击左侧快速预测按钮，一键获取预测结果</li>
+                        <li>查看右侧的预测趋势图和人员建议</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-white mb-2">💡 预测功能</h4>
+                    <ul class="list-disc ml-4 space-y-1">
+                        <li><strong>今日预测</strong>：预测当天调度业务量</li>
+                        <li><strong>7天预测</strong>：预测未来一周业务趋势</li>
+                        <li><strong>本月预测</strong>：预测当月业务总量</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-white mb-2">📊 数据来源</h4>
+                    <ul class="list-disc ml-4 space-y-1">
+                        <li>历史调度记录</li>
+                        <li>天气预报数据</li>
+                        <li>节假日信息</li>
+                        <li>设备状态监控</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-white mb-2">❓ 示例问题</h4>
+                    <ul class="list-disc ml-4 space-y-1 text-sm">
+                        <li>"预测未来7天的调度业务量"</li>
+                        <li>"明天需要多少值班人员？"</li>
+                        <li>"本周有哪些风险点需要关注？"</li>
+                        <li>"分析下个月的业务趋势"</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-8 border border-gray-700">
+            <div class="flex flex-col items-center">
+                <div class="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mb-4"></div>
+                <p class="text-gray-300">正在预测中，请稍候...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

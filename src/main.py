@@ -8,8 +8,10 @@ from typing import Any, Dict, Iterable, AsyncIterable, AsyncGenerator, Optional
 import cozeloop
 import uvicorn
 import time
+from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import StateGraph, END
 from langgraph.graph.state import CompiledStateGraph
@@ -227,6 +229,41 @@ class GraphService:
 
 service = GraphService()
 app = FastAPI()
+
+# 配置静态文件服务（前端界面）
+FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
+if FRONTEND_DIR.exists():
+    # 挂载静态文件目录（逐个检查目录是否存在）
+    css_dir = FRONTEND_DIR / "css"
+    js_dir = FRONTEND_DIR / "js"
+    assets_dir = FRONTEND_DIR / "assets"
+    
+    if css_dir.exists():
+        app.mount("/css", StaticFiles(directory=css_dir), name="css")
+    if js_dir.exists():
+        app.mount("/js", StaticFiles(directory=js_dir), name="js")
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+    
+    logger.info(f"✅ 前端界面已加载: {FRONTEND_DIR}")
+else:
+    logger.warning(f"⚠️ 前端目录不存在: {FRONTEND_DIR}")
+
+# 前端首页路由
+@app.get("/", response_class=FileResponse)
+async def read_root():
+    """返回前端首页"""
+    index_file = FRONTEND_DIR / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+    else:
+        return {"message": "配网调度业务量智能预测系统 API 服务已启动", "docs": "/docs"}
+
+# 健康检查接口
+@app.get("/health")
+async def health_check():
+    """健康检查接口"""
+    return {"status": "ok", "service": "配网调度业务量智能预测系统"}
 
 # OpenAI 兼容接口处理器
 openai_handler = OpenAIChatHandler(service)

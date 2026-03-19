@@ -1,11 +1,11 @@
 /**
- * ⚡ 配网调度智能预测系统 - 图表配置
+ * ⚡ 配网调度智能预测系统 - 图表配置（炫酷版）
  */
 
-// Chart.js 全局配置 - 电力系统主题
+// Chart.js 全局配置
 Chart.defaults.color = '#a0aec0';
-Chart.defaults.borderColor = 'rgba(0, 212, 255, 0.2)';
-Chart.defaults.font.family = 'Consolas, Monaco, monospace';
+Chart.defaults.borderColor = 'rgba(0, 212, 255, 0.15)';
+Chart.defaults.font.family = 'Microsoft YaHei, sans-serif';
 
 /**
  * 图表管理类
@@ -24,11 +24,17 @@ class ChartManager {
     }
 
     /**
-     * 初始化预测趋势图 - 电光风格
+     * 初始化预测趋势图 - 炫酷电光风格
      */
     initPredictionChart() {
         const ctx = document.getElementById('predictionChart');
         if (!ctx) return;
+
+        // 创建渐变
+        const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 250);
+        gradient.addColorStop(0, 'rgba(0, 212, 255, 0.5)');
+        gradient.addColorStop(0.5, 'rgba(0, 150, 255, 0.2)');
+        gradient.addColorStop(1, 'rgba(0, 100, 200, 0)');
 
         this.charts.prediction = new Chart(ctx, {
             type: 'line',
@@ -37,25 +43,23 @@ class ChartManager {
                 datasets: [{
                     label: '预测业务量',
                     data: [],
-                    borderColor: 'rgb(0, 212, 255)',
-                    backgroundColor: (context) => {
-                        const ctx = context.chart.ctx;
-                        const gradient = ctx.createLinearGradient(0, 0, 0, 200);
-                        gradient.addColorStop(0, 'rgba(0, 212, 255, 0.3)');
-                        gradient.addColorStop(1, 'rgba(0, 212, 255, 0.0)');
-                        return gradient;
-                    },
-                    borderWidth: 2,
+                    borderColor: '#00d4ff',
+                    backgroundColor: gradient,
+                    borderWidth: 3,
                     fill: true,
                     tension: 0.4,
                     pointBackgroundColor: '#00d4ff',
-                    pointBorderColor: '#fff',
+                    pointBorderColor: '#ffffff',
                     pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    pointHoverBackgroundColor: '#00e5ff',
-                    pointHoverBorderColor: '#fff',
-                    pointHoverBorderWidth: 3
+                    pointRadius: 5,
+                    pointHoverRadius: 8,
+                    pointHoverBackgroundColor: '#00ffff',
+                    pointHoverBorderColor: '#ffffff',
+                    pointHoverBorderWidth: 3,
+                    shadowOffsetX: 0,
+                    shadowOffsetY: 0,
+                    shadowBlur: 10,
+                    shadowColor: 'rgba(0, 212, 255, 0.5)'
                 }]
             },
             options: {
@@ -68,47 +72,51 @@ class ChartManager {
                         labels: {
                             color: '#00d4ff',
                             font: {
-                                size: 11,
-                                family: 'Consolas'
+                                size: 12,
+                                weight: 'bold'
                             },
                             usePointStyle: true,
-                            pointStyle: 'circle'
+                            pointStyle: 'circle',
+                            padding: 15
                         }
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(10, 14, 39, 0.95)',
+                        backgroundColor: 'rgba(5, 15, 35, 0.95)',
                         titleColor: '#00d4ff',
                         bodyColor: '#e0e0e0',
-                        borderColor: 'rgba(0, 212, 255, 0.5)',
+                        borderColor: '#00d4ff',
                         borderWidth: 1,
                         padding: 12,
                         displayColors: false,
                         titleFont: {
-                            family: 'Consolas',
-                            size: 12
+                            size: 13,
+                            weight: 'bold'
                         },
                         bodyFont: {
-                            family: 'Consolas',
-                            size: 11
+                            size: 12
                         },
                         callbacks: {
                             label: function(context) {
-                                return `⚡ 业务量: ${context.parsed.y}`;
+                                return '⚡ 业务量: ' + context.parsed.y;
                             }
-                        }
+                        },
+                        shadowOffsetX: 0,
+                        shadowOffsetY: 4,
+                        shadowBlur: 10,
+                        shadowColor: 'rgba(0, 212, 255, 0.3)'
                     }
                 },
                 scales: {
                     x: {
                         grid: {
-                            color: 'rgba(0, 212, 255, 0.1)',
-                            drawBorder: false
+                            color: 'rgba(0, 212, 255, 0.08)',
+                            drawBorder: false,
+                            lineWidth: 1
                         },
                         ticks: {
-                            color: '#a0aec0',
+                            color: '#9ca3af',
                             font: {
-                                size: 10,
-                                family: 'Consolas'
+                                size: 10
                             },
                             maxRotation: 45,
                             minRotation: 45
@@ -117,15 +125,16 @@ class ChartManager {
                     y: {
                         beginAtZero: true,
                         grid: {
-                            color: 'rgba(0, 212, 255, 0.1)',
-                            drawBorder: false
+                            color: 'rgba(0, 212, 255, 0.08)',
+                            drawBorder: false,
+                            lineWidth: 1
                         },
                         ticks: {
-                            color: '#a0aec0',
+                            color: '#9ca3af',
                             font: {
-                                size: 10,
-                                family: 'Consolas'
-                            }
+                                size: 10
+                            },
+                            padding: 10
                         }
                     }
                 },
@@ -134,8 +143,16 @@ class ChartManager {
                     mode: 'index'
                 },
                 animation: {
-                    duration: 1000,
+                    duration: 1500,
                     easing: 'easeOutQuart'
+                },
+                elements: {
+                    line: {
+                        shadowOffsetX: 0,
+                        shadowOffsetY: 0,
+                        shadowBlur: 10,
+                        shadowColor: 'rgba(0, 212, 255, 0.5)'
+                    }
                 }
             }
         });
@@ -153,9 +170,9 @@ class ChartManager {
     }
 
     /**
-     * 创建业务量对比柱状图 - 电光风格
+     * 创建炫酷柱状图
      */
-    createComparisonChart(canvasId, data) {
+    createBarChart(canvasId, data) {
         const ctx = document.getElementById(canvasId);
         if (!ctx) return;
 
@@ -168,19 +185,28 @@ class ChartManager {
             data: {
                 labels: data.labels,
                 datasets: [{
-                    label: '预测值',
-                    data: data.predicted,
-                    backgroundColor: 'rgba(0, 212, 255, 0.6)',
-                    borderColor: 'rgb(0, 212, 255)',
-                    borderWidth: 1,
-                    borderRadius: 4
-                }, {
-                    label: '实际值',
-                    data: data.actual,
-                    backgroundColor: 'rgba(168, 85, 247, 0.6)',
-                    borderColor: 'rgb(168, 85, 247)',
-                    borderWidth: 1,
-                    borderRadius: 4
+                    label: data.label || '数据',
+                    data: data.values,
+                    backgroundColor: [
+                        'rgba(0, 212, 255, 0.8)',
+                        'rgba(59, 130, 246, 0.8)',
+                        'rgba(147, 51, 234, 0.8)',
+                        'rgba(34, 197, 94, 0.8)',
+                        'rgba(251, 191, 36, 0.8)'
+                    ],
+                    borderColor: [
+                        '#00d4ff',
+                        '#3b82f6',
+                        '#9333ea',
+                        '#22c55e',
+                        '#fbbf24'
+                    ],
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    shadowOffsetX: 0,
+                    shadowOffsetY: 4,
+                    shadowBlur: 8,
+                    shadowColor: 'rgba(0, 212, 255, 0.3)'
                 }]
             },
             options: {
@@ -188,31 +214,33 @@ class ChartManager {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        position: 'top',
-                        labels: {
-                            color: '#a0aec0',
-                            font: {
-                                family: 'Consolas'
-                            }
-                        }
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(5, 15, 35, 0.95)',
+                        titleColor: '#00d4ff',
+                        bodyColor: '#e0e0e0',
+                        borderColor: '#00d4ff',
+                        borderWidth: 1,
+                        padding: 12
                     }
                 },
                 scales: {
                     x: {
                         grid: {
-                            color: 'rgba(0, 212, 255, 0.1)'
+                            display: false
                         },
                         ticks: {
-                            color: '#a0aec0'
+                            color: '#9ca3af'
                         }
                     },
                     y: {
                         beginAtZero: true,
                         grid: {
-                            color: 'rgba(0, 212, 255, 0.1)'
+                            color: 'rgba(0, 212, 255, 0.08)'
                         },
                         ticks: {
-                            color: '#a0aec0'
+                            color: '#9ca3af'
                         }
                     }
                 }
@@ -221,9 +249,9 @@ class ChartManager {
     }
 
     /**
-     * 创建人员配置饼图 - 电光风格
+     * 创建炫酷饼图
      */
-    createStaffingPieChart(canvasId, data) {
+    createPieChart(canvasId, data) {
         const ctx = document.getElementById(canvasId);
         if (!ctx) return;
 
@@ -239,13 +267,17 @@ class ChartManager {
                     data: data.values,
                     backgroundColor: [
                         'rgba(0, 212, 255, 0.8)',
-                        'rgba(168, 85, 247, 0.8)',
+                        'rgba(147, 51, 234, 0.8)',
                         'rgba(34, 197, 94, 0.8)',
                         'rgba(251, 191, 36, 0.8)',
                         'rgba(239, 68, 68, 0.8)'
                     ],
-                    borderWidth: 2,
-                    borderColor: '#0a0e27'
+                    borderColor: '#0a0e27',
+                    borderWidth: 3,
+                    shadowOffsetX: 0,
+                    shadowOffsetY: 4,
+                    shadowBlur: 10,
+                    shadowColor: 'rgba(0, 212, 255, 0.5)'
                 }]
             },
             options: {
@@ -256,74 +288,21 @@ class ChartManager {
                         position: 'bottom',
                         labels: {
                             color: '#a0aec0',
-                            padding: 10,
+                            padding: 15,
                             font: {
-                                family: 'Consolas',
-                                size: 10
+                                size: 11
                             }
                         }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(5, 15, 35, 0.95)',
+                        titleColor: '#00d4ff',
+                        bodyColor: '#e0e0e0',
+                        borderColor: '#00d4ff',
+                        borderWidth: 1
                     }
-                }
-            }
-        });
-    }
-
-    /**
-     * 创建风险等级雷达图 - 电光风格
-     */
-    createRiskRadarChart(canvasId, data) {
-        const ctx = document.getElementById(canvasId);
-        if (!ctx) return;
-
-        if (this.charts[canvasId]) {
-            this.charts[canvasId].destroy();
-        }
-
-        this.charts[canvasId] = new Chart(ctx, {
-            type: 'radar',
-            data: {
-                labels: data.labels,
-                datasets: [{
-                    label: '风险评分',
-                    data: data.values,
-                    backgroundColor: 'rgba(239, 68, 68, 0.2)',
-                    borderColor: 'rgb(239, 68, 68)',
-                    borderWidth: 2,
-                    pointBackgroundColor: 'rgb(239, 68, 68)',
-                    pointBorderColor: '#fff',
-                    pointHoverBackgroundColor: '#fff',
-                    pointHoverBorderColor: 'rgb(239, 68, 68)'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    r: {
-                        beginAtZero: true,
-                        max: 100,
-                        ticks: {
-                            color: '#a0aec0',
-                            backdropColor: 'transparent',
-                            font: {
-                                size: 9
-                            }
-                        },
-                        grid: {
-                            color: 'rgba(0, 212, 255, 0.2)'
-                        },
-                        angleLines: {
-                            color: 'rgba(0, 212, 255, 0.2)'
-                        },
-                        pointLabels: {
-                            color: '#a0aec0',
-                            font: {
-                                size: 10,
-                                family: 'Consolas'
-                            }
-                        }
-                    }
-                }
+                },
+                cutout: '60%'
             }
         });
     }

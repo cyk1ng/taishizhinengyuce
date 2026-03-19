@@ -37,34 +37,26 @@ async function sendMessage() {
         return;
     }
 
-    // 清空输入框
     input.value = '';
     
-    // 显示用户消息
     appendMessage('user', message);
     
-    // 设置处理状态
     AppState.isProcessing = true;
     setLoading(true);
     
-    // 创建助手消息占位符
     const assistantMessageId = appendMessage('assistant', '', true);
     
     try {
-        // 发送流式请求
         await api.streamRun(
             message,
-            // 消息回调
             (data) => {
                 handleStreamMessage(data, assistantMessageId);
             },
-            // 错误回调
             (error) => {
                 updateMessage(assistantMessageId, `❌ 错误: ${error.message}`);
                 AppState.isProcessing = false;
                 setLoading(false);
             },
-            // 完成回调
             () => {
                 AppState.isProcessing = false;
                 setLoading(false);
@@ -87,8 +79,6 @@ function handleStreamMessage(data, messageId) {
     if (data.type === 'token' || data.content) {
         const content = data.content || data.token || '';
         appendToMessage(messageId, content);
-    } else if (data.type === 'tool_call') {
-        handleToolCall(data, messageId);
     } else if (data.type === 'prediction') {
         handlePredictionResult(data);
     } else if (data.type === 'staffing') {
@@ -111,22 +101,18 @@ function appendMessage(role, content, isStreaming = false) {
     
     const messageDiv = document.createElement('div');
     messageDiv.id = messageId;
-    messageDiv.className = `flex items-start space-x-3 message-bubble ${role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`;
+    messageDiv.className = `message ${role === 'user' ? 'message-user' : 'message-bot'}`;
     
+    const avatarClass = role === 'user' ? 'message-avatar-user' : 'message-avatar-bot';
+    const contentClass = role === 'user' ? 'message-content-user' : 'message-content-bot';
     const avatar = role === 'user' ? '👤' : '🤖';
-    const avatarBg = role === 'user' 
-        ? 'bg-gradient-to-br from-gray-600 to-gray-700' 
-        : 'bg-gradient-to-br from-cyan-500 to-blue-600';
     
     messageDiv.innerHTML = `
-        <div class="flex-shrink-0 w-10 h-10 ${avatarBg} rounded-full flex items-center justify-center text-xl shadow-lg ${role === 'assistant' ? 'shadow-cyan-500/50' : ''}">
-            ${avatar}
-        </div>
-        <div class="flex-1 ${role === 'user' ? 'text-right' : ''}">
-            <div class="${role === 'user' ? 'bg-blue-600/30 border-blue-400/30' : 'bg-gradient-to-r from-gray-700 to-gray-800 border-cyan-500/20'} rounded-lg px-4 py-3 shadow-lg inline-block ${role === 'user' ? 'text-left' : ''} border">
-                <div class="message-content markdown-content ${isStreaming ? 'streaming' : ''}">${content || '<span class="typing-indicator"><span></span><span></span><span></span></span>'}</div>
+        <div class="${avatarClass}">${avatar}</div>
+        <div class="${contentClass}">
+            <div class="message-text markdown-content">
+                ${isStreaming ? '<span class="typing-dots"><span>●</span><span>●</span><span>●</span></span>' : md.render(content)}
             </div>
-            <div class="message-timestamp text-xs mt-1 ${role === 'user' ? 'text-right' : ''}">${formatTime(new Date())}</div>
         </div>
     `;
     
@@ -145,10 +131,9 @@ function updateMessage(messageId, content) {
     const messageDiv = document.getElementById(messageId);
     if (!messageDiv) return;
     
-    const contentDiv = messageDiv.querySelector('.message-content');
+    const contentDiv = messageDiv.querySelector('.message-text');
     if (contentDiv) {
         contentDiv.innerHTML = md.render(content);
-        contentDiv.classList.remove('streaming');
         
         const container = document.getElementById('messagesContainer');
         container.scrollTop = container.scrollHeight;
@@ -162,11 +147,11 @@ function appendToMessage(messageId, content) {
     const messageDiv = document.getElementById(messageId);
     if (!messageDiv) return;
     
-    const contentDiv = messageDiv.querySelector('.message-content');
+    const contentDiv = messageDiv.querySelector('.message-text');
     if (contentDiv) {
-        const typingIndicator = contentDiv.querySelector('.typing-indicator');
-        if (typingIndicator) {
-            typingIndicator.remove();
+        const typingDots = contentDiv.querySelector('.typing-dots');
+        if (typingDots) {
+            typingDots.remove();
         }
         
         const currentText = contentDiv.innerText || '';
@@ -178,40 +163,11 @@ function appendToMessage(messageId, content) {
 }
 
 /**
- * 处理工具调用
- */
-function handleToolCall(data, messageId) {
-    const toolName = data.name || '未知工具';
-    const toolArgs = data.args || {};
-    
-    const toolDiv = document.createElement('div');
-    toolDiv.className = 'tool-call';
-    toolDiv.innerHTML = `
-        <div class="tool-call-header">⚡ 执行工具: ${toolName}</div>
-        <div class="text-xs text-gray-400 font-mono">
-            ${Object.entries(toolArgs).map(([k, v]) => `<span class="tag tag-blue mr-2">${k}: ${v}</span>`).join('')}
-        </div>
-    `;
-    
-    const messageDiv = document.getElementById(messageId);
-    if (messageDiv) {
-        const contentDiv = messageDiv.querySelector('.message-content');
-        if (contentDiv) {
-            contentDiv.appendChild(toolDiv);
-        }
-    }
-}
-
-/**
  * 处理预测结果
  */
 function handlePredictionResult(data) {
     if (data.chart) {
         chartManager.updatePredictionChart(data.chart.labels, data.chart.values);
-    }
-    
-    if (data.summary) {
-        console.log('Prediction summary:', data.summary);
     }
 }
 
@@ -226,14 +182,14 @@ function handleStaffingRecommendation(data) {
     
     data.recommendations.forEach(rec => {
         const recDiv = document.createElement('div');
-        recDiv.className = 'bg-gradient-to-r from-orange-900/30 to-yellow-900/30 rounded p-2 border border-orange-500/20';
+        recDiv.className = 'staffing-card';
         recDiv.innerHTML = `
-            <div class="flex items-center justify-between mb-1">
-                <span class="font-bold text-orange-300 text-xs font-mono">${rec.title}</span>
-                <span class="tag ${getTagClass(rec.priority)}">${rec.priority}</span>
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-bold text-orange-300">${rec.title}</span>
+                <span class="priority-tag priority-${rec.priority}">${rec.priority}</span>
             </div>
-            <p class="text-gray-300 text-xs font-mono">${rec.description}</p>
-            ${rec.count ? `<div class="mt-1 text-xs"><span class="highlight-number text-sm">${rec.count}</span> <span class="text-gray-400">人</span></div>` : ''}
+            <p class="text-xs text-gray-400 mb-2">${rec.description}</p>
+            ${rec.count ? `<div class="metric-small"><span class="text-cyan-400 font-bold text-lg">${rec.count}</span> <span class="text-gray-500 text-xs">人</span></div>` : ''}
         `;
         container.appendChild(recDiv);
     });
@@ -250,13 +206,13 @@ function handleRiskAlert(data) {
     
     data.alerts.forEach(alert => {
         const alertDiv = document.createElement('div');
-        alertDiv.className = `p-2 rounded text-xs ${getRiskClass(alert.level)}`;
+        alertDiv.className = `alert-card alert-${alert.level}`;
         alertDiv.innerHTML = `
-            <div class="flex items-center mb-1">
-                <span class="mr-1">${getRiskIcon(alert.level)}</span>
-                <span class="font-bold font-mono">${alert.title}</span>
+            <div class="flex items-center mb-2">
+                <span class="text-lg mr-2">${getRiskIcon(alert.level)}</span>
+                <span class="text-sm font-bold">${alert.title}</span>
             </div>
-            <p class="text-gray-300 ml-4 font-mono">${alert.description}</p>
+            <p class="text-xs text-gray-400 ml-7">${alert.description}</p>
         `;
         container.appendChild(alertDiv);
     });
@@ -299,13 +255,11 @@ function clearChat() {
     if (confirm('确定要清空所有对话记录吗？')) {
         const container = document.getElementById('messagesContainer');
         container.innerHTML = `
-            <div class="flex items-start space-x-3">
-                <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center text-xl shadow-lg shadow-cyan-500/50">
-                    🤖
-                </div>
-                <div class="flex-1">
-                    <div class="bg-gradient-to-r from-gray-700 to-gray-800 rounded-lg px-4 py-3 shadow-lg border border-cyan-500/20">
-                        <p class="text-cyan-100 font-mono text-sm">⚡ 对话已清空。有什么我可以帮助您的吗？</p>
+            <div class="message message-bot">
+                <div class="message-avatar-bot">🤖</div>
+                <div class="message-content-bot">
+                    <div class="message-text">
+                        <p class="text-cyan-100 font-medium mb-3">⚡ 对话已清空。有什么我可以帮助您的吗？</p>
                     </div>
                 </div>
             </div>
@@ -314,15 +268,15 @@ function clearChat() {
         chartManager.clearAllCharts();
         
         document.getElementById('staffingRecommendations').innerHTML = `
-            <div class="text-center text-gray-500 text-xs py-6 font-mono">
-                <div class="text-2xl mb-2">📊</div>
-                <div>暂无人员建议</div>
+            <div class="empty-state">
+                <div class="empty-icon">📊</div>
+                <div class="empty-text">暂无人员建议</div>
             </div>
         `;
         document.getElementById('riskAlerts').innerHTML = `
-            <div class="text-center text-gray-500 text-xs py-6 font-mono">
-                <div class="text-2xl mb-2">✓</div>
-                <div>系统运行正常</div>
+            <div class="empty-state">
+                <div class="empty-icon success">✓</div>
+                <div class="empty-text">系统运行正常</div>
             </div>
         `;
     }
@@ -333,7 +287,6 @@ function clearChat() {
  */
 function showHelp() {
     document.getElementById('helpModal').classList.remove('hidden');
-    document.getElementById('helpModal').classList.add('flex');
 }
 
 /**
@@ -341,7 +294,6 @@ function showHelp() {
  */
 function closeHelp() {
     document.getElementById('helpModal').classList.add('hidden');
-    document.getElementById('helpModal').classList.remove('flex');
 }
 
 /**
@@ -353,15 +305,13 @@ function setLoading(loading) {
     
     sendBtn.disabled = loading;
     sendBtn.innerHTML = loading 
-        ? '<span class="flex items-center space-x-2"><span>处理中</span><span class="text-lg animate-spin">⚡</span></span>'
-        : '<span class="flex items-center space-x-2"><span>发送</span><span class="text-lg">⚡</span></span>';
+        ? '<span class="flex items-center space-x-2"><span>处理中</span><span class="text-xl animate-spin">⚡</span></span>'
+        : '<span class="flex items-center space-x-2"><span>发送</span><span class="text-xl">⚡</span></span>';
     
     if (loading) {
         overlay.classList.remove('hidden');
-        overlay.classList.add('flex');
     } else {
         overlay.classList.add('hidden');
-        overlay.classList.remove('flex');
     }
 }
 
@@ -383,30 +333,6 @@ function formatTime(date) {
 }
 
 /**
- * 获取标签样式类
- */
-function getTagClass(priority) {
-    const classes = {
-        '高': 'tag-red',
-        '中': 'tag-yellow',
-        '低': 'tag-green'
-    };
-    return classes[priority] || 'tag-blue';
-}
-
-/**
- * 获取风险样式类
- */
-function getRiskClass(level) {
-    const classes = {
-        'high': 'risk-high',
-        'medium': 'risk-medium',
-        'low': 'risk-low'
-    };
-    return classes[level] || 'risk-low';
-}
-
-/**
  * 获取风险图标
  */
 function getRiskIcon(level) {
@@ -424,20 +350,15 @@ function getRiskIcon(level) {
 function updateLastUpdate() {
     const el = document.getElementById('lastUpdate');
     if (el) {
-        el.textContent = new Date().toLocaleTimeString('zh-CN', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        });
+        el.textContent = formatTime(new Date());
     }
 }
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
-    // 更新最后更新时间
     updateLastUpdate();
     setInterval(updateLastUpdate, 60000);
     
-    // 聚焦输入框
     document.getElementById('userInput').focus();
     
     console.log('⚡ 配网调度智能预测系统已加载');
@@ -450,8 +371,72 @@ document.getElementById('helpModal').addEventListener('click', function(e) {
     }
 });
 
-document.getElementById('loadingOverlay').addEventListener('click', function(e) {
-    if (e.target === this && !AppState.isProcessing) {
-        setLoading(false);
+// 添加打字点动画样式
+const style = document.createElement('style');
+style.textContent = `
+    .typing-dots span {
+        animation: typing-dot 1.4s infinite;
+        opacity: 0;
+        color: #00d4ff;
     }
-});
+    .typing-dots span:nth-child(1) { animation-delay: 0s; }
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    
+    @keyframes typing-dot {
+        0%, 60%, 100% { opacity: 0; }
+        30% { opacity: 1; }
+    }
+    
+    .staffing-card {
+        background: linear-gradient(135deg, rgba(251, 146, 60, 0.1), rgba(234, 88, 12, 0.05));
+        border: 1px solid rgba(251, 146, 60, 0.2);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+    
+    .priority-tag {
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .priority-高 {
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+    }
+    
+    .priority-中 {
+        background: rgba(251, 191, 36, 0.2);
+        color: #fbbf24;
+    }
+    
+    .priority-低 {
+        background: rgba(34, 197, 94, 0.2);
+        color: #22c55e;
+    }
+    
+    .alert-card {
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+    
+    .alert-high {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.1));
+        border-left: 3px solid #ef4444;
+    }
+    
+    .alert-medium {
+        background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.1));
+        border-left: 3px solid #fbbf24;
+    }
+    
+    .alert-low {
+        background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.1));
+        border-left: 3px solid #22c55e;
+    }
+`;
+document.head.appendChild(style);

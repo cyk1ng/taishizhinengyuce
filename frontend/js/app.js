@@ -369,38 +369,57 @@ function updateCurrentTime() {
 }
 
 /**
- * 模拟天气数据更新
+ * 获取真实天气数据
  */
-function updateWeatherData() {
-    // 模拟天气数据（实际项目中应该调用天气API）
-    const weatherData = [
-        { text: '晴', icon: '☀️', temp: '28' },
-        { text: '多云', icon: '⛅', temp: '26' },
-        { text: '阴', icon: '☁️', temp: '24' },
-        { text: '小雨', icon: '🌧️', temp: '22' }
-    ];
-    
-    const windData = [
-        { text: '微风', speed: '2.5' },
-        { text: '轻风', speed: '3.8' },
-        { text: '和风', speed: '5.2' },
-        { text: '清风', speed: '6.8' }
-    ];
-    
-    // 随机选择天气和风力
-    const weather = weatherData[Math.floor(Math.random() * weatherData.length)];
-    const wind = windData[Math.floor(Math.random() * windData.length)];
-    
-    // 更新显示
+async function updateWeatherData() {
+    try {
+        // 调用后端天气API
+        const response = await fetch('/api/weather');
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            const data = result.data;
+            
+            // 更新天气显示
+            const weatherEl = document.getElementById('weatherText');
+            const tempEl = document.getElementById('tempText');
+            const windTextEl = document.getElementById('windText');
+            const windSpeedEl = document.getElementById('windSpeedText');
+            
+            if (weatherEl) weatherEl.textContent = data.text;
+            if (tempEl) tempEl.textContent = `${data.temp}°C`;
+            if (windTextEl) windTextEl.textContent = `${data.wind_dir} ${data.wind_scale}`;
+            if (windSpeedEl) windSpeedEl.textContent = `${data.wind_speed}m/s`;
+            
+            // 如果是模拟数据，添加提示
+            if (data.is_mock) {
+                console.log('💡 当前使用模拟天气数据');
+            }
+        } else {
+            console.error('获取天气数据失败:', result.error);
+            // 使用备用数据
+            useFallbackWeather();
+        }
+    } catch (error) {
+        console.error('天气API调用失败:', error);
+        // 使用备用数据
+        useFallbackWeather();
+    }
+}
+
+/**
+ * 使用备用天气数据
+ */
+function useFallbackWeather() {
     const weatherEl = document.getElementById('weatherText');
     const tempEl = document.getElementById('tempText');
     const windTextEl = document.getElementById('windText');
     const windSpeedEl = document.getElementById('windSpeedText');
     
-    if (weatherEl) weatherEl.textContent = weather.text;
-    if (tempEl) tempEl.textContent = `${weather.temp}°C`;
-    if (windTextEl) windTextEl.textContent = wind.text;
-    if (windSpeedEl) windSpeedEl.textContent = `${wind.speed}m/s`;
+    if (weatherEl) weatherEl.textContent = '晴';
+    if (tempEl) tempEl.textContent = '25°C';
+    if (windTextEl) windTextEl.textContent = '微风';
+    if (windSpeedEl) windSpeedEl.textContent = '2.5m/s';
 }
 
 // 页面加载完成后初始化

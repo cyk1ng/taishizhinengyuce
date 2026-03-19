@@ -287,6 +287,38 @@ async def health_check():
     """健康检查接口"""
     return {"status": "ok", "service": "配网调度业务量智能预测系统"}
 
+# 天气API接口
+@app.get("/api/weather")
+async def get_weather(city: str = None):
+    """
+    获取实时天气信息
+    
+    参数:
+        city: 城市代码（可选，默认北京）
+    
+    返回:
+        天气信息（温度、湿度、风力等）
+    """
+    try:
+        from tools.weather_api import get_weather_info
+        weather_data = get_weather_info(city)
+        return weather_data
+    except Exception as e:
+        logger.error(f"获取天气信息失败: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "data": {
+                "temp": "--",
+                "text": "未知",
+                "icon": "🌤️",
+                "wind_dir": "--",
+                "wind_scale": "--",
+                "wind_speed": "--",
+                "update_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+        }
+
 # OpenAI 兼容接口处理器
 openai_handler = OpenAIChatHandler(service)
 

@@ -1,11 +1,11 @@
 /**
- * 配网调度业务量智能预测系统 - 图表配置
+ * ⚡ 配网调度智能预测系统 - 图表配置
  */
 
-// Chart.js 全局配置
-Chart.defaults.color = '#9ca3af';
-Chart.defaults.borderColor = '#374151';
-Chart.defaults.font.family = 'system-ui, -apple-system, sans-serif';
+// Chart.js 全局配置 - 电力系统主题
+Chart.defaults.color = '#a0aec0';
+Chart.defaults.borderColor = 'rgba(0, 212, 255, 0.2)';
+Chart.defaults.font.family = 'Consolas, Monaco, monospace';
 
 /**
  * 图表管理类
@@ -24,7 +24,7 @@ class ChartManager {
     }
 
     /**
-     * 初始化预测趋势图
+     * 初始化预测趋势图 - 电光风格
      */
     initPredictionChart() {
         const ctx = document.getElementById('predictionChart');
@@ -37,16 +37,25 @@ class ChartManager {
                 datasets: [{
                     label: '预测业务量',
                     data: [],
-                    borderColor: 'rgb(96, 165, 250)',
-                    backgroundColor: 'rgba(96, 165, 250, 0.1)',
+                    borderColor: 'rgb(0, 212, 255)',
+                    backgroundColor: (context) => {
+                        const ctx = context.chart.ctx;
+                        const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+                        gradient.addColorStop(0, 'rgba(0, 212, 255, 0.3)');
+                        gradient.addColorStop(1, 'rgba(0, 212, 255, 0.0)');
+                        return gradient;
+                    },
                     borderWidth: 2,
                     fill: true,
                     tension: 0.4,
-                    pointBackgroundColor: 'rgb(96, 165, 250)',
+                    pointBackgroundColor: '#00d4ff',
                     pointBorderColor: '#fff',
                     pointBorderWidth: 2,
                     pointRadius: 4,
-                    pointHoverRadius: 6
+                    pointHoverRadius: 6,
+                    pointHoverBackgroundColor: '#00e5ff',
+                    pointHoverBorderColor: '#fff',
+                    pointHoverBorderWidth: 3
                 }]
             },
             options: {
@@ -57,23 +66,34 @@ class ChartManager {
                         display: true,
                         position: 'top',
                         labels: {
-                            color: '#e5e7eb',
+                            color: '#00d4ff',
                             font: {
-                                size: 12
-                            }
+                                size: 11,
+                                family: 'Consolas'
+                            },
+                            usePointStyle: true,
+                            pointStyle: 'circle'
                         }
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(17, 24, 39, 0.9)',
-                        titleColor: '#60a5fa',
-                        bodyColor: '#e5e7eb',
-                        borderColor: '#374151',
+                        backgroundColor: 'rgba(10, 14, 39, 0.95)',
+                        titleColor: '#00d4ff',
+                        bodyColor: '#e0e0e0',
+                        borderColor: 'rgba(0, 212, 255, 0.5)',
                         borderWidth: 1,
                         padding: 12,
                         displayColors: false,
+                        titleFont: {
+                            family: 'Consolas',
+                            size: 12
+                        },
+                        bodyFont: {
+                            family: 'Consolas',
+                            size: 11
+                        },
                         callbacks: {
                             label: function(context) {
-                                return `业务量: ${context.parsed.y}`;
+                                return `⚡ 业务量: ${context.parsed.y}`;
                             }
                         }
                     }
@@ -81,11 +101,15 @@ class ChartManager {
                 scales: {
                     x: {
                         grid: {
-                            color: 'rgba(55, 65, 81, 0.5)',
+                            color: 'rgba(0, 212, 255, 0.1)',
                             drawBorder: false
                         },
                         ticks: {
-                            color: '#9ca3af',
+                            color: '#a0aec0',
+                            font: {
+                                size: 10,
+                                family: 'Consolas'
+                            },
                             maxRotation: 45,
                             minRotation: 45
                         }
@@ -93,17 +117,25 @@ class ChartManager {
                     y: {
                         beginAtZero: true,
                         grid: {
-                            color: 'rgba(55, 65, 81, 0.5)',
+                            color: 'rgba(0, 212, 255, 0.1)',
                             drawBorder: false
                         },
                         ticks: {
-                            color: '#9ca3af'
+                            color: '#a0aec0',
+                            font: {
+                                size: 10,
+                                family: 'Consolas'
+                            }
                         }
                     }
                 },
                 interaction: {
                     intersect: false,
                     mode: 'index'
+                },
+                animation: {
+                    duration: 1000,
+                    easing: 'easeOutQuart'
                 }
             }
         });
@@ -111,8 +143,6 @@ class ChartManager {
 
     /**
      * 更新预测图表数据
-     * @param {Array} labels - X轴标签
-     * @param {Array} data - 数据点
      */
     updatePredictionChart(labels, data) {
         if (this.charts.prediction) {
@@ -123,15 +153,12 @@ class ChartManager {
     }
 
     /**
-     * 创建业务量对比柱状图
-     * @param {string} canvasId - Canvas ID
-     * @param {object} data - 图表数据
+     * 创建业务量对比柱状图 - 电光风格
      */
     createComparisonChart(canvasId, data) {
         const ctx = document.getElementById(canvasId);
         if (!ctx) return;
 
-        // 如果已存在图表，先销毁
         if (this.charts[canvasId]) {
             this.charts[canvasId].destroy();
         }
@@ -143,15 +170,17 @@ class ChartManager {
                 datasets: [{
                     label: '预测值',
                     data: data.predicted,
-                    backgroundColor: 'rgba(96, 165, 250, 0.8)',
-                    borderColor: 'rgb(96, 165, 250)',
-                    borderWidth: 1
+                    backgroundColor: 'rgba(0, 212, 255, 0.6)',
+                    borderColor: 'rgb(0, 212, 255)',
+                    borderWidth: 1,
+                    borderRadius: 4
                 }, {
                     label: '实际值',
                     data: data.actual,
-                    backgroundColor: 'rgba(167, 139, 250, 0.8)',
-                    borderColor: 'rgb(167, 139, 250)',
-                    borderWidth: 1
+                    backgroundColor: 'rgba(168, 85, 247, 0.6)',
+                    borderColor: 'rgb(168, 85, 247)',
+                    borderWidth: 1,
+                    borderRadius: 4
                 }]
             },
             options: {
@@ -159,19 +188,31 @@ class ChartManager {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        position: 'top'
+                        position: 'top',
+                        labels: {
+                            color: '#a0aec0',
+                            font: {
+                                family: 'Consolas'
+                            }
+                        }
                     }
                 },
                 scales: {
                     x: {
                         grid: {
-                            color: 'rgba(55, 65, 81, 0.5)'
+                            color: 'rgba(0, 212, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#a0aec0'
                         }
                     },
                     y: {
                         beginAtZero: true,
                         grid: {
-                            color: 'rgba(55, 65, 81, 0.5)'
+                            color: 'rgba(0, 212, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#a0aec0'
                         }
                     }
                 }
@@ -180,9 +221,7 @@ class ChartManager {
     }
 
     /**
-     * 创建人员配置饼图
-     * @param {string} canvasId - Canvas ID
-     * @param {object} data - 图表数据
+     * 创建人员配置饼图 - 电光风格
      */
     createStaffingPieChart(canvasId, data) {
         const ctx = document.getElementById(canvasId);
@@ -199,14 +238,14 @@ class ChartManager {
                 datasets: [{
                     data: data.values,
                     backgroundColor: [
-                        'rgba(96, 165, 250, 0.8)',
-                        'rgba(167, 139, 250, 0.8)',
-                        'rgba(52, 211, 153, 0.8)',
+                        'rgba(0, 212, 255, 0.8)',
+                        'rgba(168, 85, 247, 0.8)',
+                        'rgba(34, 197, 94, 0.8)',
                         'rgba(251, 191, 36, 0.8)',
                         'rgba(239, 68, 68, 0.8)'
                     ],
                     borderWidth: 2,
-                    borderColor: '#1f2937'
+                    borderColor: '#0a0e27'
                 }]
             },
             options: {
@@ -216,8 +255,12 @@ class ChartManager {
                     legend: {
                         position: 'bottom',
                         labels: {
-                            color: '#e5e7eb',
-                            padding: 10
+                            color: '#a0aec0',
+                            padding: 10,
+                            font: {
+                                family: 'Consolas',
+                                size: 10
+                            }
                         }
                     }
                 }
@@ -226,9 +269,7 @@ class ChartManager {
     }
 
     /**
-     * 创建风险等级雷达图
-     * @param {string} canvasId - Canvas ID
-     * @param {object} data - 图表数据
+     * 创建风险等级雷达图 - 电光风格
      */
     createRiskRadarChart(canvasId, data) {
         const ctx = document.getElementById(canvasId);
@@ -262,17 +303,24 @@ class ChartManager {
                         beginAtZero: true,
                         max: 100,
                         ticks: {
-                            color: '#9ca3af',
-                            backdropColor: 'transparent'
+                            color: '#a0aec0',
+                            backdropColor: 'transparent',
+                            font: {
+                                size: 9
+                            }
                         },
                         grid: {
-                            color: 'rgba(55, 65, 81, 0.5)'
+                            color: 'rgba(0, 212, 255, 0.2)'
                         },
                         angleLines: {
-                            color: 'rgba(55, 65, 81, 0.5)'
+                            color: 'rgba(0, 212, 255, 0.2)'
                         },
                         pointLabels: {
-                            color: '#e5e7eb'
+                            color: '#a0aec0',
+                            font: {
+                                size: 10,
+                                family: 'Consolas'
+                            }
                         }
                     }
                 }

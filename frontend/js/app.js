@@ -1,8 +1,8 @@
 /**
- * 配网调度业务量智能预测系统 - 主应用逻辑
+ * ⚡ 配网调度智能预测系统 - 主应用逻辑
  */
 
-// Markdown 解析器
+// Markdown 解析器配置
 const md = window.markdownit({
     html: true,
     linkify: true,
@@ -84,28 +84,20 @@ async function sendMessage() {
 function handleStreamMessage(data, messageId) {
     console.log('Received stream data:', data);
     
-    // 根据消息类型处理
     if (data.type === 'token' || data.content) {
-        // 文本内容
         const content = data.content || data.token || '';
         appendToMessage(messageId, content);
     } else if (data.type === 'tool_call') {
-        // 工具调用
         handleToolCall(data, messageId);
     } else if (data.type === 'prediction') {
-        // 预测结果
         handlePredictionResult(data);
     } else if (data.type === 'staffing') {
-        // 人员建议
         handleStaffingRecommendation(data);
     } else if (data.type === 'risk') {
-        // 风险预警
         handleRiskAlert(data);
     } else if (data.type === 'complete') {
-        // 完成
         console.log('Stream complete');
     } else if (data.type === 'error') {
-        // 错误
         updateMessage(messageId, `❌ ${data.message}`);
     }
 }
@@ -123,15 +115,15 @@ function appendMessage(role, content, isStreaming = false) {
     
     const avatar = role === 'user' ? '👤' : '🤖';
     const avatarBg = role === 'user' 
-        ? 'bg-gradient-to-br from-gray-500 to-gray-600' 
-        : 'bg-gradient-to-br from-blue-500 to-purple-600';
+        ? 'bg-gradient-to-br from-gray-600 to-gray-700' 
+        : 'bg-gradient-to-br from-cyan-500 to-blue-600';
     
     messageDiv.innerHTML = `
-        <div class="flex-shrink-0 w-10 h-10 ${avatarBg} rounded-full flex items-center justify-center text-xl">
+        <div class="flex-shrink-0 w-10 h-10 ${avatarBg} rounded-full flex items-center justify-center text-xl shadow-lg ${role === 'assistant' ? 'shadow-cyan-500/50' : ''}">
             ${avatar}
         </div>
         <div class="flex-1 ${role === 'user' ? 'text-right' : ''}">
-            <div class="${role === 'user' ? 'bg-blue-700' : 'bg-gray-700'} rounded-lg px-4 py-3 shadow inline-block ${role === 'user' ? 'text-left' : ''}">
+            <div class="${role === 'user' ? 'bg-blue-600/30 border-blue-400/30' : 'bg-gradient-to-r from-gray-700 to-gray-800 border-cyan-500/20'} rounded-lg px-4 py-3 shadow-lg inline-block ${role === 'user' ? 'text-left' : ''} border">
                 <div class="message-content markdown-content ${isStreaming ? 'streaming' : ''}">${content || '<span class="typing-indicator"><span></span><span></span><span></span></span>'}</div>
             </div>
             <div class="message-timestamp text-xs mt-1 ${role === 'user' ? 'text-right' : ''}">${formatTime(new Date())}</div>
@@ -158,7 +150,6 @@ function updateMessage(messageId, content) {
         contentDiv.innerHTML = md.render(content);
         contentDiv.classList.remove('streaming');
         
-        // 滚动到底部
         const container = document.getElementById('messagesContainer');
         container.scrollTop = container.scrollHeight;
     }
@@ -173,17 +164,14 @@ function appendToMessage(messageId, content) {
     
     const contentDiv = messageDiv.querySelector('.message-content');
     if (contentDiv) {
-        // 移除打字指示器
         const typingIndicator = contentDiv.querySelector('.typing-indicator');
         if (typingIndicator) {
             typingIndicator.remove();
         }
         
-        // 追加内容
         const currentText = contentDiv.innerText || '';
         contentDiv.innerHTML = md.render(currentText + content);
         
-        // 滚动到底部
         const container = document.getElementById('messagesContainer');
         container.scrollTop = container.scrollHeight;
     }
@@ -199,8 +187,8 @@ function handleToolCall(data, messageId) {
     const toolDiv = document.createElement('div');
     toolDiv.className = 'tool-call';
     toolDiv.innerHTML = `
-        <div class="tool-call-header">🔧 调用工具: ${toolName}</div>
-        <div class="text-xs text-gray-400">
+        <div class="tool-call-header">⚡ 执行工具: ${toolName}</div>
+        <div class="text-xs text-gray-400 font-mono">
             ${Object.entries(toolArgs).map(([k, v]) => `<span class="tag tag-blue mr-2">${k}: ${v}</span>`).join('')}
         </div>
     `;
@@ -219,12 +207,10 @@ function handleToolCall(data, messageId) {
  */
 function handlePredictionResult(data) {
     if (data.chart) {
-        // 更新图表
         chartManager.updatePredictionChart(data.chart.labels, data.chart.values);
     }
     
     if (data.summary) {
-        // 显示摘要
         console.log('Prediction summary:', data.summary);
     }
 }
@@ -240,14 +226,14 @@ function handleStaffingRecommendation(data) {
     
     data.recommendations.forEach(rec => {
         const recDiv = document.createElement('div');
-        recDiv.className = 'bg-gray-700 rounded p-3 text-sm';
+        recDiv.className = 'bg-gradient-to-r from-orange-900/30 to-yellow-900/30 rounded p-2 border border-orange-500/20';
         recDiv.innerHTML = `
-            <div class="flex items-center justify-between mb-2">
-                <span class="font-semibold text-orange-300">${rec.title}</span>
+            <div class="flex items-center justify-between mb-1">
+                <span class="font-bold text-orange-300 text-xs font-mono">${rec.title}</span>
                 <span class="tag ${getTagClass(rec.priority)}">${rec.priority}</span>
             </div>
-            <p class="text-gray-300 text-xs">${rec.description}</p>
-            ${rec.count ? `<div class="mt-2 text-xs"><span class="highlight-number">${rec.count}</span> 人</div>` : ''}
+            <p class="text-gray-300 text-xs font-mono">${rec.description}</p>
+            ${rec.count ? `<div class="mt-1 text-xs"><span class="highlight-number text-sm">${rec.count}</span> <span class="text-gray-400">人</span></div>` : ''}
         `;
         container.appendChild(recDiv);
     });
@@ -264,13 +250,13 @@ function handleRiskAlert(data) {
     
     data.alerts.forEach(alert => {
         const alertDiv = document.createElement('div');
-        alertDiv.className = `p-3 rounded text-sm ${getRiskClass(alert.level)}`;
+        alertDiv.className = `p-2 rounded text-xs ${getRiskClass(alert.level)}`;
         alertDiv.innerHTML = `
             <div class="flex items-center mb-1">
-                <span class="mr-2">${getRiskIcon(alert.level)}</span>
-                <span class="font-semibold">${alert.title}</span>
+                <span class="mr-1">${getRiskIcon(alert.level)}</span>
+                <span class="font-bold font-mono">${alert.title}</span>
             </div>
-            <p class="text-xs text-gray-300 ml-6">${alert.description}</p>
+            <p class="text-gray-300 ml-4 font-mono">${alert.description}</p>
         `;
         container.appendChild(alertDiv);
     });
@@ -281,9 +267,9 @@ function handleRiskAlert(data) {
  */
 function quickPredict(type) {
     const messages = {
-        today: '请预测今天的调度业务量，并提供人员配置建议。',
-        week: '请预测未来7天的调度业务量趋势，分析峰值时段和风险点。',
-        month: '请预测本月的调度业务量，生成月度决策报告。'
+        today: '⚡ 请预测今天的调度业务量，并提供人员配置建议。',
+        week: '⚡ 请预测未来7天的调度业务量趋势，分析峰值时段和风险点。',
+        month: '⚡ 请预测本月的调度业务量，生成月度决策报告。'
     };
     
     const input = document.getElementById('userInput');
@@ -296,9 +282,9 @@ function quickPredict(type) {
  */
 function quickAction(type) {
     const messages = {
-        staffing: '请根据当前业务量预测，提供值班人员调整建议。',
-        risk: '请分析当前业务风险点，并提供预警建议。',
-        report: '请生成一份完整的配网调度业务量预测决策报告。'
+        staffing: '⚡ 请根据当前业务量预测，提供值班人员调整建议。',
+        risk: '⚡ 请分析当前业务风险点，并提供预警建议。',
+        report: '⚡ 请生成一份完整的配网调度业务量预测决策报告。'
     };
     
     const input = document.getElementById('userInput');
@@ -314,12 +300,12 @@ function clearChat() {
         const container = document.getElementById('messagesContainer');
         container.innerHTML = `
             <div class="flex items-start space-x-3">
-                <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-xl">
+                <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center text-xl shadow-lg shadow-cyan-500/50">
                     🤖
                 </div>
                 <div class="flex-1">
-                    <div class="bg-gray-700 rounded-lg px-4 py-3 shadow">
-                        <p class="text-gray-100">对话已清空。有什么我可以帮助您的吗？</p>
+                    <div class="bg-gradient-to-r from-gray-700 to-gray-800 rounded-lg px-4 py-3 shadow-lg border border-cyan-500/20">
+                        <p class="text-cyan-100 font-mono text-sm">⚡ 对话已清空。有什么我可以帮助您的吗？</p>
                     </div>
                 </div>
             </div>
@@ -327,9 +313,18 @@ function clearChat() {
         AppState.messages = [];
         chartManager.clearAllCharts();
         
-        // 清空右侧面板
-        document.getElementById('staffingRecommendations').innerHTML = '<div class="text-center text-gray-400 text-sm py-4">暂无人员建议</div>';
-        document.getElementById('riskAlerts').innerHTML = '<div class="text-center text-gray-400 text-sm py-4">暂无风险预警</div>';
+        document.getElementById('staffingRecommendations').innerHTML = `
+            <div class="text-center text-gray-500 text-xs py-6 font-mono">
+                <div class="text-2xl mb-2">📊</div>
+                <div>暂无人员建议</div>
+            </div>
+        `;
+        document.getElementById('riskAlerts').innerHTML = `
+            <div class="text-center text-gray-500 text-xs py-6 font-mono">
+                <div class="text-2xl mb-2">✓</div>
+                <div>系统运行正常</div>
+            </div>
+        `;
     }
 }
 
@@ -357,7 +352,9 @@ function setLoading(loading) {
     const overlay = document.getElementById('loadingOverlay');
     
     sendBtn.disabled = loading;
-    sendBtn.innerHTML = loading ? '发送中...' : '发送 ⚡';
+    sendBtn.innerHTML = loading 
+        ? '<span class="flex items-center space-x-2"><span>处理中</span><span class="text-lg animate-spin">⚡</span></span>'
+        : '<span class="flex items-center space-x-2"><span>发送</span><span class="text-lg">⚡</span></span>';
     
     if (loading) {
         overlay.classList.remove('hidden');
@@ -438,12 +435,12 @@ function updateLastUpdate() {
 document.addEventListener('DOMContentLoaded', function() {
     // 更新最后更新时间
     updateLastUpdate();
-    setInterval(updateLastUpdate, 60000); // 每分钟更新
+    setInterval(updateLastUpdate, 60000);
     
     // 聚焦输入框
     document.getElementById('userInput').focus();
     
-    console.log('⚡ 配网调度业务量智能预测系统已加载');
+    console.log('⚡ 配网调度智能预测系统已加载');
 });
 
 // 点击模态框外部关闭

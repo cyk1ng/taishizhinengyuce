@@ -31,9 +31,6 @@
     <!-- 动态背景 -->
     <div id="particles-js" class="fixed inset-0 z-0"></div>
     
-    <!-- 扫描线效果 -->
-    <div class="scan-line"></div>
-    
     <!-- 网格背景 -->
     <div class="grid-background"></div>
     
@@ -59,17 +56,31 @@
                     </div>
                     
                     <!-- 系统状态 -->
-                    <div class="flex items-center space-x-6">
+                    <div class="flex items-center space-x-4">
+                        <!-- 当前时间 -->
+                        <div class="info-badge">
+                            <span class="text-lg">🕐</span>
+                            <span class="text-sm text-cyan-300 font-mono ml-1" id="currentTime">--:--:--</span>
+                        </div>
+                        
+                        <!-- 天气信息 -->
+                        <div class="info-badge">
+                            <span class="text-lg">🌤️</span>
+                            <span class="text-sm text-cyan-300 ml-1" id="weatherText">晴</span>
+                            <span class="text-sm text-blue-300 ml-2" id="tempText">--°C</span>
+                        </div>
+                        
+                        <!-- 风力信息 -->
+                        <div class="info-badge">
+                            <span class="text-lg">💨</span>
+                            <span class="text-sm text-cyan-300 ml-1" id="windText">微风</span>
+                            <span class="text-xs text-gray-400 ml-1" id="windSpeedText">--m/s</span>
+                        </div>
+                        
                         <!-- 系统状态指示器 -->
                         <div class="status-indicator">
                             <span class="status-dot-pulse"></span>
                             <span class="text-sm text-cyan-300 font-medium ml-2">系统运行中</span>
-                        </div>
-                        
-                        <!-- 模型信息 -->
-                        <div class="model-badge">
-                            <span class="text-xs text-blue-300">当前模型</span>
-                            <span class="text-sm text-cyan-400 font-bold ml-2">Doubao-Seed-1.8</span>
                         </div>
                         
                         <!-- 帮助按钮 -->

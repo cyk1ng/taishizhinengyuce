@@ -354,11 +354,70 @@ function updateLastUpdate() {
     }
 }
 
+/**
+ * 更新当前时间显示
+ */
+function updateCurrentTime() {
+    const timeEl = document.getElementById('currentTime');
+    if (timeEl) {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        timeEl.textContent = `${hours}:${minutes}:${seconds}`;
+    }
+}
+
+/**
+ * 模拟天气数据更新
+ */
+function updateWeatherData() {
+    // 模拟天气数据（实际项目中应该调用天气API）
+    const weatherData = [
+        { text: '晴', icon: '☀️', temp: '28' },
+        { text: '多云', icon: '⛅', temp: '26' },
+        { text: '阴', icon: '☁️', temp: '24' },
+        { text: '小雨', icon: '🌧️', temp: '22' }
+    ];
+    
+    const windData = [
+        { text: '微风', speed: '2.5' },
+        { text: '轻风', speed: '3.8' },
+        { text: '和风', speed: '5.2' },
+        { text: '清风', speed: '6.8' }
+    ];
+    
+    // 随机选择天气和风力
+    const weather = weatherData[Math.floor(Math.random() * weatherData.length)];
+    const wind = windData[Math.floor(Math.random() * windData.length)];
+    
+    // 更新显示
+    const weatherEl = document.getElementById('weatherText');
+    const tempEl = document.getElementById('tempText');
+    const windTextEl = document.getElementById('windText');
+    const windSpeedEl = document.getElementById('windSpeedText');
+    
+    if (weatherEl) weatherEl.textContent = weather.text;
+    if (tempEl) tempEl.textContent = `${weather.temp}°C`;
+    if (windTextEl) windTextEl.textContent = wind.text;
+    if (windSpeedEl) windSpeedEl.textContent = `${wind.speed}m/s`;
+}
+
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
+    // 更新最后更新时间
     updateLastUpdate();
     setInterval(updateLastUpdate, 60000);
     
+    // 更新当前时间（每秒更新）
+    updateCurrentTime();
+    setInterval(updateCurrentTime, 1000);
+    
+    // 更新天气数据（每小时更新一次）
+    updateWeatherData();
+    setInterval(updateWeatherData, 3600000);
+    
+    // 聚焦输入框
     document.getElementById('userInput').focus();
     
     console.log('⚡ 配网调度智能预测系统已加载');

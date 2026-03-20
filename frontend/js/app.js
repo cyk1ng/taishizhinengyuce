@@ -1,8 +1,8 @@
 /**
- * ⚡ 配网调度智能预测系统 - 主应用逻辑
+ * 配网调度业务量智能预测系统 - 主应用逻辑
  */
 
-// Markdown 解析器配置
+// Markdown 解析器
 const md = window.markdownit({
     html: true,
     linkify: true,
@@ -37,26 +37,34 @@ async function sendMessage() {
         return;
     }
 
+    // 清空输入框
     input.value = '';
     
+    // 显示用户消息
     appendMessage('user', message);
     
+    // 设置处理状态
     AppState.isProcessing = true;
     setLoading(true);
     
+    // 创建助手消息占位符
     const assistantMessageId = appendMessage('assistant', '', true);
     
     try {
+        // 发送流式请求
         await api.streamRun(
             message,
+            // 消息回调
             (data) => {
                 handleStreamMessage(data, assistantMessageId);
             },
+            // 错误回调
             (error) => {
                 updateMessage(assistantMessageId, `❌ 错误: ${error.message}`);
                 AppState.isProcessing = false;
                 setLoading(false);
             },
+            // 完成回调
             () => {
                 AppState.isProcessing = false;
                 setLoading(false);
@@ -76,18 +84,28 @@ async function sendMessage() {
 function handleStreamMessage(data, messageId) {
     console.log('Received stream data:', data);
     
+    // 根据消息类型处理
     if (data.type === 'token' || data.content) {
+        // 文本内容
         const content = data.content || data.token || '';
         appendToMessage(messageId, content);
+    } else if (data.type === 'tool_call') {
+        // 工具调用
+        handleToolCall(data, messageId);
     } else if (data.type === 'prediction') {
+        // 预测结果
         handlePredictionResult(data);
     } else if (data.type === 'staffing') {
+        // 人员建议
         handleStaffingRecommendation(data);
     } else if (data.type === 'risk') {
+        // 风险预警
         handleRiskAlert(data);
     } else if (data.type === 'complete') {
+        // 完成
         console.log('Stream complete');
     } else if (data.type === 'error') {
+        // 错误
         updateMessage(messageId, `❌ ${data.message}`);
     }
 }
@@ -101,18 +119,22 @@ function appendMessage(role, content, isStreaming = false) {
     
     const messageDiv = document.createElement('div');
     messageDiv.id = messageId;
-    messageDiv.className = `message ${role === 'user' ? 'message-user' : 'message-bot'}`;
+    messageDiv.className = `flex items-start space-x-3 message-bubble ${role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`;
     
-    const avatarClass = role === 'user' ? 'message-avatar-user' : 'message-avatar-bot';
-    const contentClass = role === 'user' ? 'message-content-user' : 'message-content-bot';
     const avatar = role === 'user' ? '👤' : '🤖';
+    const avatarBg = role === 'user' 
+        ? 'bg-gradient-to-br from-gray-500 to-gray-600' 
+        : 'bg-gradient-to-br from-blue-500 to-purple-600';
     
     messageDiv.innerHTML = `
-        <div class="${avatarClass}">${avatar}</div>
-        <div class="${contentClass}">
-            <div class="message-text markdown-content">
-                ${isStreaming ? '<span class="typing-dots"><span>●</span><span>●</span><span>●</span></span>' : md.render(content)}
+        <div class="flex-shrink-0 w-10 h-10 ${avatarBg} rounded-full flex items-center justify-center text-xl">
+            ${avatar}
+        </div>
+        <div class="flex-1 ${role === 'user' ? 'text-right' : ''}">
+            <div class="${role === 'user' ? 'bg-blue-700' : 'bg-gray-700'} rounded-lg px-4 py-3 shadow inline-block ${role === 'user' ? 'text-left' : ''}">
+                <div class="message-content markdown-content ${isStreaming ? 'streaming' : ''}">${content || '<span class="typing-indicator"><span></span><span></span><span></span></span>'}</div>
             </div>
+            <div class="message-timestamp text-xs mt-1 ${role === 'user' ? 'text-right' : ''}">${formatTime(new Date())}</div>
         </div>
     `;
     
@@ -131,10 +153,12 @@ function updateMessage(messageId, content) {
     const messageDiv = document.getElementById(messageId);
     if (!messageDiv) return;
     
-    const contentDiv = messageDiv.querySelector('.message-text');
+    const contentDiv = messageDiv.querySelector('.message-content');
     if (contentDiv) {
         contentDiv.innerHTML = md.render(content);
+        contentDiv.classList.remove('streaming');
         
+        // 滚动到底部
         const container = document.getElementById('messagesContainer');
         container.scrollTop = container.scrollHeight;
     }
@@ -147,18 +171,46 @@ function appendToMessage(messageId, content) {
     const messageDiv = document.getElementById(messageId);
     if (!messageDiv) return;
     
-    const contentDiv = messageDiv.querySelector('.message-text');
+    const contentDiv = messageDiv.querySelector('.message-content');
     if (contentDiv) {
-        const typingDots = contentDiv.querySelector('.typing-dots');
-        if (typingDots) {
-            typingDots.remove();
+        // 移除打字指示器
+        const typingIndicator = contentDiv.querySelector('.typing-indicator');
+        if (typingIndicator) {
+            typingIndicator.remove();
         }
         
+        // 追加内容
         const currentText = contentDiv.innerText || '';
         contentDiv.innerHTML = md.render(currentText + content);
         
+        // 滚动到底部
         const container = document.getElementById('messagesContainer');
         container.scrollTop = container.scrollHeight;
+    }
+}
+
+/**
+ * 处理工具调用
+ */
+function handleToolCall(data, messageId) {
+    const toolName = data.name || '未知工具';
+    const toolArgs = data.args || {};
+    
+    const toolDiv = document.createElement('div');
+    toolDiv.className = 'tool-call';
+    toolDiv.innerHTML = `
+        <div class="tool-call-header">🔧 调用工具: ${toolName}</div>
+        <div class="text-xs text-gray-400">
+            ${Object.entries(toolArgs).map(([k, v]) => `<span class="tag tag-blue mr-2">${k}: ${v}</span>`).join('')}
+        </div>
+    `;
+    
+    const messageDiv = document.getElementById(messageId);
+    if (messageDiv) {
+        const contentDiv = messageDiv.querySelector('.message-content');
+        if (contentDiv) {
+            contentDiv.appendChild(toolDiv);
+        }
     }
 }
 
@@ -167,7 +219,13 @@ function appendToMessage(messageId, content) {
  */
 function handlePredictionResult(data) {
     if (data.chart) {
+        // 更新图表
         chartManager.updatePredictionChart(data.chart.labels, data.chart.values);
+    }
+    
+    if (data.summary) {
+        // 显示摘要
+        console.log('Prediction summary:', data.summary);
     }
 }
 
@@ -182,14 +240,14 @@ function handleStaffingRecommendation(data) {
     
     data.recommendations.forEach(rec => {
         const recDiv = document.createElement('div');
-        recDiv.className = 'staffing-card';
+        recDiv.className = 'bg-gray-700 rounded p-3 text-sm';
         recDiv.innerHTML = `
             <div class="flex items-center justify-between mb-2">
-                <span class="text-sm font-bold text-orange-300">${rec.title}</span>
-                <span class="priority-tag priority-${rec.priority}">${rec.priority}</span>
+                <span class="font-semibold text-orange-300">${rec.title}</span>
+                <span class="tag ${getTagClass(rec.priority)}">${rec.priority}</span>
             </div>
-            <p class="text-xs text-gray-400 mb-2">${rec.description}</p>
-            ${rec.count ? `<div class="metric-small"><span class="text-cyan-400 font-bold text-lg">${rec.count}</span> <span class="text-gray-500 text-xs">人</span></div>` : ''}
+            <p class="text-gray-300 text-xs">${rec.description}</p>
+            ${rec.count ? `<div class="mt-2 text-xs"><span class="highlight-number">${rec.count}</span> 人</div>` : ''}
         `;
         container.appendChild(recDiv);
     });
@@ -206,13 +264,13 @@ function handleRiskAlert(data) {
     
     data.alerts.forEach(alert => {
         const alertDiv = document.createElement('div');
-        alertDiv.className = `alert-card alert-${alert.level}`;
+        alertDiv.className = `p-3 rounded text-sm ${getRiskClass(alert.level)}`;
         alertDiv.innerHTML = `
-            <div class="flex items-center mb-2">
-                <span class="text-lg mr-2">${getRiskIcon(alert.level)}</span>
-                <span class="text-sm font-bold">${alert.title}</span>
+            <div class="flex items-center mb-1">
+                <span class="mr-2">${getRiskIcon(alert.level)}</span>
+                <span class="font-semibold">${alert.title}</span>
             </div>
-            <p class="text-xs text-gray-400 ml-7">${alert.description}</p>
+            <p class="text-xs text-gray-300 ml-6">${alert.description}</p>
         `;
         container.appendChild(alertDiv);
     });
@@ -223,9 +281,9 @@ function handleRiskAlert(data) {
  */
 function quickPredict(type) {
     const messages = {
-        today: '⚡ 请预测今天的调度业务量，并提供人员配置建议。',
-        week: '⚡ 请预测未来7天的调度业务量趋势，分析峰值时段和风险点。',
-        month: '⚡ 请预测本月的调度业务量，生成月度决策报告。'
+        today: '请预测今天的调度业务量，并提供人员配置建议。',
+        week: '请预测未来7天的调度业务量趋势，分析峰值时段和风险点。',
+        month: '请预测本月的调度业务量，生成月度决策报告。'
     };
     
     const input = document.getElementById('userInput');
@@ -238,9 +296,9 @@ function quickPredict(type) {
  */
 function quickAction(type) {
     const messages = {
-        staffing: '⚡ 请根据当前业务量预测，提供值班人员调整建议。',
-        risk: '⚡ 请分析当前业务风险点，并提供预警建议。',
-        report: '⚡ 请生成一份完整的配网调度业务量预测决策报告。'
+        staffing: '请根据当前业务量预测，提供值班人员调整建议。',
+        risk: '请分析当前业务风险点，并提供预警建议。',
+        report: '请生成一份完整的配网调度业务量预测决策报告。'
     };
     
     const input = document.getElementById('userInput');
@@ -255,11 +313,13 @@ function clearChat() {
     if (confirm('确定要清空所有对话记录吗？')) {
         const container = document.getElementById('messagesContainer');
         container.innerHTML = `
-            <div class="message message-bot">
-                <div class="message-avatar-bot">🤖</div>
-                <div class="message-content-bot">
-                    <div class="message-text">
-                        <p class="text-cyan-100 font-medium mb-3">⚡ 对话已清空。有什么我可以帮助您的吗？</p>
+            <div class="flex items-start space-x-3">
+                <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-xl">
+                    🤖
+                </div>
+                <div class="flex-1">
+                    <div class="bg-gray-700 rounded-lg px-4 py-3 shadow">
+                        <p class="text-gray-100">对话已清空。有什么我可以帮助您的吗？</p>
                     </div>
                 </div>
             </div>
@@ -267,18 +327,9 @@ function clearChat() {
         AppState.messages = [];
         chartManager.clearAllCharts();
         
-        document.getElementById('staffingRecommendations').innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon">📊</div>
-                <div class="empty-text">暂无人员建议</div>
-            </div>
-        `;
-        document.getElementById('riskAlerts').innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon success">✓</div>
-                <div class="empty-text">系统运行正常</div>
-            </div>
-        `;
+        // 清空右侧面板
+        document.getElementById('staffingRecommendations').innerHTML = '<div class="text-center text-gray-400 text-sm py-4">暂无人员建议</div>';
+        document.getElementById('riskAlerts').innerHTML = '<div class="text-center text-gray-400 text-sm py-4">暂无风险预警</div>';
     }
 }
 
@@ -287,6 +338,7 @@ function clearChat() {
  */
 function showHelp() {
     document.getElementById('helpModal').classList.remove('hidden');
+    document.getElementById('helpModal').classList.add('flex');
 }
 
 /**
@@ -294,6 +346,7 @@ function showHelp() {
  */
 function closeHelp() {
     document.getElementById('helpModal').classList.add('hidden');
+    document.getElementById('helpModal').classList.remove('flex');
 }
 
 /**
@@ -304,14 +357,14 @@ function setLoading(loading) {
     const overlay = document.getElementById('loadingOverlay');
     
     sendBtn.disabled = loading;
-    sendBtn.innerHTML = loading 
-        ? '<span class="flex items-center space-x-2"><span>处理中</span><span class="text-xl animate-spin">⚡</span></span>'
-        : '<span class="flex items-center space-x-2"><span>发送</span><span class="text-xl">⚡</span></span>';
+    sendBtn.innerHTML = loading ? '发送中...' : '发送 ⚡';
     
     if (loading) {
         overlay.classList.remove('hidden');
+        overlay.classList.add('flex');
     } else {
         overlay.classList.add('hidden');
+        overlay.classList.remove('flex');
     }
 }
 
@@ -333,6 +386,30 @@ function formatTime(date) {
 }
 
 /**
+ * 获取标签样式类
+ */
+function getTagClass(priority) {
+    const classes = {
+        '高': 'tag-red',
+        '中': 'tag-yellow',
+        '低': 'tag-green'
+    };
+    return classes[priority] || 'tag-blue';
+}
+
+/**
+ * 获取风险样式类
+ */
+function getRiskClass(level) {
+    const classes = {
+        'high': 'risk-high',
+        'medium': 'risk-medium',
+        'low': 'risk-low'
+    };
+    return classes[level] || 'risk-low';
+}
+
+/**
  * 获取风险图标
  */
 function getRiskIcon(level) {
@@ -350,21 +427,42 @@ function getRiskIcon(level) {
 function updateLastUpdate() {
     const el = document.getElementById('lastUpdate');
     if (el) {
-        el.textContent = formatTime(new Date());
+        el.textContent = new Date().toLocaleTimeString('zh-CN', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
     }
 }
 
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 更新最后更新时间
+    updateLastUpdate();
+    setInterval(updateLastUpdate, 60000); // 每分钟更新
+    
+    // 更新当前时间（每秒更新）
+    updateCurrentTime();
+    setInterval(updateCurrentTime, 1000);
+    
+    // 更新天气数据（每小时更新一次）
+    updateWeatherData();
+    setInterval(updateWeatherData, 3600000);
+    
+    // 聚焦输入框
+    document.getElementById('userInput').focus();
+    
+    console.log('⚡ 配网调度业务量智能预测系统已加载');
+});
+
 /**
- * 更新当前时间显示
+ * 更新当前时间
  */
 function updateCurrentTime() {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
     const timeEl = document.getElementById('currentTime');
     if (timeEl) {
-        const now = new Date();
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const seconds = String(now.getSeconds()).padStart(2, '0');
-        timeEl.textContent = `${hours}:${minutes}:${seconds}`;
+        timeEl.textContent = timeStr;
     }
 }
 
@@ -422,26 +520,6 @@ function useFallbackWeather() {
     if (windSpeedEl) windSpeedEl.textContent = '2.5m/s';
 }
 
-// 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', function() {
-    // 更新最后更新时间
-    updateLastUpdate();
-    setInterval(updateLastUpdate, 60000);
-    
-    // 更新当前时间（每秒更新）
-    updateCurrentTime();
-    setInterval(updateCurrentTime, 1000);
-    
-    // 更新天气数据（每小时更新一次）
-    updateWeatherData();
-    setInterval(updateWeatherData, 3600000);
-    
-    // 聚焦输入框
-    document.getElementById('userInput').focus();
-    
-    console.log('⚡ 配网调度智能预测系统已加载');
-});
-
 // 点击模态框外部关闭
 document.getElementById('helpModal').addEventListener('click', function(e) {
     if (e.target === this) {
@@ -449,72 +527,8 @@ document.getElementById('helpModal').addEventListener('click', function(e) {
     }
 });
 
-// 添加打字点动画样式
-const style = document.createElement('style');
-style.textContent = `
-    .typing-dots span {
-        animation: typing-dot 1.4s infinite;
-        opacity: 0;
-        color: #00d4ff;
+document.getElementById('loadingOverlay').addEventListener('click', function(e) {
+    if (e.target === this && !AppState.isProcessing) {
+        setLoading(false);
     }
-    .typing-dots span:nth-child(1) { animation-delay: 0s; }
-    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-    
-    @keyframes typing-dot {
-        0%, 60%, 100% { opacity: 0; }
-        30% { opacity: 1; }
-    }
-    
-    .staffing-card {
-        background: linear-gradient(135deg, rgba(251, 146, 60, 0.1), rgba(234, 88, 12, 0.05));
-        border: 1px solid rgba(251, 146, 60, 0.2);
-        border-radius: 8px;
-        padding: 12px;
-        margin-bottom: 12px;
-    }
-    
-    .priority-tag {
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 0.75rem;
-        font-weight: 500;
-    }
-    
-    .priority-高 {
-        background: rgba(239, 68, 68, 0.2);
-        color: #ef4444;
-    }
-    
-    .priority-中 {
-        background: rgba(251, 191, 36, 0.2);
-        color: #fbbf24;
-    }
-    
-    .priority-低 {
-        background: rgba(34, 197, 94, 0.2);
-        color: #22c55e;
-    }
-    
-    .alert-card {
-        border-radius: 8px;
-        padding: 12px;
-        margin-bottom: 12px;
-    }
-    
-    .alert-high {
-        background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.1));
-        border-left: 3px solid #ef4444;
-    }
-    
-    .alert-medium {
-        background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.1));
-        border-left: 3px solid #fbbf24;
-    }
-    
-    .alert-low {
-        background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.1));
-        border-left: 3px solid #22c55e;
-    }
-`;
-document.head.appendChild(style);
+});

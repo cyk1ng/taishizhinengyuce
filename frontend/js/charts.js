@@ -1,11 +1,11 @@
 /**
- * ⚡ 配网调度智能预测系统 - 图表配置（炫酷版）
+ * 配网调度业务量智能预测系统 - 图表配置
  */
 
 // Chart.js 全局配置
-Chart.defaults.color = '#a0aec0';
-Chart.defaults.borderColor = 'rgba(0, 212, 255, 0.15)';
-Chart.defaults.font.family = 'Microsoft YaHei, sans-serif';
+Chart.defaults.color = '#9ca3af';
+Chart.defaults.borderColor = '#374151';
+Chart.defaults.font.family = 'system-ui, -apple-system, sans-serif';
 
 /**
  * 图表管理类
@@ -24,17 +24,11 @@ class ChartManager {
     }
 
     /**
-     * 初始化预测趋势图 - 炫酷电光风格
+     * 初始化预测趋势图
      */
     initPredictionChart() {
         const ctx = document.getElementById('predictionChart');
         if (!ctx) return;
-
-        // 创建渐变
-        const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 250);
-        gradient.addColorStop(0, 'rgba(0, 212, 255, 0.5)');
-        gradient.addColorStop(0.5, 'rgba(0, 150, 255, 0.2)');
-        gradient.addColorStop(1, 'rgba(0, 100, 200, 0)');
 
         this.charts.prediction = new Chart(ctx, {
             type: 'line',
@@ -43,23 +37,16 @@ class ChartManager {
                 datasets: [{
                     label: '预测业务量',
                     data: [],
-                    borderColor: '#00d4ff',
-                    backgroundColor: gradient,
-                    borderWidth: 3,
+                    borderColor: 'rgb(96, 165, 250)',
+                    backgroundColor: 'rgba(96, 165, 250, 0.1)',
+                    borderWidth: 2,
                     fill: true,
                     tension: 0.4,
-                    pointBackgroundColor: '#00d4ff',
-                    pointBorderColor: '#ffffff',
+                    pointBackgroundColor: 'rgb(96, 165, 250)',
+                    pointBorderColor: '#fff',
                     pointBorderWidth: 2,
-                    pointRadius: 5,
-                    pointHoverRadius: 8,
-                    pointHoverBackgroundColor: '#00ffff',
-                    pointHoverBorderColor: '#ffffff',
-                    pointHoverBorderWidth: 3,
-                    shadowOffsetX: 0,
-                    shadowOffsetY: 0,
-                    shadowBlur: 10,
-                    shadowColor: 'rgba(0, 212, 255, 0.5)'
+                    pointRadius: 4,
+                    pointHoverRadius: 6
                 }]
             },
             options: {
@@ -70,54 +57,35 @@ class ChartManager {
                         display: true,
                         position: 'top',
                         labels: {
-                            color: '#00d4ff',
+                            color: '#e5e7eb',
                             font: {
-                                size: 12,
-                                weight: 'bold'
-                            },
-                            usePointStyle: true,
-                            pointStyle: 'circle',
-                            padding: 15
+                                size: 12
+                            }
                         }
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(5, 15, 35, 0.95)',
-                        titleColor: '#00d4ff',
-                        bodyColor: '#e0e0e0',
-                        borderColor: '#00d4ff',
+                        backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                        titleColor: '#60a5fa',
+                        bodyColor: '#e5e7eb',
+                        borderColor: '#374151',
                         borderWidth: 1,
                         padding: 12,
                         displayColors: false,
-                        titleFont: {
-                            size: 13,
-                            weight: 'bold'
-                        },
-                        bodyFont: {
-                            size: 12
-                        },
                         callbacks: {
                             label: function(context) {
-                                return '⚡ 业务量: ' + context.parsed.y;
+                                return `业务量: ${context.parsed.y}`;
                             }
-                        },
-                        shadowOffsetX: 0,
-                        shadowOffsetY: 4,
-                        shadowBlur: 10,
-                        shadowColor: 'rgba(0, 212, 255, 0.3)'
+                        }
                     }
                 },
                 scales: {
                     x: {
                         grid: {
-                            color: 'rgba(0, 212, 255, 0.08)',
-                            drawBorder: false,
-                            lineWidth: 1
+                            color: 'rgba(55, 65, 81, 0.5)',
+                            drawBorder: false
                         },
                         ticks: {
                             color: '#9ca3af',
-                            font: {
-                                size: 10
-                            },
                             maxRotation: 45,
                             minRotation: 45
                         }
@@ -125,34 +93,17 @@ class ChartManager {
                     y: {
                         beginAtZero: true,
                         grid: {
-                            color: 'rgba(0, 212, 255, 0.08)',
-                            drawBorder: false,
-                            lineWidth: 1
+                            color: 'rgba(55, 65, 81, 0.5)',
+                            drawBorder: false
                         },
                         ticks: {
-                            color: '#9ca3af',
-                            font: {
-                                size: 10
-                            },
-                            padding: 10
+                            color: '#9ca3af'
                         }
                     }
                 },
                 interaction: {
                     intersect: false,
                     mode: 'index'
-                },
-                animation: {
-                    duration: 1500,
-                    easing: 'easeOutQuart'
-                },
-                elements: {
-                    line: {
-                        shadowOffsetX: 0,
-                        shadowOffsetY: 0,
-                        shadowBlur: 10,
-                        shadowColor: 'rgba(0, 212, 255, 0.5)'
-                    }
                 }
             }
         });
@@ -160,6 +111,8 @@ class ChartManager {
 
     /**
      * 更新预测图表数据
+     * @param {Array} labels - X轴标签
+     * @param {Array} data - 数据点
      */
     updatePredictionChart(labels, data) {
         if (this.charts.prediction) {
@@ -170,12 +123,15 @@ class ChartManager {
     }
 
     /**
-     * 创建炫酷柱状图
+     * 创建业务量对比柱状图
+     * @param {string} canvasId - Canvas ID
+     * @param {object} data - 图表数据
      */
-    createBarChart(canvasId, data) {
+    createComparisonChart(canvasId, data) {
         const ctx = document.getElementById(canvasId);
         if (!ctx) return;
 
+        // 如果已存在图表，先销毁
         if (this.charts[canvasId]) {
             this.charts[canvasId].destroy();
         }
@@ -185,28 +141,17 @@ class ChartManager {
             data: {
                 labels: data.labels,
                 datasets: [{
-                    label: data.label || '数据',
-                    data: data.values,
-                    backgroundColor: [
-                        'rgba(0, 212, 255, 0.8)',
-                        'rgba(59, 130, 246, 0.8)',
-                        'rgba(147, 51, 234, 0.8)',
-                        'rgba(34, 197, 94, 0.8)',
-                        'rgba(251, 191, 36, 0.8)'
-                    ],
-                    borderColor: [
-                        '#00d4ff',
-                        '#3b82f6',
-                        '#9333ea',
-                        '#22c55e',
-                        '#fbbf24'
-                    ],
-                    borderWidth: 2,
-                    borderRadius: 6,
-                    shadowOffsetX: 0,
-                    shadowOffsetY: 4,
-                    shadowBlur: 8,
-                    shadowColor: 'rgba(0, 212, 255, 0.3)'
+                    label: '预测值',
+                    data: data.predicted,
+                    backgroundColor: 'rgba(96, 165, 250, 0.8)',
+                    borderColor: 'rgb(96, 165, 250)',
+                    borderWidth: 1
+                }, {
+                    label: '实际值',
+                    data: data.actual,
+                    backgroundColor: 'rgba(167, 139, 250, 0.8)',
+                    borderColor: 'rgb(167, 139, 250)',
+                    borderWidth: 1
                 }]
             },
             options: {
@@ -214,33 +159,19 @@ class ChartManager {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(5, 15, 35, 0.95)',
-                        titleColor: '#00d4ff',
-                        bodyColor: '#e0e0e0',
-                        borderColor: '#00d4ff',
-                        borderWidth: 1,
-                        padding: 12
+                        position: 'top'
                     }
                 },
                 scales: {
                     x: {
                         grid: {
-                            display: false
-                        },
-                        ticks: {
-                            color: '#9ca3af'
+                            color: 'rgba(55, 65, 81, 0.5)'
                         }
                     },
                     y: {
                         beginAtZero: true,
                         grid: {
-                            color: 'rgba(0, 212, 255, 0.08)'
-                        },
-                        ticks: {
-                            color: '#9ca3af'
+                            color: 'rgba(55, 65, 81, 0.5)'
                         }
                     }
                 }
@@ -249,9 +180,11 @@ class ChartManager {
     }
 
     /**
-     * 创建炫酷饼图
+     * 创建人员配置饼图
+     * @param {string} canvasId - Canvas ID
+     * @param {object} data - 图表数据
      */
-    createPieChart(canvasId, data) {
+    createStaffingPieChart(canvasId, data) {
         const ctx = document.getElementById(canvasId);
         if (!ctx) return;
 
@@ -266,18 +199,14 @@ class ChartManager {
                 datasets: [{
                     data: data.values,
                     backgroundColor: [
-                        'rgba(0, 212, 255, 0.8)',
-                        'rgba(147, 51, 234, 0.8)',
-                        'rgba(34, 197, 94, 0.8)',
+                        'rgba(96, 165, 250, 0.8)',
+                        'rgba(167, 139, 250, 0.8)',
+                        'rgba(52, 211, 153, 0.8)',
                         'rgba(251, 191, 36, 0.8)',
                         'rgba(239, 68, 68, 0.8)'
                     ],
-                    borderColor: '#0a0e27',
-                    borderWidth: 3,
-                    shadowOffsetX: 0,
-                    shadowOffsetY: 4,
-                    shadowBlur: 10,
-                    shadowColor: 'rgba(0, 212, 255, 0.5)'
+                    borderWidth: 2,
+                    borderColor: '#1f2937'
                 }]
             },
             options: {
@@ -287,22 +216,66 @@ class ChartManager {
                     legend: {
                         position: 'bottom',
                         labels: {
-                            color: '#a0aec0',
-                            padding: 15,
-                            font: {
-                                size: 11
-                            }
+                            color: '#e5e7eb',
+                            padding: 10
                         }
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(5, 15, 35, 0.95)',
-                        titleColor: '#00d4ff',
-                        bodyColor: '#e0e0e0',
-                        borderColor: '#00d4ff',
-                        borderWidth: 1
                     }
-                },
-                cutout: '60%'
+                }
+            }
+        });
+    }
+
+    /**
+     * 创建风险等级雷达图
+     * @param {string} canvasId - Canvas ID
+     * @param {object} data - 图表数据
+     */
+    createRiskRadarChart(canvasId, data) {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return;
+
+        if (this.charts[canvasId]) {
+            this.charts[canvasId].destroy();
+        }
+
+        this.charts[canvasId] = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    label: '风险评分',
+                    data: data.values,
+                    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                    borderColor: 'rgb(239, 68, 68)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgb(239, 68, 68)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(239, 68, 68)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            color: '#9ca3af',
+                            backdropColor: 'transparent'
+                        },
+                        grid: {
+                            color: 'rgba(55, 65, 81, 0.5)'
+                        },
+                        angleLines: {
+                            color: 'rgba(55, 65, 81, 0.5)'
+                        },
+                        pointLabels: {
+                            color: '#e5e7eb'
+                        }
+                    }
+                }
             }
         });
     }

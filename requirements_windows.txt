@@ -1,5 +1,5 @@
 # Windows兼容版依赖 - 配网调度智能预测系统
-# 此版本使用预编译包，避免编译问题
+# 此版本包含所有必需依赖
 
 # ========================================
 # LangChain 核心
@@ -30,6 +30,7 @@ numpy
 requests
 httpx
 aiohttp
+urllib3
 
 # ========================================
 # FastAPI服务
@@ -49,19 +50,28 @@ python-dateutil
 pytz
 
 # ========================================
-# 数据库驱动（根据需要选择）
+# 文件处理（coze-coding-utils 依赖）
 # ========================================
-# MySQL 驱动（推荐）
+python-pptx
+python-docx
+openpyxl
+xlrd
+pypdf
+pillow
+lxml
+beautifulsoup4
+
+# ========================================
+# 数据库驱动
+# ========================================
 pymysql
 cryptography
-
-# Oracle 驱动（如需连接 Oracle，请取消注释）
-# cx_Oracle
-
-# PostgreSQL 驱动（如需连接 PostgreSQL，请取消注释）
-# psycopg2-binary
-
-# ========================================
-# SQLAlchemy ORM
-# ========================================
 sqlalchemy
+
+# ========================================
+# 其他依赖
+# ========================================
+tenacity
+tiktoken
+regex
+tqdm

@@ -15,7 +15,7 @@
     <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js"></script>
     
     <!-- Highlight.js -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css">
     <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js"></script>
     
     <!-- Custom Styles -->
@@ -25,8 +25,16 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 </head>
 <body>
-    <!-- 背景网格 -->
-    <div class="bg-grid"></div>
+    <!-- 电网背景 -->
+    <div class="power-grid-bg"></div>
+    
+    <!-- 电流动画线 -->
+    <div class="power-lines">
+        <div class="power-line"></div>
+        <div class="power-line"></div>
+        <div class="power-line"></div>
+        <div class="power-line"></div>
+    </div>
     
     <!-- 顶部导航 -->
     <header class="header">
@@ -42,7 +50,11 @@
             <div class="header-center">
                 <div class="status-badge">
                     <span class="status-dot"></span>
-                    <span>AI 就绪</span>
+                    <span>🤖 AI 就绪</span>
+                </div>
+                <div class="smart-badge">
+                    <span>🧠</span>
+                    <span>神经网络运行中</span>
                 </div>
             </div>
             
@@ -72,12 +84,13 @@
             <!-- 快速预测 -->
             <div class="card">
                 <div class="card-header">
-                    <span class="icon">🎯</span>
+                    <span class="icon">⚡</span>
                     <span class="title">快速预测</span>
+                    <span class="smart-badge" style="margin-left: auto;">AI驱动</span>
                 </div>
                 <div class="card-body">
                     <button onclick="quickPredict('today')" class="action-btn primary">
-                        <span class="icon">📊</span>
+                        <span class="power-icon">📊</span>
                         <span>今日预测</span>
                     </button>
                     <button onclick="quickPredict('week')" class="action-btn">
@@ -106,21 +119,21 @@
             <!-- 系统状态 -->
             <div class="card">
                 <div class="card-header">
-                    <span class="icon">📡</span>
+                    <span class="icon">🔋</span>
                     <span class="title">系统状态</span>
                 </div>
                 <div class="card-body">
                     <div class="status-item">
                         <span class="status-label">数据采集</span>
-                        <span class="status-value success">正常运行</span>
+                        <span class="status-value success">● 正常运行</span>
                     </div>
                     <div class="status-item">
                         <span class="status-label">AI 模型</span>
-                        <span class="status-value success">运行中</span>
+                        <span class="status-value success">● 运行中</span>
                     </div>
                     <div class="status-item">
                         <span class="status-label">数据同步</span>
-                        <span class="status-value success">实时</span>
+                        <span class="status-value success">● 实时</span>
                     </div>
                     <div class="status-item">
                         <span class="status-label">最后更新</span>
@@ -137,14 +150,36 @@
                         </div>
                         <div class="data-stream mt-2">
                             <div class="stream-item">
-                                <span>API响应:</span>
+                                <span>🔌 API响应:</span>
                                 <span class="stream-value">12ms</span>
                             </div>
                             <div class="stream-item">
-                                <span>数据流:</span>
+                                <span>⚡ 数据流:</span>
                                 <span class="stream-value">1,234条/秒</span>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 电力调度监控 -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="icon">🔌</span>
+                    <span class="title">电力调度监控</span>
+                </div>
+                <div class="card-body">
+                    <div class="status-item">
+                        <span class="status-label">📊 负载率</span>
+                        <span class="status-value">67%</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">🔋 电能质量</span>
+                        <span class="status-value success">优</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">⚠️ 设备告警</span>
+                        <span class="status-value warning">2 条</span>
                     </div>
                 </div>
             </div>
@@ -162,9 +197,10 @@
                     </span>
                 </h2>
                 <div class="feature-tags">
-                    <span class="feature-tag active">自动优化</span>
-                    <span class="feature-tag active">多源分析</span>
-                    <span class="feature-tag active">智能预警</span>
+                    <span class="feature-tag active">🧠 自动优化</span>
+                    <span class="feature-tag active">📊 多源分析</span>
+                    <span class="feature-tag active">⚠️ 智能预警</span>
+                    <span class="feature-tag active">⚡ 实时计算</span>
                 </div>
             </div>
             
@@ -173,16 +209,19 @@
                 <div class="message">
                     <div class="message-avatar bot">🤖</div>
                     <div class="message-content">
-                        <p style="margin-bottom: 12px;">⚡ <strong>AI 助手已就绪</strong></p>
+                        <p style="margin-bottom: 12px; font-weight: 600; color: var(--accent-blue);">
+                            ⚡ AI 智能助手已就绪
+                        </p>
                         <p style="margin-bottom: 8px;">我可以为您提供：</p>
-                        <ul style="margin-left: 16px; color: var(--text-secondary);">
-                            <li>📊 业务量趋势预测</li>
-                            <li>👥 智能人员配置建议</li>
-                            <li>⚠️ 风险预警分析</li>
-                            <li>📋 综合决策报告</li>
+                        <ul style="margin-left: 16px; color: var(--text-secondary); line-height: 1.8;">
+                            <li>📊 业务量趋势预测 - 基于历史数据和AI模型</li>
+                            <li>👥 智能人员配置建议 - 自动优化值班安排</li>
+                            <li>⚠️ 风险预警分析 - 实时监测异常情况</li>
+                            <li>📋 综合决策报告 - 一键生成分析报告</li>
+                            <li>🔌 电力调度优化 - 智能负载均衡建议</li>
                         </ul>
-                        <p style="margin-top: 12px; font-size: 12px; color: var(--text-secondary);">
-                            请输入预测需求或使用左侧快速功能按钮开始。
+                        <p style="margin-top: 12px; font-size: 12px; color: var(--text-secondary); padding: 8px 12px; background: var(--bg-secondary); border-radius: 6px;">
+                            💡 请输入预测需求或使用左侧快速功能按钮开始
                         </p>
                     </div>
                 </div>
@@ -211,7 +250,7 @@
                 <div class="card-header">
                     <span class="icon">📈</span>
                     <span class="title">业务量趋势预测</span>
-                    <span class="feature-tag active" style="margin-left: auto; font-size: 10px;">实时更新</span>
+                    <span class="smart-badge" style="margin-left: auto;">实时更新</span>
                 </div>
                 <div class="card-body">
                     <div class="chart-container">
@@ -225,6 +264,7 @@
                 <div class="card-header">
                     <span class="icon">👥</span>
                     <span class="title">人员配置建议</span>
+                    <span class="smart-badge" style="margin-left: auto;">AI推荐</span>
                 </div>
                 <div class="card-body" id="staffingRecommendations">
                     <div class="staff-card">
@@ -234,15 +274,15 @@
                             <div class="data-change up">↑ 较昨日增加 2 人</div>
                         </div>
                         <div style="text-align: right;">
-                            <div class="feature-tag active">最优配置</div>
+                            <div class="smart-badge">最优配置</div>
                         </div>
                     </div>
                     <div class="status-item">
-                        <span class="status-label">高峰时段</span>
+                        <span class="status-label">⚡ 高峰时段</span>
                         <span class="status-value" style="color: var(--accent-orange);">10:00-12:00</span>
                     </div>
                     <div class="status-item">
-                        <span class="status-label">业务高峰日</span>
+                        <span class="status-label">📅 业务高峰日</span>
                         <span class="status-value">周三</span>
                     </div>
                 </div>
@@ -263,7 +303,7 @@
                         </div>
                     </div>
                     <div class="alert-item warning">
-                        <span class="alert-icon">🔧</span>
+                        <span class="alert-icon">🔌</span>
                         <div class="alert-content">
                             <div class="alert-title">设备检修提醒</div>
                             <div class="alert-desc">EQ-004 配电柜需关注</div>
@@ -283,10 +323,10 @@
 
     <!-- 加载遮罩 -->
     <div id="loadingOverlay" class="modal-overlay hidden">
-        <div style="text-align: center;">
-            <div class="loading-spinner" style="width: 48px; height: 48px; margin: 0 auto 16px;"></div>
-            <p style="color: var(--text-primary);">AI 正在分析中...</p>
-            <p style="color: var(--text-secondary); font-size: 12px; margin-top: 8px;">正在处理多源数据...</p>
+        <div style="text-align: center; background: var(--bg-card); padding: 32px; border-radius: 16px;">
+            <div class="loading-spinner" style="margin: 0 auto 16px;"></div>
+            <p style="color: var(--text-primary); font-weight: 600; margin-bottom: 8px;">🤖 AI 正在分析中...</p>
+            <p style="color: var(--text-secondary); font-size: 13px;">正在处理多源数据...</p>
         </div>
     </div>
 

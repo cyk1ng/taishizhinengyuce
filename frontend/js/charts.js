@@ -2,10 +2,10 @@
  * 配网调度业务量智能预测系统 - 图表配置
  */
 
-// Chart.js 全局配置
-Chart.defaults.color = '#9ca3af';
-Chart.defaults.borderColor = '#374151';
-Chart.defaults.font.family = 'system-ui, -apple-system, sans-serif';
+// Chart.js 全局配置 - 科技感风格
+Chart.defaults.color = '#8b949e';
+Chart.defaults.borderColor = '#30363d';
+Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif';
 
 /**
  * 图表管理类
@@ -30,50 +30,93 @@ class ChartManager {
         const ctx = document.getElementById('predictionChart');
         if (!ctx) return;
 
+        // 生成示例数据
+        const labels = [];
+        const data = [];
+        const today = new Date();
+        
+        for (let i = 0; i < 7; i++) {
+            const date = new Date(today);
+            date.setDate(date.getDate() + i);
+            labels.push(date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }));
+            data.push(Math.floor(Math.random() * 30) + 40);
+        }
+
         this.charts.prediction = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: [],
+                labels: labels,
                 datasets: [{
                     label: '预测业务量',
-                    data: [],
-                    borderColor: 'rgb(96, 165, 250)',
-                    backgroundColor: 'rgba(96, 165, 250, 0.1)',
+                    data: data,
+                    borderColor: '#58a6ff',
+                    backgroundColor: 'rgba(88, 166, 255, 0.1)',
                     borderWidth: 2,
                     fill: true,
                     tension: 0.4,
-                    pointBackgroundColor: 'rgb(96, 165, 250)',
-                    pointBorderColor: '#fff',
+                    pointBackgroundColor: '#58a6ff',
+                    pointBorderColor: '#0d1117',
                     pointBorderWidth: 2,
                     pointRadius: 4,
-                    pointHoverRadius: 6
+                    pointHoverRadius: 6,
+                    pointHoverBackgroundColor: '#00d4ff',
+                    pointHoverBorderColor: '#0d1117',
+                    pointHoverBorderWidth: 2
+                }, {
+                    label: '实际业务量',
+                    data: data.map(d => d + Math.floor(Math.random() * 10) - 5),
+                    borderColor: '#a371f7',
+                    backgroundColor: 'rgba(163, 113, 247, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#a371f7',
+                    pointBorderColor: '#0d1117',
+                    pointBorderWidth: 2,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    borderDash: [5, 5]
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
                 plugins: {
                     legend: {
                         display: true,
                         position: 'top',
+                        align: 'end',
                         labels: {
-                            color: '#e5e7eb',
+                            color: '#8b949e',
                             font: {
-                                size: 12
-                            }
+                                size: 11
+                            },
+                            boxWidth: 12,
+                            boxHeight: 12,
+                            borderRadius: 2,
+                            useBorderRadius: true,
+                            padding: 12
                         }
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(17, 24, 39, 0.9)',
-                        titleColor: '#60a5fa',
-                        bodyColor: '#e5e7eb',
-                        borderColor: '#374151',
+                        backgroundColor: 'rgba(22, 27, 34, 0.95)',
+                        titleColor: '#e6edf3',
+                        bodyColor: '#8b949e',
+                        borderColor: '#30363d',
                         borderWidth: 1,
                         padding: 12,
-                        displayColors: false,
+                        cornerRadius: 6,
+                        displayColors: true,
+                        boxPadding: 4,
                         callbacks: {
                             label: function(context) {
-                                return `业务量: ${context.parsed.y}`;
+                                const label = context.dataset.label || '';
+                                const value = context.parsed.y;
+                                return ` ${label}: ${value} 次`;
                             }
                         }
                     }
@@ -81,29 +124,30 @@ class ChartManager {
                 scales: {
                     x: {
                         grid: {
-                            color: 'rgba(55, 65, 81, 0.5)',
+                            color: 'rgba(48, 54, 61, 0.5)',
                             drawBorder: false
                         },
                         ticks: {
-                            color: '#9ca3af',
-                            maxRotation: 45,
-                            minRotation: 45
+                            color: '#8b949e',
+                            font: {
+                                size: 10
+                            }
                         }
                     },
                     y: {
                         beginAtZero: true,
                         grid: {
-                            color: 'rgba(55, 65, 81, 0.5)',
+                            color: 'rgba(48, 54, 61, 0.5)',
                             drawBorder: false
                         },
                         ticks: {
-                            color: '#9ca3af'
+                            color: '#8b949e',
+                            font: {
+                                size: 10
+                            },
+                            stepSize: 20
                         }
                     }
-                },
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
                 }
             }
         });
@@ -111,192 +155,36 @@ class ChartManager {
 
     /**
      * 更新预测图表数据
-     * @param {Array} labels - X轴标签
-     * @param {Array} data - 数据点
      */
-    updatePredictionChart(labels, data) {
-        if (this.charts.prediction) {
-            this.charts.prediction.data.labels = labels;
-            this.charts.prediction.data.datasets[0].data = data;
-            this.charts.prediction.update('active');
-        }
-    }
+    updatePredictionChart(data) {
+        if (!this.charts.prediction || !data) return;
 
-    /**
-     * 创建业务量对比柱状图
-     * @param {string} canvasId - Canvas ID
-     * @param {object} data - 图表数据
-     */
-    createComparisonChart(canvasId, data) {
-        const ctx = document.getElementById(canvasId);
-        if (!ctx) return;
-
-        // 如果已存在图表，先销毁
-        if (this.charts[canvasId]) {
-            this.charts[canvasId].destroy();
-        }
-
-        this.charts[canvasId] = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: data.labels,
-                datasets: [{
-                    label: '预测值',
-                    data: data.predicted,
-                    backgroundColor: 'rgba(96, 165, 250, 0.8)',
-                    borderColor: 'rgb(96, 165, 250)',
-                    borderWidth: 1
-                }, {
-                    label: '实际值',
-                    data: data.actual,
-                    backgroundColor: 'rgba(167, 139, 250, 0.8)',
-                    borderColor: 'rgb(167, 139, 250)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'top'
-                    }
-                },
-                scales: {
-                    x: {
-                        grid: {
-                            color: 'rgba(55, 65, 81, 0.5)'
-                        }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: 'rgba(55, 65, 81, 0.5)'
-                        }
-                    }
-                }
-            }
+        const labels = data.map(d => {
+            const date = new Date(d.date);
+            return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
         });
+
+        const values = data.map(d => d.dispatch_count);
+
+        this.charts.prediction.data.labels = labels;
+        this.charts.prediction.data.datasets[0].data = values;
+        this.charts.prediction.update('none');
     }
 
     /**
-     * 创建人员配置饼图
-     * @param {string} canvasId - Canvas ID
-     * @param {object} data - 图表数据
+     * 销毁所有图表
      */
-    createStaffingPieChart(canvasId, data) {
-        const ctx = document.getElementById(canvasId);
-        if (!ctx) return;
-
-        if (this.charts[canvasId]) {
-            this.charts[canvasId].destroy();
-        }
-
-        this.charts[canvasId] = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: data.labels,
-                datasets: [{
-                    data: data.values,
-                    backgroundColor: [
-                        'rgba(96, 165, 250, 0.8)',
-                        'rgba(167, 139, 250, 0.8)',
-                        'rgba(52, 211, 153, 0.8)',
-                        'rgba(251, 191, 36, 0.8)',
-                        'rgba(239, 68, 68, 0.8)'
-                    ],
-                    borderWidth: 2,
-                    borderColor: '#1f2937'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: '#e5e7eb',
-                            padding: 10
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    /**
-     * 创建风险等级雷达图
-     * @param {string} canvasId - Canvas ID
-     * @param {object} data - 图表数据
-     */
-    createRiskRadarChart(canvasId, data) {
-        const ctx = document.getElementById(canvasId);
-        if (!ctx) return;
-
-        if (this.charts[canvasId]) {
-            this.charts[canvasId].destroy();
-        }
-
-        this.charts[canvasId] = new Chart(ctx, {
-            type: 'radar',
-            data: {
-                labels: data.labels,
-                datasets: [{
-                    label: '风险评分',
-                    data: data.values,
-                    backgroundColor: 'rgba(239, 68, 68, 0.2)',
-                    borderColor: 'rgb(239, 68, 68)',
-                    borderWidth: 2,
-                    pointBackgroundColor: 'rgb(239, 68, 68)',
-                    pointBorderColor: '#fff',
-                    pointHoverBackgroundColor: '#fff',
-                    pointHoverBorderColor: 'rgb(239, 68, 68)'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    r: {
-                        beginAtZero: true,
-                        max: 100,
-                        ticks: {
-                            color: '#9ca3af',
-                            backdropColor: 'transparent'
-                        },
-                        grid: {
-                            color: 'rgba(55, 65, 81, 0.5)'
-                        },
-                        angleLines: {
-                            color: 'rgba(55, 65, 81, 0.5)'
-                        },
-                        pointLabels: {
-                            color: '#e5e7eb'
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    /**
-     * 清空所有图表
-     */
-    clearAllCharts() {
+    destroy() {
         Object.values(this.charts).forEach(chart => {
-            if (chart && chart.destroy) {
-                chart.destroy();
-            }
+            if (chart) chart.destroy();
         });
         this.charts = {};
-        this.initCharts();
     }
 }
 
-// 创建全局图表管理器实例
-const chartManager = new ChartManager();
+// 初始化图表管理器
+let chartManager;
 
-// 导出
-window.ChartManager = ChartManager;
-window.chartManager = chartManager;
+document.addEventListener('DOMContentLoaded', function() {
+    chartManager = new ChartManager();
+});

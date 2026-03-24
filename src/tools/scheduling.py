@@ -232,92 +232,146 @@ class ScheduleConfig:
 
 
 # ============================================================
-# 数据库查询模拟
+# 数据库查询实现
 # ============================================================
 
 class ScheduleDataProvider:
     """
-    排班数据提供者
+    排班数据提供者 - 从数据库读取真实数据
     
-    移植说明：
-    - 替换为实际数据库查询逻辑
-    - 保持接口不变
+    支持的表：
+    - working_user: 上班人员表
+    - working_groups: 班组表
+    - work_schedule_recode: 排班记录表
     """
+    
+    @staticmethod
+    def _get_db_session():
+        """获取数据库会话"""
+        from storage.database.db import get_session, is_database_connected
+        
+        if not is_database_connected():
+            return None
+        
+        return get_session()
     
     @staticmethod
     def get_working_users(city_dept_id: Optional[str] = None) -> List[WorkingUser]:
         """
-        获取所有上班人员
+        从数据库获取所有上班人员
         
-        生产环境替换：
-        ```python
-        from storage.database.db import get_session
-        from sqlalchemy import text
+        参数：
+        - city_dept_id: 地市ID（可选筛选）
         
-        session = get_session()
-        if city_dept_id:
-            result = session.execute(
-                text("SELECT * FROM working_user WHERE CITY_DEPT_ID = :dept_id"),
-                {"dept_id": city_dept_id}
-            )
-        else:
-            result = session.execute(text("SELECT * FROM working_user"))
-        
-        users = [WorkingUser(dict(row._mapping)) for row in result]
-        session.close()
-        return users
-        ```
+        返回：WorkingUser 列表
         """
-        # 模拟数据
-        mock_users = [
-            {"MK_ID": "U001", "USER_ID": "001", "USER_NAME": "张伟", "GROUP": "一班", "ID_LEADER": 3, "CITY_DEPT_ID": "DEPT001", "CITY_DEPT_NAME": "广州供电局"},
-            {"MK_ID": "U002", "USER_ID": "002", "USER_NAME": "李明", "GROUP": "一班", "ID_LEADER": 2, "CITY_DEPT_ID": "DEPT001", "CITY_DEPT_NAME": "广州供电局"},
-            {"MK_ID": "U003", "USER_ID": "003", "USER_NAME": "王芳", "GROUP": "一班", "ID_LEADER": 1, "CITY_DEPT_ID": "DEPT001", "CITY_DEPT_NAME": "广州供电局"},
-            {"MK_ID": "U004", "USER_ID": "004", "USER_NAME": "刘强", "GROUP": "一班", "ID_LEADER": 0, "CITY_DEPT_ID": "DEPT001", "CITY_DEPT_NAME": "广州供电局"},
-            
-            {"MK_ID": "U005", "USER_ID": "005", "USER_NAME": "陈红", "GROUP": "二班", "ID_LEADER": 3, "CITY_DEPT_ID": "DEPT001", "CITY_DEPT_NAME": "广州供电局"},
-            {"MK_ID": "U006", "USER_ID": "006", "USER_NAME": "赵刚", "GROUP": "二班", "ID_LEADER": 2, "CITY_DEPT_ID": "DEPT001", "CITY_DEPT_NAME": "广州供电局"},
-            {"MK_ID": "U007", "USER_ID": "007", "USER_NAME": "孙丽", "GROUP": "二班", "ID_LEADER": 1, "CITY_DEPT_ID": "DEPT001", "CITY_DEPT_NAME": "广州供电局"},
-            {"MK_ID": "U008", "USER_ID": "008", "USER_NAME": "周杰", "GROUP": "二班", "ID_LEADER": 0, "CITY_DEPT_ID": "DEPT001", "CITY_DEPT_NAME": "广州供电局"},
-            
-            {"MK_ID": "U009", "USER_ID": "009", "USER_NAME": "吴敏", "GROUP": "三班", "ID_LEADER": 3, "CITY_DEPT_ID": "DEPT001", "CITY_DEPT_NAME": "广州供电局"},
-            {"MK_ID": "U010", "USER_ID": "010", "USER_NAME": "郑华", "GROUP": "三班", "ID_LEADER": 2, "CITY_DEPT_ID": "DEPT001", "CITY_DEPT_NAME": "广州供电局"},
-            {"MK_ID": "U011", "USER_ID": "011", "USER_NAME": "黄燕", "GROUP": "三班", "ID_LEADER": 1, "CITY_DEPT_ID": "DEPT001", "CITY_DEPT_NAME": "广州供电局"},
-            {"MK_ID": "U012", "USER_ID": "012", "USER_NAME": "林峰", "GROUP": "三班", "ID_LEADER": 0, "CITY_DEPT_ID": "DEPT001", "CITY_DEPT_NAME": "广州供电局"},
-        ]
+        session = ScheduleDataProvider._get_db_session()
         
-        if city_dept_id:
-            mock_users = [u for u in mock_users if u["CITY_DEPT_ID"] == city_dept_id]
+        if session:
+            try:
+                from sqlalchemy import text
+                
+                # 构建SQL查询
+                if city_dept_id:
+                    sql = text("""
+                        SELECT MK_ID, USER_ID, USER_NAME, `GROUP`, ID_LEADER, 
+                               CITY_DEPT_ID, CITY_DEPT_NAME
+                        FROM working_user 
+                        WHERE CITY_DEPT_ID = :dept_id
+                    """)
+                    result = session.execute(sql, {"dept_id": city_dept_id})
+                else:
+                    sql = text("""
+                        SELECT MK_ID, USER_ID, USER_NAME, `GROUP`, ID_LEADER, 
+                               CITY_DEPT_ID, CITY_DEPT_NAME
+                        FROM working_user
+                    """)
+                    result = session.execute(sql)
+                
+                users = []
+                for row in result:
+                    user_data = dict(row._mapping)
+                    users.append(WorkingUser(user_data))
+                
+                return users
+                
+            except Exception as e:
+                import logging
+                logging.error(f"查询 working_user 表失败: {e}")
+            finally:
+                session.close()
         
-        return [WorkingUser(u) for u in mock_users]
+        # 如果数据库连接失败，返回空列表
+        return []
     
     @staticmethod
     def get_working_groups(city_dept_id: Optional[str] = None) -> List[WorkingGroup]:
         """
-        获取班组信息
+        从数据库获取班组信息
         
-        生产环境替换：
-        ```python
-        from storage.database.db import get_session
-        from sqlalchemy import text
+        参数：
+        - city_dept_id: 地市ID（可选筛选）
         
-        session = get_session()
-        result = session.execute(text("SELECT * FROM working_groups"))
-        groups = [WorkingGroup(dict(row._mapping)) for row in result]
-        session.close()
-        return groups
-        ```
+        返回：WorkingGroup 列表
         """
-        mock_groups = [
-            {"GROUP_ID": "G001", "GROUP_NAME": "一班", "GROUP_TYPE": "轮班", "SHIFT_PATTERN": "早-中-晚-休", "MEMBERS": ["001", "002", "003", "004"], "CITY_DEPT_ID": "DEPT001", "CITY_DEPT_NAME": "广州供电局"},
-            {"GROUP_ID": "G002", "GROUP_NAME": "二班", "GROUP_TYPE": "轮班", "SHIFT_PATTERN": "中-晚-早-休", "MEMBERS": ["005", "006", "007", "008"], "CITY_DEPT_ID": "DEPT001", "CITY_DEPT_NAME": "广州供电局"},
-            {"GROUP_ID": "G003", "GROUP_NAME": "三班", "GROUP_TYPE": "轮班", "SHIFT_PATTERN": "晚-早-中-休", "MEMBERS": ["009", "010", "011", "012"], "CITY_DEPT_ID": "DEPT001", "CITY_DEPT_NAME": "广州供电局"},
-        ]
+        session = ScheduleDataProvider._get_db_session()
         
-        if city_dept_id:
-            mock_groups = [g for g in mock_groups if g["CITY_DEPT_ID"] == city_dept_id]
+        if session:
+            try:
+                from sqlalchemy import text
+                
+                # 构建SQL查询 - 根据用户表中的GROUP字段统计班组
+                if city_dept_id:
+                    sql = text("""
+                        SELECT DISTINCT `GROUP` as GROUP_NAME, 
+                               COUNT(*) as MEMBER_COUNT,
+                               CITY_DEPT_ID, CITY_DEPT_NAME
+                        FROM working_user
+                        WHERE CITY_DEPT_ID = :dept_id AND `GROUP` IS NOT NULL AND `GROUP` != ''
+                        GROUP BY `GROUP`, CITY_DEPT_ID, CITY_DEPT_NAME
+                    """)
+                    result = session.execute(sql, {"dept_id": city_dept_id})
+                else:
+                    sql = text("""
+                        SELECT DISTINCT `GROUP` as GROUP_NAME, 
+                               COUNT(*) as MEMBER_COUNT,
+                               CITY_DEPT_ID, CITY_DEPT_NAME
+                        FROM working_user
+                        WHERE `GROUP` IS NOT NULL AND `GROUP` != ''
+                        GROUP BY `GROUP`, CITY_DEPT_ID, CITY_DEPT_NAME
+                    """)
+                    result = session.execute(sql)
+                
+                groups = []
+                for idx, row in enumerate(result, 1):
+                    group_data = dict(row._mapping)
+                    # 获取班组成员
+                    member_sql = text("""
+                        SELECT USER_ID FROM working_user WHERE `GROUP` = :group_name
+                    """)
+                    member_result = session.execute(member_sql, {"group_name": group_data.get("GROUP_NAME")})
+                    members = [r.USER_ID for r in member_result]
+                    
+                    groups.append(WorkingGroup({
+                        "GROUP_ID": f"G{idx:03d}",
+                        "GROUP_NAME": group_data.get("GROUP_NAME", ""),
+                        "GROUP_TYPE": "轮班",
+                        "SHIFT_PATTERN": "早-中-晚-休",
+                        "MEMBERS": members,
+                        "CITY_DEPT_ID": group_data.get("CITY_DEPT_ID", ""),
+                        "CITY_DEPT_NAME": group_data.get("CITY_DEPT_NAME", "")
+                    }))
+                
+                return groups
+                
+            except Exception as e:
+                import logging
+                logging.error(f"查询班组信息失败: {e}")
+            finally:
+                session.close()
         
-        return [WorkingGroup(g) for g in mock_groups]
+        # 如果数据库连接失败，返回空列表
+        return []
     
     @staticmethod
     def get_schedule_records(
@@ -326,59 +380,66 @@ class ScheduleDataProvider:
         city_dept_id: Optional[str] = None
     ) -> List[ScheduleRecord]:
         """
-        获取排班记录
+        从数据库获取排班记录
         
-        生产环境替换：
-        ```python
-        from storage.database.db import get_session
-        from sqlalchemy import text
+        参数：
+        - start_date: 开始日期 (YYYY-MM-DD)
+        - end_date: 结束日期 (YYYY-MM-DD)
+        - city_dept_id: 地市ID（可选筛选）
         
-        session = get_session()
-        result = session.execute(
-            text("SELECT * FROM work_schedule_recode WHERE SCHEDULE_DATE BETWEEN :start AND :end"),
-            {"start": start_date, "end": end_date}
-        )
-        records = [ScheduleRecord(dict(row._mapping)) for row in result]
-        session.close()
-        return records
-        ```
+        返回：ScheduleRecord 列表
         """
-        # 生成模拟数据
-        records = []
-        start = datetime.strptime(start_date, "%Y-%m-%d")
-        end = datetime.strptime(end_date, "%Y-%m-%d")
+        session = ScheduleDataProvider._get_db_session()
         
-        shifts = ["早班", "中班", "晚班"]
-        groups = ScheduleDataProvider.get_working_groups(city_dept_id)
+        if session:
+            try:
+                from sqlalchemy import text
+                
+                # 构建SQL查询
+                if city_dept_id:
+                    sql = text("""
+                        SELECT RECORD_ID, USER_ID, USER_NAME, GROUP_ID,
+                               SCHEDULE_DATE, SHIFT_TYPE, START_TIME, END_TIME,
+                               STATUS, ID_LEADER, CITY_DEPT_ID, CITY_DEPT_NAME
+                        FROM work_schedule_recode
+                        WHERE SCHEDULE_DATE BETWEEN :start AND :end
+                              AND CITY_DEPT_ID = :dept_id
+                        ORDER BY SCHEDULE_DATE, SHIFT_TYPE
+                    """)
+                    result = session.execute(sql, {
+                        "start": start_date,
+                        "end": end_date,
+                        "dept_id": city_dept_id
+                    })
+                else:
+                    sql = text("""
+                        SELECT RECORD_ID, USER_ID, USER_NAME, GROUP_ID,
+                               SCHEDULE_DATE, SHIFT_TYPE, START_TIME, END_TIME,
+                               STATUS, ID_LEADER, CITY_DEPT_ID, CITY_DEPT_NAME
+                        FROM work_schedule_recode
+                        WHERE SCHEDULE_DATE BETWEEN :start AND :end
+                        ORDER BY SCHEDULE_DATE, SHIFT_TYPE
+                    """)
+                    result = session.execute(sql, {
+                        "start": start_date,
+                        "end": end_date
+                    })
+                
+                records = []
+                for row in result:
+                    record_data = dict(row._mapping)
+                    records.append(ScheduleRecord(record_data))
+                
+                return records
+                
+            except Exception as e:
+                import logging
+                logging.error(f"查询排班记录失败: {e}")
+            finally:
+                session.close()
         
-        current = start
-        record_id = 1
-        
-        while current <= end:
-            date_str = current.strftime("%Y-%m-%d")
-            
-            for group in groups:
-                for shift in shifts:
-                    for user_id in group.members[:2]:  # 每班2人
-                        records.append(ScheduleRecord({
-                            "RECORD_ID": f"R{record_id:04d}",
-                            "USER_ID": user_id,
-                            "USER_NAME": f"用户{user_id}",
-                            "GROUP_ID": group.group_id,
-                            "SCHEDULE_DATE": date_str,
-                            "SHIFT_TYPE": shift,
-                            "START_TIME": "08:00" if shift == "早班" else "16:00" if shift == "中班" else "00:00",
-                            "END_TIME": "16:00" if shift == "早班" else "00:00" if shift == "中班" else "08:00",
-                            "STATUS": "计划",
-                            "ID_LEADER": 3 if record_id % 4 == 0 else 2,
-                            "CITY_DEPT_ID": city_dept_id or "DEPT001",
-                            "CITY_DEPT_NAME": "广州供电局"
-                        }))
-                        record_id += 1
-            
-            current += timedelta(days=1)
-        
-        return records
+        # 如果数据库连接失败，返回空列表
+        return []
 
 
 # ============================================================
@@ -697,6 +758,11 @@ def get_schedule_staff_info(
     ctx = runtime.context if runtime else new_context(method="get_schedule_staff_info")
     
     try:
+        from storage.database.db import is_database_connected
+        
+        # 检查数据库连接状态
+        db_connected = is_database_connected()
+        
         users = ScheduleDataProvider.get_working_users(city_dept_id if city_dept_id else None)
         groups = ScheduleDataProvider.get_working_groups(city_dept_id if city_dept_id else None)
         
@@ -706,18 +772,41 @@ def get_schedule_staff_info(
             role_name = user.role_name
             role_stats[role_name] = role_stats.get(role_name, 0) + 1
         
-        result = {
-            "success": True,
-            "timestamp": datetime.now().isoformat(),
-            "city_dept_id": city_dept_id or "全部",
-            "staff_summary": {
-                "total_users": len(users),
-                "total_groups": len(groups),
-                "role_distribution": role_stats
-            },
-            "users": [u.to_dict() for u in users],
-            "groups": [g.to_dict() for g in groups]
-        }
+        # 如果没有数据，返回提示信息
+        if len(users) == 0:
+            result = {
+                "success": True,
+                "timestamp": datetime.now().isoformat(),
+                "city_dept_id": city_dept_id or "全部",
+                "database_connected": db_connected,
+                "staff_summary": {
+                    "total_users": 0,
+                    "total_groups": 0,
+                    "role_distribution": {}
+                },
+                "users": [],
+                "groups": [],
+                "message": "未查询到人员数据，可能原因：\n1. 数据库未连接（请检查 .env 中的数据库配置）\n2. working_user 表不存在或无数据\n3. 表结构不匹配",
+                "setup_guide": {
+                    "step1": "检查 .env 文件中的数据库配置（DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD）",
+                    "step2": "确保数据库中存在 working_user 表",
+                    "step3": "表中需包含字段：MK_ID, USER_ID, USER_NAME, GROUP, ID_LEADER, CITY_DEPT_ID, CITY_DEPT_NAME"
+                }
+            }
+        else:
+            result = {
+                "success": True,
+                "timestamp": datetime.now().isoformat(),
+                "city_dept_id": city_dept_id or "全部",
+                "database_connected": db_connected,
+                "staff_summary": {
+                    "total_users": len(users),
+                    "total_groups": len(groups),
+                    "role_distribution": role_stats
+                },
+                "users": [u.to_dict() for u in users],
+                "groups": [g.to_dict() for g in groups]
+            }
         
         return json.dumps(result, ensure_ascii=False, indent=2)
         
@@ -725,7 +814,8 @@ def get_schedule_staff_info(
         return json.dumps({
             "success": False,
             "error": str(e),
-            "message": "获取人员信息失败"
+            "message": "获取人员信息失败，请检查数据库连接配置",
+            "help": "请确保 .env 文件中已正确配置数据库连接信息"
         }, ensure_ascii=False)
 
 

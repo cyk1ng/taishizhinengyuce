@@ -60,7 +60,6 @@ from tools.scheduling import (
     get_existing_schedule,
     generate_intelligent_schedule,
     analyze_schedule_fairness,
-    optimize_schedule,
     export_schedule_report
 )
 
@@ -163,7 +162,6 @@ def build_agent(ctx=None):
         get_existing_schedule,
         generate_intelligent_schedule,
         analyze_schedule_fairness,
-        optimize_schedule,
         export_schedule_report
     ]
     

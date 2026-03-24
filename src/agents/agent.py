@@ -54,6 +54,15 @@ from tools.decision import (
     optimize_shift_schedule,
     generate_decision_report
 )
+# 导入排班工具模块
+from tools.scheduling import (
+    get_schedule_staff_info,
+    get_existing_schedule,
+    generate_intelligent_schedule,
+    analyze_schedule_fairness,
+    optimize_schedule,
+    export_schedule_report
+)
 
 
 # 配置文件路径
@@ -147,7 +156,15 @@ def build_agent(ctx=None):
         # 决策工具
         generate_staffing_decision,
         optimize_shift_schedule,
-        generate_decision_report
+        generate_decision_report,
+        
+        # 排班工具
+        get_schedule_staff_info,
+        get_existing_schedule,
+        generate_intelligent_schedule,
+        analyze_schedule_fairness,
+        optimize_schedule,
+        export_schedule_report
     ]
     
     # 创建Agent
@@ -165,24 +182,32 @@ def build_agent(ctx=None):
 # Agent元数据
 AGENT_METADATA = {
     "name": "配网调度业务量智能预测Agent",
-    "version": "1.0.0",
-    "description": "基于多源数据融合和AI技术的配网调度业务量预测与人员决策支持系统",
+    "version": "1.1.0",
+    "description": "基于多源数据融合和AI技术的配网调度业务量预测、人员决策支持与智能排班系统",
     "capabilities": [
         "多源数据融合",
         "业务量智能预测",
         "人员配置决策",
-        "风险预警分析"
+        "风险预警分析",
+        "智能排班生成",
+        "排班公平性分析",
+        "排班方案优化"
     ],
     "data_sources": [
         "历史调度记录",
         "天气预报",
         "节假日日历",
-        "设备状态监控"
+        "设备状态监控",
+        "人员信息表(working_user)",
+        "班组表(working_groups)",
+        "排班记录表(work_schedule_recode)"
     ],
     "output_formats": [
         "JSON格式预测结果",
         "Markdown格式决策报告",
-        "人员调整建议"
+        "人员调整建议",
+        "智能排班方案",
+        "排班公平性报告"
     ],
     "deployment_requirements": {
         "python_version": ">=3.10",

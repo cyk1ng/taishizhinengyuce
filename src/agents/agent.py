@@ -60,7 +60,8 @@ from tools.scheduling import (
     get_existing_schedule,
     generate_intelligent_schedule,
     analyze_schedule_fairness,
-    export_schedule_report
+    export_schedule_report,
+    save_schedule_records
 )
 
 
@@ -162,7 +163,8 @@ def build_agent(ctx=None):
         get_existing_schedule,
         generate_intelligent_schedule,
         analyze_schedule_fairness,
-        export_schedule_report
+        export_schedule_report,
+        save_schedule_records
     ]
     
     # 创建Agent

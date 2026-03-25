@@ -134,7 +134,41 @@ class WorkingGroup:
 
 
 class ScheduleRecord:
-    """排班记录表 (work_schedule_recode)"""
+    """
+    排班记录表 (work_schedule_recode)
+    
+    数字枚举字段：
+    - SHIFT_TYPE: 1=晚班, 2=早班, 3=中班
+    - STATUS: 1=计划, 2=执行中, 3=已完成, 4=取消
+    """
+    
+    # 班次类型映射
+    SHIFT_TYPE_MAP = {
+        1: "晚班",
+        2: "早班",
+        3: "中班"
+    }
+    
+    SHIFT_TYPE_REVERSE_MAP = {
+        "晚班": 1,
+        "早班": 2,
+        "中班": 3
+    }
+    
+    # 状态映射
+    STATUS_MAP = {
+        1: "计划",
+        2: "执行中",
+        3: "已完成",
+        4: "取消"
+    }
+    
+    STATUS_REVERSE_MAP = {
+        "计划": 1,
+        "执行中": 2,
+        "已完成": 3,
+        "取消": 4
+    }
     
     def __init__(self, data: Dict):
         self.record_id = data.get("RECORD_ID", "")
@@ -142,11 +176,46 @@ class ScheduleRecord:
         self.user_name = data.get("USER_NAME", "")
         self.group_name = data.get("GROUP_NAME", data.get("GROUP", ""))
         self.schedule_date = data.get("SCHEDULE_DATE", "")
-        self.shift_type = data.get("SHIFT_TYPE", "")  # 早班/中班/晚班
-        self.status = data.get("STATUS", "计划")
+        self._shift_type = data.get("SHIFT_TYPE", 2)  # 默认早班
+        self._status = data.get("STATUS", 1)  # 默认计划
         self.id_leader = data.get("ID_LEADER", 0)
         self.city_dept_id = data.get("CITY_DEPT_ID", "")
         self.city_dept_name = data.get("CITY_DEPT_NAME", "")
+    
+    @property
+    def shift_type(self) -> str:
+        """返回班次名称"""
+        if isinstance(self._shift_type, str):
+            # 如果已经是字符串，尝试转换
+            try:
+                return self.SHIFT_TYPE_MAP.get(int(self._shift_type), self._shift_type)
+            except:
+                return self._shift_type
+        return self.SHIFT_TYPE_MAP.get(self._shift_type, "早班")
+    
+    @property
+    def shift_type_code(self) -> int:
+        """返回班次代码"""
+        if isinstance(self._shift_type, int):
+            return self._shift_type
+        return self.SHIFT_TYPE_REVERSE_MAP.get(self._shift_type, 2)
+    
+    @property
+    def status(self) -> str:
+        """返回状态名称"""
+        if isinstance(self._status, str):
+            try:
+                return self.STATUS_MAP.get(int(self._status), self._status)
+            except:
+                return self._status
+        return self.STATUS_MAP.get(self._status, "计划")
+    
+    @property
+    def status_code(self) -> int:
+        """返回状态代码"""
+        if isinstance(self._status, int):
+            return self._status
+        return self.STATUS_REVERSE_MAP.get(self._status, 1)
     
     def to_dict(self) -> Dict:
         return {
@@ -156,7 +225,9 @@ class ScheduleRecord:
             "group_name": self.group_name,
             "schedule_date": self.schedule_date,
             "shift_type": self.shift_type,
+            "shift_type_code": self.shift_type_code,
             "status": self.status,
+            "status_code": self.status_code,
             "id_leader": self.id_leader,
             "role_name": WorkingUser.ROLE_NAMES.get(self.id_leader, "未知"),
             "city_dept_id": self.city_dept_id,
@@ -1129,3 +1200,195 @@ def export_schedule_report(
         
     except Exception as e:
         return f"报告导出失败: {str(e)}"
+
+
+@tool
+def save_schedule_records(
+    schedule_data: str,
+    city_dept_id: str = "",
+    runtime: ToolRuntime = None
+) -> str:
+    """
+    保存排班记录到数据库
+    
+    参数：
+    - schedule_data: 排班数据JSON字符串（包含 daily_schedules 数组）
+    - city_dept_id: 所属地市ID（可选）
+    
+    返回：保存结果JSON字符串
+    
+    注意：
+    - SHIFT_TYPE 使用数字枚举：1=晚班, 2=早班, 3=中班
+    - STATUS 使用数字枚举：1=计划, 2=执行中, 3=已完成, 4=取消
+    """
+    ctx = runtime.context if runtime else new_context(method="save_schedule_records")
+    
+    try:
+        from storage.database.db import get_session, is_database_connected
+        from sqlalchemy import text
+        import uuid
+        
+        if not is_database_connected():
+            return json.dumps({
+                "success": False,
+                "error": "数据库未连接",
+                "message": "请检查 .env 中的数据库配置"
+            }, ensure_ascii=False)
+        
+        data = json.loads(schedule_data)
+        daily_schedules = data.get("daily_schedules", [])
+        
+        if not daily_schedules:
+            return json.dumps({
+                "success": False,
+                "error": "无排班数据",
+                "message": "daily_schedules 为空"
+            }, ensure_ascii=False)
+        
+        session = get_session()
+        if not session:
+            return json.dumps({
+                "success": False,
+                "error": "数据库连接失败"
+            }, ensure_ascii=False)
+        
+        # 班次名称到数字的映射
+        shift_type_map = {
+            "早班": 2,
+            "中班": 3,
+            "晚班": 1
+        }
+        
+        saved_records = []
+        saved_count = 0
+        errors = []
+        
+        try:
+            for day_schedule in daily_schedules:
+                date = day_schedule.get("date", "")
+                shifts = day_schedule.get("shifts", {})
+                
+                for shift_name in ["早班", "中班", "晚班"]:
+                    shift_data = shifts.get(shift_name, {})
+                    group_name = shift_data.get("group_name", "")
+                    
+                    if not group_name:
+                        continue
+                    
+                    shift_type_code = shift_type_map.get(shift_name, 2)
+                    
+                    # 收集所有人员
+                    staff_list = []
+                    
+                    # 值班长
+                    leader = shift_data.get("leader")
+                    if leader:
+                        staff_list.append({
+                            "user_id": leader.get("user_id", ""),
+                            "user_name": leader.get("user_name", ""),
+                            "id_leader": 3
+                        })
+                    
+                    # 正值
+                    for z in shift_data.get("zhizhi", []):
+                        staff_list.append({
+                            "user_id": z.get("user_id", ""),
+                            "user_name": z.get("user_name", ""),
+                            "id_leader": 2
+                        })
+                    
+                    # 副值
+                    for f in shift_data.get("fuzhi", []):
+                        staff_list.append({
+                            "user_id": f.get("user_id", ""),
+                            "user_name": f.get("user_name", ""),
+                            "id_leader": 1
+                        })
+                    
+                    # 其他
+                    for o in shift_data.get("others", []):
+                        staff_list.append({
+                            "user_id": o.get("user_id", ""),
+                            "user_name": o.get("user_name", ""),
+                            "id_leader": 0
+                        })
+                    
+                    # 插入每条记录
+                    for staff in staff_list:
+                        record_id = str(uuid.uuid4())
+                        
+                        sql = text("""
+                            INSERT INTO work_schedule_recode 
+                            (RECORD_ID, USER_ID, USER_NAME, GROUP_NAME, SCHEDULE_DATE, 
+                             SHIFT_TYPE, STATUS, ID_LEADER, CITY_DEPT_ID, CITY_DEPT_NAME)
+                            VALUES 
+                            (:record_id, :user_id, :user_name, :group_name, :schedule_date,
+                             :shift_type, :status, :id_leader, :city_dept_id, :city_dept_name)
+                        """)
+                        
+                        params = {
+                            "record_id": record_id,
+                            "user_id": staff["user_id"],
+                            "user_name": staff["user_name"],
+                            "group_name": group_name,
+                            "schedule_date": date,
+                            "shift_type": shift_type_code,  # 数字枚举
+                            "status": 1,  # 默认状态：计划
+                            "id_leader": staff["id_leader"],
+                            "city_dept_id": city_dept_id or "",
+                            "city_dept_name": ""
+                        }
+                        
+                        try:
+                            session.execute(sql, params)
+                            saved_records.append({
+                                "record_id": record_id,
+                                "user_name": staff["user_name"],
+                                "group_name": group_name,
+                                "date": date,
+                                "shift_type": shift_name,
+                                "shift_type_code": shift_type_code
+                            })
+                            saved_count += 1
+                        except Exception as e:
+                            errors.append(f"保存记录失败: {staff['user_name']} - {str(e)}")
+            
+            session.commit()
+            
+            result = {
+                "success": True,
+                "message": f"成功保存 {saved_count} 条排班记录",
+                "saved_count": saved_count,
+                "saved_records": saved_records[:20],  # 只返回前20条用于展示
+                "errors": errors[:10] if errors else []
+            }
+            
+            return json.dumps(result, ensure_ascii=False, indent=2)
+            
+        except Exception as e:
+            session.rollback()
+            return json.dumps({
+                "success": False,
+                "error": str(e),
+                "message": "保存失败，已回滚"
+            }, ensure_ascii=False)
+        finally:
+            session.close()
+        
+    except Exception as e:
+        return json.dumps({
+            "success": False,
+            "error": str(e),
+            "message": "保存排班记录失败"
+        }, ensure_ascii=False)
+
+
+# 导出所有工具
+__all__ = [
+    "get_schedule_staff_info",
+    "get_existing_schedule",
+    "generate_intelligent_schedule",
+    "analyze_schedule_fairness",
+    "export_schedule_report",
+    "save_schedule_records"
+]

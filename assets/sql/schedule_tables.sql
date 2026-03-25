@@ -1,7 +1,7 @@
 -- ========================================
 -- 配网调度智能预测系统 - 排班表结构
 -- 数据库类型: MySQL
--- 版本: 2.0
+-- 版本: 2.1
 -- ========================================
 
 -- 1. 上班人员表 (working_user)
@@ -41,14 +41,16 @@ CREATE TABLE IF NOT EXISTS `working_groups` (
 
 -- 3. 排班记录表 (work_schedule_recode)
 -- 关键规则：一个班组一天只能排一次班（早班/中班/晚班三选一）
+-- SHIFT_TYPE: 1=晚班, 2=早班, 3=中班
+-- STATUS: 1=计划, 2=执行中, 3=已完成, 4=取消
 CREATE TABLE IF NOT EXISTS `work_schedule_recode` (
     `RECORD_ID` VARCHAR(36) NOT NULL COMMENT '记录ID',
     `USER_ID` VARCHAR(36) DEFAULT NULL COMMENT '用户ID',
     `USER_NAME` VARCHAR(255) DEFAULT NULL COMMENT '用户名',
     `GROUP_NAME` VARCHAR(255) DEFAULT NULL COMMENT '班组名称',
     `SCHEDULE_DATE` DATE DEFAULT NULL COMMENT '排班日期',
-    `SHIFT_TYPE` VARCHAR(20) DEFAULT NULL COMMENT '班次类型(早班/中班/晚班)',
-    `STATUS` VARCHAR(20) DEFAULT '计划' COMMENT '状态(计划/执行中/已完成/取消)',
+    `SHIFT_TYPE` INT DEFAULT 2 COMMENT '班次类型(1晚班/2早班/3中班)',
+    `STATUS` INT DEFAULT 1 COMMENT '状态(1计划/2执行中/3已完成/4取消)',
     `ID_LEADER` INT DEFAULT 0 COMMENT '值班类型(0其他值班人员,1副值,2正值,3值班长)',
     `CITY_DEPT_ID` VARCHAR(36) DEFAULT NULL COMMENT '所属地市ID',
     `CITY_DEPT_NAME` VARCHAR(255) DEFAULT NULL COMMENT '所属地市名字',
@@ -66,13 +68,7 @@ CREATE TABLE IF NOT EXISTS `work_schedule_recode` (
 -- 示例数据（测试用）
 -- ========================================
 
--- 清空旧数据（可选）
--- TRUNCATE TABLE work_schedule_recode;
--- TRUNCATE TABLE working_user;
--- TRUNCATE TABLE working_groups;
-
 -- 插入班组数据（注意IS_ACTIVE字段）
--- 班组数量可以随意设置，这里示例5个班组
 INSERT INTO `working_groups` (`GROUP_ID`, `GROUP_NAME`, `IS_ACTIVE`, `CITY_DEPT_ID`, `CITY_DEPT_NAME`) VALUES
 ('G001', '一班', '是', 'DEPT001', '广州供电局'),
 ('G002', '二班', '是', 'DEPT001', '广州供电局'),
@@ -82,6 +78,7 @@ INSERT INTO `working_groups` (`GROUP_ID`, `GROUP_NAME`, `IS_ACTIVE`, `CITY_DEPT_
 
 -- 插入人员数据
 -- 每个班组需要至少：1名值班长(ID_LEADER=3) + 1名正值(ID_LEADER=2) + 1名副值(ID_LEADER=1)
+
 -- 一班（4人）
 INSERT INTO `working_user` (`MK_ID`, `USER_ID`, `USER_NAME`, `GROUP`, `ID_LEADER`, `CITY_DEPT_ID`, `CITY_DEPT_NAME`) VALUES
 ('U001', '001', '张伟', '一班', 3, 'DEPT001', '广州供电局'),  -- 值班长
@@ -117,36 +114,111 @@ INSERT INTO `working_user` (`MK_ID`, `USER_ID`, `USER_NAME`, `GROUP`, `ID_LEADER
 ('U019', '019', '李芳', '五班', 1, 'DEPT001', '广州供电局');
 
 -- ========================================
--- 验证查询
+-- 插入示例排班记录（使用数字枚举）
+-- SHIFT_TYPE: 1=晚班, 2=早班, 3=中班
+-- STATUS: 1=计划, 2=执行中, 3=已完成, 4=取消
 -- ========================================
 
--- 查询生效的班组
--- SELECT * FROM working_groups WHERE IS_ACTIVE = '是';
+-- 2024-03-18 排班（已完成）
+INSERT INTO `work_schedule_recode` (`RECORD_ID`, `USER_ID`, `USER_NAME`, `GROUP_NAME`, `SCHEDULE_DATE`, `SHIFT_TYPE`, `STATUS`, `ID_LEADER`, `CITY_DEPT_ID`, `CITY_DEPT_NAME`) VALUES
+-- 一班 早班 (SHIFT_TYPE=2)
+('R001', '001', '张伟', '一班', '2024-03-18', 2, 3, 3, 'DEPT001', '广州供电局'),
+('R002', '002', '李明', '一班', '2024-03-18', 2, 3, 2, 'DEPT001', '广州供电局'),
+('R003', '003', '王芳', '一班', '2024-03-18', 2, 3, 1, 'DEPT001', '广州供电局'),
+-- 二班 中班 (SHIFT_TYPE=3)
+('R004', '005', '陈红', '二班', '2024-03-18', 3, 3, 3, 'DEPT001', '广州供电局'),
+('R005', '006', '赵刚', '二班', '2024-03-18', 3, 3, 2, 'DEPT001', '广州供电局'),
+-- 三班 晚班 (SHIFT_TYPE=1)
+('R006', '009', '吴敏', '三班', '2024-03-18', 1, 3, 3, 'DEPT001', '广州供电局'),
+('R007', '010', '郑华', '三班', '2024-03-18', 1, 3, 2, 'DEPT001', '广州供电局');
 
--- 查询每个班组的人员配置
--- SELECT 
---     g.GROUP_NAME,
---     g.IS_ACTIVE,
---     SUM(CASE WHEN u.ID_LEADER = 3 THEN 1 ELSE 0 END) as 值班长人数,
---     SUM(CASE WHEN u.ID_LEADER = 2 THEN 1 ELSE 0 END) as 正值人数,
---     SUM(CASE WHEN u.ID_LEADER = 1 THEN 1 ELSE 0 END) as 副值人数,
---     SUM(CASE WHEN u.ID_LEADER = 0 THEN 1 ELSE 0 END) as 其他人数,
---     COUNT(*) as 总人数
--- FROM working_groups g
--- LEFT JOIN working_user u ON g.GROUP_NAME = u.`GROUP`
--- GROUP BY g.GROUP_NAME, g.IS_ACTIVE;
+-- 2024-03-19 排班（已完成）
+INSERT INTO `work_schedule_recode` (`RECORD_ID`, `USER_ID`, `USER_NAME`, `GROUP_NAME`, `SCHEDULE_DATE`, `SHIFT_TYPE`, `STATUS`, `ID_LEADER`, `CITY_DEPT_ID`, `CITY_DEPT_NAME`) VALUES
+-- 四班 早班
+('R008', '013', '杨波', '四班', '2024-03-19', 2, 3, 3, 'DEPT001', '广州供电局'),
+('R009', '014', '何静', '四班', '2024-03-19', 2, 3, 2, 'DEPT001', '广州供电局'),
+-- 一班 中班
+('R010', '001', '张伟', '一班', '2024-03-19', 3, 3, 3, 'DEPT001', '广州供电局'),
+('R011', '002', '李明', '一班', '2024-03-19', 3, 3, 2, 'DEPT001', '广州供电局'),
+-- 二班 晚班
+('R012', '005', '陈红', '二班', '2024-03-19', 1, 3, 3, 'DEPT001', '广州供电局'),
+('R013', '006', '赵刚', '二班', '2024-03-19', 1, 3, 2, 'DEPT001', '广州供电局');
 
--- 检查班组是否满足最低人员要求（至少1名值班长+1名正值+1名副值）
+-- 2024-03-20 排班（执行中）
+INSERT INTO `work_schedule_recode` (`RECORD_ID`, `USER_ID`, `USER_NAME`, `GROUP_NAME`, `SCHEDULE_DATE`, `SHIFT_TYPE`, `STATUS`, `ID_LEADER`, `CITY_DEPT_ID`, `CITY_DEPT_NAME`) VALUES
+-- 三班 早班
+('R014', '009', '吴敏', '三班', '2024-03-20', 2, 2, 3, 'DEPT001', '广州供电局'),
+('R015', '010', '郑华', '三班', '2024-03-20', 2, 2, 2, 'DEPT001', '广州供电局'),
+-- 四班 中班
+('R016', '013', '杨波', '四班', '2024-03-20', 3, 2, 3, 'DEPT001', '广州供电局'),
+('R017', '014', '何静', '四班', '2024-03-20', 3, 2, 2, 'DEPT001', '广州供电局'),
+-- 一班 晚班
+('R018', '001', '张伟', '一班', '2024-03-20', 1, 2, 3, 'DEPT001', '广州供电局'),
+('R019', '002', '李明', '一班', '2024-03-20', 1, 2, 2, 'DEPT001', '广州供电局');
+
+-- 2024-03-21 排班（计划中）
+INSERT INTO `work_schedule_recode` (`RECORD_ID`, `USER_ID`, `USER_NAME`, `GROUP_NAME`, `SCHEDULE_DATE`, `SHIFT_TYPE`, `STATUS`, `ID_LEADER`, `CITY_DEPT_ID`, `CITY_DEPT_NAME`) VALUES
+-- 二班 早班
+('R020', '005', '陈红', '二班', '2024-03-21', 2, 1, 3, 'DEPT001', '广州供电局'),
+('R021', '006', '赵刚', '二班', '2024-03-21', 2, 1, 2, 'DEPT001', '广州供电局'),
+-- 三班 中班
+('R022', '009', '吴敏', '三班', '2024-03-21', 3, 1, 3, 'DEPT001', '广州供电局'),
+('R023', '010', '郑华', '三班', '2024-03-21', 3, 1, 2, 'DEPT001', '广州供电局'),
+-- 四班 晚班
+('R024', '013', '杨波', '四班', '2024-03-21', 1, 1, 3, 'DEPT001', '广州供电局'),
+('R025', '014', '何静', '四班', '2024-03-21', 1, 1, 2, 'DEPT001', '广州供电局');
+
+-- ========================================
+-- 枚举值说明
+-- ========================================
+/*
+SHIFT_TYPE 班次类型：
+  1 = 晚班 (00:00 - 08:00)
+  2 = 早班 (08:00 - 16:00)
+  3 = 中班 (16:00 - 24:00)
+
+STATUS 状态：
+  1 = 计划
+  2 = 执行中
+  3 = 已完成
+  4 = 取消
+*/
+
+-- ========================================
+-- 查询示例
+-- ========================================
+
+-- 查询排班记录（显示班次和状态名称）
 -- SELECT 
---     g.GROUP_NAME,
---     g.IS_ACTIVE,
---     CASE 
---         WHEN SUM(CASE WHEN u.ID_LEADER = 3 THEN 1 ELSE 0 END) >= 1 
---              AND SUM(CASE WHEN u.ID_LEADER = 2 THEN 1 ELSE 0 END) >= 1 
---              AND SUM(CASE WHEN u.ID_LEADER = 1 THEN 1 ELSE 0 END) >= 1 
---         THEN '满足' 
---         ELSE '不满足' 
---     END as 人员配置状态
--- FROM working_groups g
--- LEFT JOIN working_user u ON g.GROUP_NAME = u.`GROUP`
--- GROUP BY g.GROUP_NAME, g.IS_ACTIVE;
+--     SCHEDULE_DATE,
+--     CASE SHIFT_TYPE 
+--         WHEN 1 THEN '晚班'
+--         WHEN 2 THEN '早班'
+--         WHEN 3 THEN '中班'
+--     END as 班次,
+--     GROUP_NAME as 班组,
+--     USER_NAME as 人员,
+--     CASE STATUS
+--         WHEN 1 THEN '计划'
+--         WHEN 2 THEN '执行中'
+--         WHEN 3 THEN '已完成'
+--         WHEN 4 THEN '取消'
+--     END as 状态
+-- FROM work_schedule_recode
+-- ORDER BY SCHEDULE_DATE, SHIFT_TYPE;
+
+-- 统计班组排班情况
+-- SELECT 
+--     GROUP_NAME,
+--     COUNT(*) as 总班次,
+--     SUM(CASE WHEN SHIFT_TYPE = 1 THEN 1 ELSE 0 END) as 晚班次数,
+--     SUM(CASE WHEN SHIFT_TYPE = 2 THEN 1 ELSE 0 END) as 早班次数,
+--     SUM(CASE WHEN SHIFT_TYPE = 3 THEN 1 ELSE 0 END) as 中班次数
+-- FROM work_schedule_recode
+-- GROUP BY GROUP_NAME;
+
+-- 检查约束：一个班组一天是否只排了一次班
+-- SELECT SCHEDULE_DATE, GROUP_NAME, COUNT(DISTINCT SHIFT_TYPE) as 班次数
+-- FROM work_schedule_recode
+-- GROUP BY SCHEDULE_DATE, GROUP_NAME
+-- HAVING COUNT(DISTINCT SHIFT_TYPE) > 1;

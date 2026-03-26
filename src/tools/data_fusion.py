@@ -148,27 +148,61 @@ class WeatherDataGenerator:
     """
     天气数据生成器
     
-    移植说明：
-    - 替换为实际天气API调用
-    - 保持接口：get_weather_forecast(days) -> List[Dict]
+    使用和风天气API获取真实天气数据
+    API文档: https://dev.qweather.com/docs/api/
     """
     
     @staticmethod
     def generate_forecast(days: int = 7) -> List[Dict]:
         """
-        生成天气预测数据（演示用）
+        获取天气预报数据
         
-        生产环境替换：
-        ```python
-        import requests
+        参数:
+            days: 预报天数（最多7天）
         
-        def get_weather_forecast(days: int = 7) -> List[Dict]:
-            api_key = os.getenv("WEATHER_API_KEY")
-            url = f"https://api.weather.example.com/forecast?days={days}&key={api_key}"
-            response = requests.get(url)
-            return response.json()['forecast']
-        ```
+        返回:
+            天气预报列表
         """
+        from tools.weather_api import get_weather_forecast_7d
+        
+        try:
+            # 调用真实的和风天气API
+            result = get_weather_forecast_7d()
+            
+            if result.get("success") and result.get("data", {}).get("forecast"):
+                forecast_data = result["data"]["forecast"][:days]
+                
+                # 转换为标准格式
+                forecast = []
+                for day in forecast_data:
+                    forecast.append({
+                        "date": day.get("date", ""),
+                        "weekday": day.get("weekday", ""),
+                        "weather": day.get("text_day", "未知"),
+                        "weather_night": day.get("text_night", "未知"),
+                        "temperature_max": int(day.get("temp_max", 30)),
+                        "temperature_min": int(day.get("temp_min", 20)),
+                        "humidity": int(day.get("humidity", 60)),
+                        "wind_dir": day.get("wind_dir_day", "无风"),
+                        "wind_level": int(day.get("wind_scale_day", "1")[0]) if day.get("wind_scale_day") else 1,
+                        "rain_probability": float(day.get("precip", 0)) * 100 if day.get("precip") else 0,
+                        "uv_index": int(day.get("uv_index", 3)),
+                        "icon_day": day.get("icon_day", "☀️"),
+                        "icon_night": day.get("icon_night", "🌙")
+                    })
+                
+                return forecast
+            else:
+                # API调用失败，返回模拟数据
+                return WeatherDataGenerator._generate_mock_forecast(days)
+                
+        except Exception as e:
+            print(f"获取天气数据失败: {e}")
+            return WeatherDataGenerator._generate_mock_forecast(days)
+    
+    @staticmethod
+    def _generate_mock_forecast(days: int = 7) -> List[Dict]:
+        """生成模拟天气数据（备用）"""
         import random
         
         forecast = []
@@ -193,9 +227,7 @@ class HolidayCalendar:
     """
     节假日日历管理
     
-    移植说明：
-    - 更新 assets/holiday_calendar.json 为实际节假日数据
-    - 或接入第三方节假日API
+    数据来源: assets/holiday_calendar.json
     """
     
     def __init__(self):
@@ -211,39 +243,12 @@ class HolidayCalendar:
             with open(self.calendar_path, 'r', encoding='utf-8') as f:
                 return json.load(f)
         else:
-            # 返回默认节假日（2024年中国法定节假日）
+            # 返回空节假日数据
             return {
-                "2024": {
-                    "01-01": "元旦",
-                    "02-10": "春节",
-                    "02-11": "春节",
-                    "02-12": "春节",
-                    "02-13": "春节",
-                    "02-14": "春节",
-                    "02-15": "春节",
-                    "02-16": "春节",
-                    "02-17": "春节",
-                    "04-04": "清明节",
-                    "04-05": "清明节",
-                    "04-06": "清明节",
-                    "05-01": "劳动节",
-                    "05-02": "劳动节",
-                    "05-03": "劳动节",
-                    "05-04": "劳动节",
-                    "05-05": "劳动节",
-                    "06-08": "端午节",
-                    "06-09": "端午节",
-                    "06-10": "端午节",
-                    "09-15": "中秋节",
-                    "09-16": "中秋节",
-                    "09-17": "中秋节",
-                    "10-01": "国庆节",
-                    "10-02": "国庆节",
-                    "10-03": "国庆节",
-                    "10-04": "国庆节",
-                    "10-05": "国庆节",
-                    "10-06": "国庆节",
-                    "10-07": "国庆节"
+                "metadata": {
+                    "last_updated": datetime.now().strftime("%Y-%m-%d"),
+                    "source": "默认配置",
+                    "note": "请更新 assets/holiday_calendar.json"
                 }
             }
     

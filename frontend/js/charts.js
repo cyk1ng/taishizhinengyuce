@@ -240,7 +240,7 @@ function initNetworkOrderChart(data = null) {
 }
 
 /**
- * 初始化工作量时间轴图表（紧凑版）
+ * 初始化工作量时间轴图表（完整24小时）
  */
 function initWorkloadTimelineChart(data = null) {
     const ctx = document.getElementById('workloadTimelineChart');
@@ -250,18 +250,19 @@ function initWorkloadTimelineChart(data = null) {
         workloadTimelineChart.destroy();
     }
     
-    // 生成时间标签 (8:00-21:00)
+    // 生成时间标签 (0:00-23:00 完整24小时)
     const timeLabels = [];
-    for (let i = 8; i <= 20; i++) {
+    for (let i = 0; i <= 23; i++) {
         timeLabels.push(`${i}:00`);
     }
     
+    // 24小时默认数据
     const defaultData = {
         labels: timeLabels,
-        workloadTotal: [0, 2.5, 3.8, 4.2, 3.5, 2.8, 3.2, 4.5, 5.2, 4.8, 3.5, 2.8, 0],
-        staffCapacity: [5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2],
-        plannedTask: [0, 1.5, 2.0, 2.5, 1.8, 1.2, 1.5, 2.5, 3.0, 2.8, 2.0, 1.5, 0],
-        unplannedTask: [0, 1.0, 1.8, 1.7, 1.7, 1.6, 1.7, 2.0, 2.2, 2.0, 1.5, 1.3, 0]
+        workloadTotal: [0, 0, 0, 0, 0, 0, 0, 0.5, 2.5, 3.8, 4.2, 3.5, 2.8, 3.2, 3.8, 4.5, 5.2, 4.8, 3.5, 2.8, 1.5, 0.8, 0.3, 0],
+        staffCapacity: [5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2],
+        plannedTask: [0, 0, 0, 0, 0, 0, 0, 0.3, 1.5, 2.0, 2.5, 1.8, 1.2, 1.5, 2.0, 2.5, 3.0, 2.8, 2.0, 1.5, 1.0, 0.5, 0.2, 0],
+        unplannedTask: [0, 0, 0, 0, 0, 0, 0, 0.2, 1.0, 1.8, 1.7, 1.7, 1.6, 1.7, 1.8, 2.0, 2.2, 2.0, 1.5, 1.3, 0.5, 0.3, 0.1, 0]
     };
     
     const chartData = data || defaultData;
@@ -340,7 +341,7 @@ function initWorkloadTimelineChart(data = null) {
                             const idx = items[0].dataIndex;
                             const total = chartData.workloadTotal[idx];
                             const isOverload = total > 5.2 * 1.5;
-                            return `${items[0].label}:00${isOverload ? ' ⚠️' : ''}`;
+                            return `${items[0].label}${isOverload ? ' ⚠️' : ''}`;
                         },
                         label: function(context) {
                             return `${context.dataset.label}: ${context.parsed.y.toFixed(1)}`;
@@ -351,7 +352,15 @@ function initWorkloadTimelineChart(data = null) {
             scales: {
                 x: {
                     grid: { color: chartColors.gridColor, drawBorder: false },
-                    ticks: { color: '#5a7a9e', font: { size: 9 }, maxRotation: 0 }
+                    ticks: { 
+                        color: '#5a7a9e', 
+                        font: { size: 9 }, 
+                        maxRotation: 0,
+                        // 每2小时显示一个标签
+                        callback: function(value, index) {
+                            return index % 2 === 0 ? this.getLabelForValue(value) : '';
+                        }
+                    }
                 },
                 y: {
                     beginAtZero: true,

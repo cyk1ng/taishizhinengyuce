@@ -34,26 +34,132 @@ from coze_coding_utils.runtime_ctx.context import new_context
 WORKLOAD_WEIGHTS = {
     "plan_task": {
         "name": "计划任务",
+        "description": "A7 计划任务当量 = A1*权重 + A2*权重 + A3*权重 + A4*权重 + A5*权重 + A6*权重",
         "items": {
-            "A1_phone": {"name": "停电(电话下令)", "weight": 0.5, "module": "停电检修"},
-            "A1_network": {"name": "停电(网络令)", "weight": 0.2, "module": "停电检修"},
-            "A2_phone": {"name": "复电(电话令)", "weight": 0.75, "module": "停电检修"},
-            "A2_network": {"name": "复电(网络令)", "weight": 0.3, "module": "停电检修"},
-            "A3": {"name": "转供电", "weight": 0.2, "module": "转供电"},
-            "A4": {"name": "周计划(只带电)", "weight": 0.2, "module": "周计划"},
-            "A5": {"name": "周计划(只投产)", "weight": 0.3, "module": "周计划"},
-            "A6": {"name": "设备投退", "weight": 0.75, "module": "设备投退"},
+            "A1_phone": {
+                "name": "停电(电话下令)", 
+                "weight": 0.5, 
+                "module": "停电检修",
+                "rule": "批复的停电操作开始时间为当值时段的检修单"
+            },
+            "A1_network": {
+                "name": "停电(网络令)", 
+                "weight": 0.2, 
+                "module": "停电检修",
+                "rule": "批复的停电操作开始时间为当值时段的检修单"
+            },
+            "A2_phone": {
+                "name": "复电(电话令)", 
+                "weight": 0.75, 
+                "module": "停电检修",
+                "rule": "批复的复电操作开始时间为当值时段的检修单"
+            },
+            "A2_network": {
+                "name": "复电(网络令)", 
+                "weight": 0.3, 
+                "module": "停电检修",
+                "rule": "批复的复电电操作开始时间为当值时段的检修单"
+            },
+            "A3": {
+                "name": "转供电", 
+                "weight": 0.2, 
+                "module": "转供电",
+                "rules": [
+                    "批复的转出时间为当值时段",
+                    "批复的恢复时间为当值时段（如果需要恢复）",
+                    "如果同时满足1和2，那么任务数计为2"
+                ]
+            },
+            "A4": {
+                "name": "周计划(只带电)", 
+                "weight": 0.2, 
+                "module": "周计划",
+                "rules": [
+                    "批复的退出时间为当值时段",
+                    "批复的投入时间为当值时段（如果需要投入）",
+                    "如果同时满足1和2，那么任务数计为2"
+                ]
+            },
+            "A5": {
+                "name": "周计划(只投产)", 
+                "weight": 0.3, 
+                "module": "周计划",
+                "rules": [
+                    "工作开始时间及结束时间为当值时段",
+                    "若周计划为带电配合投产则任务数为2"
+                ]
+            },
+            "A6": {
+                "name": "设备投退", 
+                "weight": 0.75, 
+                "module": "设备投退",
+                "rule": "设备投退操作时间"
+            },
         }
     },
     "non_plan_task": {
         "name": "非计划任务",
+        "description": "B6 非计划任务当量 = B1*权重 + B2*权重 + B3*权重 + B4*权重",
         "items": {
-            "B1_success": {"name": "跳闸重合成功", "weight": 0.1, "module": "故障日志"},
-            "B1_fail_known": {"name": "跳闸重合不成功(确定故障)", "weight": 0.3, "module": "故障日志"},
-            "B1_fail_unknown": {"name": "跳闸重合不成功(不确定故障)", "weight": 0.5, "module": "故障日志"},
-            "B2": {"name": "故障缺陷", "weight": 0.5, "module": "缺陷记录"},
-            "B3": {"name": "重过载", "weight": 0.1, "module": "重过载"},
-            "B4": {"name": "保供电", "weight": 0.1, "module": "保供电"},
+            "B1_success": {
+                "name": "跳闸重合成功", 
+                "weight": 0.1, 
+                "module": "故障日志",
+                "rule": "跳闸时间为当值时段的故障"
+            },
+            "B1_fail_known": {
+                "name": "跳闸重合不成功(确定故障)", 
+                "weight": 0.3, 
+                "module": "故障日志",
+                "rules": [
+                    "跳闸时间为当值时段的故障",
+                    "预计恢复送电时间为当值时段的故障",
+                    "如果同时满足1和2，那么任务数计算为2"
+                ]
+            },
+            "B1_fail_unknown": {
+                "name": "跳闸重合不成功(不确定故障)", 
+                "weight": 0.3, 
+                "module": "故障日志",
+                "rules": [
+                    "跳闸时间为当值时段的故障",
+                    "故障不确定（无复电时间）时，此故障一直加入当值工作量",
+                    "确定故障后填写预计恢复送电时间为当值的故障",
+                    "如果同时满足1和2，那么任务数计算为2"
+                ]
+            },
+            "B1_bus_ground": {
+                "name": "母线接地", 
+                "weight": 0.3, 
+                "module": "故障日志",
+                "rules": [
+                    "母线接地时间为当值时段的故障",
+                    "检跳后（无复电时间），此接地故障一直加入当值工作量",
+                    "确定故障后填写预计恢复送电时间为当值的故障",
+                    "如果同时满足1和2，那么任务数计算为2"
+                ]
+            },
+            "B2": {
+                "name": "异常缺陷", 
+                "weight": 0.6, 
+                "module": "缺陷记录",
+                "rules": [
+                    "停电时间为当值时段的任务数",
+                    "预计恢复送电时间为当值时段的缺陷"
+                ]
+            },
+            "B3": {
+                "name": "重过载", 
+                "weight": 0.6, 
+                "module": "重过载",
+                "rule": "重过载记录时间为当值时段"
+            },
+            "B4": {
+                "name": "保电任务", 
+                "weight": 0.1, 
+                "module": "保供电",
+                "rule": "保电记录时间为当值时段"
+            },
         }
     }
 }
@@ -101,61 +207,93 @@ class WorkloadRecord:
 
 
 class HourlyWorkload:
-    """小时级工作量统计"""
+    """小时级工作量统计
+    
+    统计指标说明：
+    - C1 计划工作: 计算计划任务（A1至A6）该时段的任务数
+    - C2 非计划工作: 计算非计划任务（B1至B4）该时段的任务数
+    - C3 任务总计: C1+C2
+    - C4 工作任务总当量: 各任务值*各自指标当量权重系数
+    - C5 班组人员工作当量: 人均人力资源当量(默认1.3) * 当值人数 * 1.5
+    - C6 是否超人员当量: C4 >= C5*1.5 时为"是"
+    - C7 需增派人员数: (C4/人均人力资源当量*1.5) - 当值人数，四舍五入取整
+    """
     
     def __init__(self, hour: str):
         self.hour = hour  # 格式: "2026-03-26 10:00"
         self.plan_tasks: List[WorkloadRecord] = []
         self.non_plan_tasks: List[WorkloadRecord] = []
-        self.plan_count = 0  # 计划任务数
-        self.non_plan_count = 0  # 非计划任务数
-        self.plan_equivalent = 0.0  # 计划工作当量
-        self.non_plan_equivalent = 0.0  # 非计划工作当量
-        self.total_equivalent = 0.0  # 总工作当量
+        
+        # C1-C3 任务计数
+        self.plan_count = 0  # C1 计划任务数
+        self.non_plan_count = 0  # C2 非计划任务数
+        self.total_count = 0  # C3 总任务数
+        
+        # C4 工作当量
+        self.plan_equivalent = 0.0  # 计划工作当量 (A7)
+        self.non_plan_equivalent = 0.0  # 非计划工作当量 (B6)
+        self.total_equivalent = 0.0  # C4 总工作当量
+        
+        # C5-C7 人员相关
         self.staff_count = 0  # 当值人数
-        self.staff_capacity = 0.0  # 人员工作当量
-        self.is_overload = False  # 是否超负荷
-        self.need_extra_staff = 0  # 需增派人数
+        self.staff_capacity = 0.0  # C5 人员工作当量
+        self.is_overload = False  # C6 是否超负荷
+        self.need_extra_staff = 0  # C7 需增派人数
     
     def calculate(self, hr_capacity: float = DEFAULT_HR_CAPACITY):
-        """计算工作量当量和人力资源建议"""
-        # 计算计划任务当量
+        """
+        计算工作量当量和人力资源建议
+        
+        公式说明：
+        - A7 计划任务当量 = A1*权重 + A2*权重 + A3*权重 + A4*权重 + A5*权重 + A6*权重
+        - B6 非计划任务当量 = B1*权重 + B2*权重 + B3*权重 + B4*权重
+        - C4 = A7 + B6
+        - C5 = 人均当量(1.3) * 当值人数
+        - C6: C4 >= C5 * 1.5 时为"是"
+        - C7: round(C4 / (人均当量 * 1.5) - 当值人数)
+        """
+        # C1: 计算计划任务数和当量 (A7)
         self.plan_count = sum(t.count for t in self.plan_tasks)
         self.plan_equivalent = sum(t.count * t.weight for t in self.plan_tasks)
         
-        # 计算非计划任务当量
+        # C2: 计算非计划任务数和当量 (B6)
         self.non_plan_count = sum(t.count for t in self.non_plan_tasks)
         self.non_plan_equivalent = sum(t.count * t.weight for t in self.non_plan_tasks)
         
-        # 总当量
+        # C3: 总任务数
+        self.total_count = self.plan_count + self.non_plan_count
+        
+        # C4: 总工作当量
         self.total_equivalent = self.plan_equivalent + self.non_plan_equivalent
         
-        # 人员工作当量
+        # C5: 人员工作当量 = 人均当量 * 当值人数
         self.staff_capacity = self.staff_count * hr_capacity
         
-        # 是否超负荷 (工作当量 >= 人员当量 * 1.5)
-        self.is_overload = self.total_equivalent >= self.staff_capacity * OVERLOAD_FACTOR
+        # C6: 是否超负荷 (工作当量 >= 人员当量 * 1.5)
+        overload_threshold = self.staff_capacity * OVERLOAD_FACTOR
+        self.is_overload = self.total_equivalent >= overload_threshold
         
-        # 需增派人数
-        if self.is_overload:
+        # C7: 需增派人数
+        # 公式: (C4 / 人均当量 * 1.5) - 当值人数，四舍五入取整
+        if self.staff_count > 0:
             required_staff = self.total_equivalent / (hr_capacity * OVERLOAD_FACTOR)
             self.need_extra_staff = max(0, round(required_staff - self.staff_count))
         else:
-            self.need_extra_staff = 0
+            self.need_extra_staff = round(self.total_equivalent / (hr_capacity * OVERLOAD_FACTOR))
     
     def to_dict(self) -> Dict:
         return {
             "hour": self.hour,
-            "plan_count": self.plan_count,
-            "non_plan_count": self.non_plan_count,
-            "total_count": self.plan_count + self.non_plan_count,
-            "plan_equivalent": round(self.plan_equivalent, 2),
-            "non_plan_equivalent": round(self.non_plan_equivalent, 2),
-            "total_equivalent": round(self.total_equivalent, 2),
+            "plan_count": self.plan_count,  # C1
+            "non_plan_count": self.non_plan_count,  # C2
+            "total_count": self.total_count,  # C3
+            "plan_equivalent": round(self.plan_equivalent, 2),  # A7
+            "non_plan_equivalent": round(self.non_plan_equivalent, 2),  # B6
+            "total_equivalent": round(self.total_equivalent, 2),  # C4
             "staff_count": self.staff_count,
-            "staff_capacity": round(self.staff_capacity, 2),
-            "is_overload": self.is_overload,
-            "need_extra_staff": self.need_extra_staff,
+            "staff_capacity": round(self.staff_capacity, 2),  # C5
+            "is_overload": self.is_overload,  # C6
+            "need_extra_staff": self.need_extra_staff,  # C7
             "plan_tasks": [t.to_dict() for t in self.plan_tasks],
             "non_plan_tasks": [t.to_dict() for t in self.non_plan_tasks]
         }

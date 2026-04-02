@@ -34,7 +34,7 @@ let networkOrderChart = null;
 let workloadTimelineChart = null;
 
 /**
- * 初始化各模块业务情况图表（折线图）
+ * 初始化各模块业务情况图表（柱状图，更紧凑）
  */
 function initModuleBusinessChart(data = null) {
     const ctx = document.getElementById('moduleBusinessChart');
@@ -52,79 +52,66 @@ function initModuleBusinessChart(data = null) {
     const chartData = data || defaultData;
     
     moduleBusinessChart = new Chart(ctx, {
-        type: 'line',
+        type: 'bar',
         data: {
             labels: chartData.labels,
             datasets: [{
                 label: '业务数量',
                 data: chartData.values,
-                borderColor: chartColors.cyan,
-                backgroundColor: 'rgba(34, 211, 238, 0.1)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.3,
-                pointRadius: 4,
-                pointBackgroundColor: chartColors.cyan,
-                pointBorderColor: '#0a1628',
-                pointBorderWidth: 2,
-                pointHoverRadius: 6,
-                pointHoverBackgroundColor: chartColors.primary
+                backgroundColor: [
+                    'rgba(6, 182, 212, 0.7)',
+                    'rgba(59, 130, 246, 0.7)',
+                    'rgba(239, 68, 68, 0.7)',
+                    'rgba(245, 158, 11, 0.7)',
+                    'rgba(139, 92, 246, 0.7)',
+                    'rgba(16, 185, 129, 0.7)',
+                    'rgba(6, 182, 212, 0.7)',
+                    'rgba(59, 130, 246, 0.7)'
+                ],
+                borderColor: [
+                    'rgba(6, 182, 212, 1)',
+                    'rgba(59, 130, 246, 1)',
+                    'rgba(239, 68, 68, 1)',
+                    'rgba(245, 158, 11, 1)',
+                    'rgba(139, 92, 246, 1)',
+                    'rgba(16, 185, 129, 1)',
+                    'rgba(6, 182, 212, 1)',
+                    'rgba(59, 130, 246, 1)'
+                ],
+                borderWidth: 1,
+                borderRadius: 3
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            interaction: {
-                intersect: false,
-                mode: 'index'
-            },
             plugins: {
-                legend: {
-                    display: false
-                },
+                legend: { display: false },
                 tooltip: {
                     backgroundColor: chartColors.tooltipBg,
                     titleColor: chartColors.tooltipText,
                     bodyColor: chartColors.tooltipText,
                     borderColor: chartColors.tooltipBorder,
                     borderWidth: 1,
-                    cornerRadius: 6,
-                    padding: 10,
+                    cornerRadius: 4,
+                    padding: 8,
                     callbacks: {
-                        title: function(items) {
-                            return items[0].label;
-                        },
                         label: function(context) {
-                            const value = context.parsed.y;
-                            return `${context.label}: ${value}单 (${value}起)`;
+                            return `${context.label}: ${context.parsed.y}单`;
                         }
                     }
                 }
             },
             scales: {
                 x: {
-                    grid: {
-                        color: chartColors.gridColor,
-                        drawBorder: false
-                    },
-                    ticks: {
-                        color: '#5a7a9e',
-                        font: { size: 10 },
-                        maxRotation: 0
-                    }
+                    grid: { display: false },
+                    ticks: { color: '#5a7a9e', font: { size: 10 } }
                 },
                 y: {
                     beginAtZero: true,
                     max: 30,
-                    grid: {
-                        color: chartColors.gridColor,
-                        drawBorder: false
-                    },
-                    ticks: {
-                        color: '#5a7a9e',
-                        font: { size: 10 },
-                        stepSize: 10
-                    }
+                    grid: { color: chartColors.gridColor, drawBorder: false },
+                    ticks: { color: '#5a7a9e', font: { size: 10 }, stepSize: 10 }
                 }
             }
         }
@@ -253,7 +240,7 @@ function initNetworkOrderChart(data = null) {
 }
 
 /**
- * 初始化工作量时间轴图表
+ * 初始化工作量时间轴图表（紧凑版）
  */
 function initWorkloadTimelineChart(data = null) {
     const ctx = document.getElementById('workloadTimelineChart');
@@ -266,7 +253,7 @@ function initWorkloadTimelineChart(data = null) {
     // 生成时间标签 (8:00-21:00)
     const timeLabels = [];
     for (let i = 8; i <= 20; i++) {
-        timeLabels.push(`${i}:00-${i+1}:00`);
+        timeLabels.push(`${i}:00`);
     }
     
     const defaultData = {
@@ -288,22 +275,20 @@ function initWorkloadTimelineChart(data = null) {
                     label: '工作任务总当量',
                     data: chartData.workloadTotal,
                     borderColor: chartColors.cyan,
-                    backgroundColor: 'rgba(34, 211, 238, 0.05)',
+                    backgroundColor: 'rgba(34, 211, 238, 0.1)',
                     borderWidth: 2,
-                    fill: false,
+                    fill: true,
                     tension: 0.3,
-                    pointRadius: 3,
-                    pointBackgroundColor: chartColors.cyan,
-                    pointBorderColor: '#0a1628',
-                    pointBorderWidth: 1
+                    pointRadius: 2,
+                    pointBackgroundColor: chartColors.cyan
                 },
                 {
                     label: '班组人员工作当量',
                     data: chartData.staffCapacity,
                     borderColor: chartColors.yellow,
                     backgroundColor: 'transparent',
-                    borderWidth: 2,
-                    borderDash: [5, 5],
+                    borderWidth: 1.5,
+                    borderDash: [4, 4],
                     fill: false,
                     tension: 0,
                     pointRadius: 0
@@ -312,8 +297,8 @@ function initWorkloadTimelineChart(data = null) {
                     label: '计划任务当量',
                     data: chartData.plannedTask,
                     borderColor: chartColors.green,
-                    backgroundColor: 'rgba(16, 185, 129, 0.05)',
-                    borderWidth: 2,
+                    backgroundColor: 'transparent',
+                    borderWidth: 1.5,
                     fill: false,
                     tension: 0.3,
                     pointRadius: 2,
@@ -323,8 +308,8 @@ function initWorkloadTimelineChart(data = null) {
                     label: '非计划任务当量',
                     data: chartData.unplannedTask,
                     borderColor: chartColors.orange,
-                    backgroundColor: 'rgba(249, 115, 22, 0.05)',
-                    borderWidth: 2,
+                    backgroundColor: 'transparent',
+                    borderWidth: 1.5,
                     fill: false,
                     tension: 0.3,
                     pointRadius: 2,
@@ -340,79 +325,39 @@ function initWorkloadTimelineChart(data = null) {
                 mode: 'index'
             },
             plugins: {
-                legend: {
-                    display: false
-                },
+                legend: { display: false },
                 tooltip: {
                     backgroundColor: chartColors.tooltipBg,
                     titleColor: chartColors.tooltipText,
                     bodyColor: chartColors.tooltipText,
                     borderColor: chartColors.tooltipBorder,
                     borderWidth: 1,
-                    cornerRadius: 6,
-                    padding: 12,
+                    cornerRadius: 4,
+                    padding: 10,
                     displayColors: true,
                     callbacks: {
                         title: function(items) {
-                            const time = items[0].label;
                             const idx = items[0].dataIndex;
-                            // 添加额外信息
                             const total = chartData.workloadTotal[idx];
-                            const capacity = chartData.staffCapacity[idx];
-                            const isOverload = total > capacity * 1.5;
-                            return `${time}${isOverload ? ' ⚠️ 超负荷' : ''}`;
+                            const isOverload = total > 5.2 * 1.5;
+                            return `${items[0].label}:00${isOverload ? ' ⚠️' : ''}`;
                         },
                         label: function(context) {
-                            const label = context.dataset.label || '';
-                            const value = context.parsed.y.toFixed(2);
-                            return `${label}: ${value}`;
-                        },
-                        afterBody: function(items) {
-                            const idx = items[0].dataIndex;
-                            const total = chartData.workloadTotal[idx];
-                            const capacity = chartData.staffCapacity[idx];
-                            const currentStaff = 4;
-                            const humanCapacity = 1.3;
-                            
-                            // 计算需增派人数
-                            const neededStaff = Math.ceil((total / (humanCapacity * 1.5)) - currentStaff);
-                            const needMore = neededStaff > 0 ? `需增派: ${neededStaff}人` : '人员充足';
-                            
-                            return [
-                                '',
-                                `班组人员工作量: ${total.toFixed(2)}`,
-                                `是否超人员当量: ${total > capacity * 1.5 ? '是' : '否'}`,
-                                needMore
-                            ];
+                            return `${context.dataset.label}: ${context.parsed.y.toFixed(1)}`;
                         }
                     }
                 }
             },
             scales: {
                 x: {
-                    grid: {
-                        color: chartColors.gridColor,
-                        drawBorder: false
-                    },
-                    ticks: {
-                        color: '#5a7a9e',
-                        font: { size: 10 },
-                        maxRotation: 45,
-                        minRotation: 45
-                    }
+                    grid: { color: chartColors.gridColor, drawBorder: false },
+                    ticks: { color: '#5a7a9e', font: { size: 9 }, maxRotation: 0 }
                 },
                 y: {
                     beginAtZero: true,
                     max: 8,
-                    grid: {
-                        color: chartColors.gridColor,
-                        drawBorder: false
-                    },
-                    ticks: {
-                        color: '#5a7a9e',
-                        font: { size: 10 },
-                        stepSize: 2
-                    }
+                    grid: { color: chartColors.gridColor, drawBorder: false },
+                    ticks: { color: '#5a7a9e', font: { size: 9 }, stepSize: 2 }
                 }
             }
         }

@@ -84,7 +84,7 @@
                     <span>📋</span>
                     <span>检修业务单总量</span>
                 </div>
-                <div class="stat-value green" id="stat-maintenance">16<span style="font-size: 16px; margin-left: 4px;">单</span></div>
+                <div class="stat-value green" id="stat-maintenance">16<span class="unit">单</span></div>
                 <div class="stat-detail">
                     <span><span class="label">开展中:</span> <span id="stat-maintenance-ongoing">13</span></span>
                     <span><span class="label">已终结:</span> <span id="stat-maintenance-done">1</span></span>
@@ -96,7 +96,7 @@
                     <span>📅</span>
                     <span>周计划开展量</span>
                 </div>
-                <div class="stat-value yellow" id="stat-weekly-plan">24<span style="font-size: 16px; margin-left: 4px;">单</span></div>
+                <div class="stat-value yellow" id="stat-weekly-plan">24<span class="unit">单</span></div>
                 <div class="stat-detail">
                     <span><span class="label">开展中:</span> <span id="stat-weekly-ongoing">13</span></span>
                     <span><span class="label">已终结:</span> <span id="stat-weekly-done">11</span></span>
@@ -108,7 +108,7 @@
                     <span>🔄</span>
                     <span>方式单业务总量</span>
                 </div>
-                <div class="stat-value green" id="stat-mode-order">20<span style="font-size: 16px; margin-left: 4px;">单</span></div>
+                <div class="stat-value green" id="stat-mode-order">20<span class="unit">单</span></div>
                 <div class="stat-detail">
                     <span><span class="label">转出任务:</span> <span id="stat-mode-transfer">10</span></span>
                     <span><span class="label">恢复任务:</span> <span id="stat-mode-recover">10</span></span>
@@ -120,7 +120,7 @@
                     <span>🔌</span>
                     <span>新投业务总量</span>
                 </div>
-                <div class="stat-value blue" id="stat-new-invest">0<span style="font-size: 16px; margin-left: 4px;">单</span></div>
+                <div class="stat-value blue" id="stat-new-invest">0<span class="unit">单</span></div>
                 <div class="stat-detail">
                     <span><span class="label">开展中:</span> <span id="stat-new-ongoing">0</span></span>
                     <span><span class="label">已终结:</span> <span id="stat-new-done">0</span></span>
@@ -132,7 +132,7 @@
                     <span>⚡</span>
                     <span>跳闸总量</span>
                 </div>
-                <div class="stat-value red" id="stat-trip">11<span style="font-size: 16px; margin-left: 4px;">起</span></div>
+                <div class="stat-value red" id="stat-trip">11<span class="unit">起</span></div>
                 <div class="stat-detail">
                     <span><span class="label">重合成功:</span> <span id="stat-trip-success">6</span></span>
                     <span><span class="label">重合失败:</span> <span id="stat-trip-fail">5</span></span>
@@ -144,7 +144,7 @@
                     <span>⚠️</span>
                     <span>重过载业务数量</span>
                 </div>
-                <div class="stat-value yellow" id="stat-overload">0<span style="font-size: 16px; margin-left: 4px;">起</span></div>
+                <div class="stat-value yellow" id="stat-overload">0<span class="unit">起</span></div>
                 <div class="stat-detail">
                     <span><span class="label">需关注:</span> 0</span>
                 </div>
@@ -152,270 +152,262 @@
         </div>
     </section>
 
-    <!-- 主内容区 -->
+    <!-- 主内容区 - 重新设计布局 -->
     <main class="main-container">
-        <!-- 左侧面板 -->
-        <aside class="left-panel">
-            <!-- 快速预测 -->
-            <div class="card">
-                <div class="card-header">
-                    <span class="icon">⚡</span>
-                    <span class="title">快速预测</span>
-                    <span class="smart-badge">AI驱动</span>
-                </div>
-                <div class="card-body">
-                    <button onclick="quickPredict('today')" class="action-btn primary">
-                        <span>📊</span>
-                        <span>今日预测</span>
-                    </button>
-                    <button onclick="quickPredict('week')" class="action-btn">
-                        <span>📈</span>
-                        <span>未来7天预测</span>
-                    </button>
-                    <button onclick="quickPredict('month')" class="action-btn">
-                        <span>📅</span>
-                        <span>本月预测</span>
-                    </button>
-                    <button onclick="quickAction('staffing')" class="action-btn">
-                        <span>👥</span>
-                        <span>人员调整建议</span>
-                    </button>
-                    <button onclick="quickAction('risk')" class="action-btn">
-                        <span>⚠️</span>
-                        <span>风险预警分析</span>
-                    </button>
-                    <button onclick="quickAction('report')" class="action-btn">
-                        <span>📋</span>
-                        <span>生成决策报告</span>
-                    </button>
-                    <button onclick="quickAction('workload')" class="action-btn">
-                        <span>📉</span>
-                        <span>工作量统计看板</span>
-                    </button>
-                </div>
-            </div>
-            
-            <!-- 系统状态 -->
-            <div class="card">
-                <div class="card-header">
-                    <span class="icon">🔋</span>
-                    <span class="title">系统状态</span>
-                </div>
-                <div class="card-body">
-                    <div class="status-item">
-                        <span class="status-label">数据采集</span>
-                        <span class="status-value success">● 正常运行</span>
+        <!-- 上半部分：图表区域 -->
+        <section class="charts-section">
+            <!-- 各模块业务情况 + 操作票情况 + 网络发令情况 -->
+            <div class="charts-row">
+                <div class="card chart-card" style="flex: 2;">
+                    <div class="card-header">
+                        <span class="icon">📊</span>
+                        <span class="title">各模块业务情况</span>
+                        <span class="smart-badge">实时更新</span>
                     </div>
-                    <div class="status-item">
-                        <span class="status-label">AI 模型</span>
-                        <span class="status-value success">● 运行中</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">数据同步</span>
-                        <span class="status-value success">● 实时</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">最后更新</span>
-                        <span class="status-value" id="lastUpdate">--:--</span>
-                    </div>
-                    
-                    <div class="mt-4">
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: 78%"></div>
-                        </div>
-                        <div class="status-item" style="font-size: 12px; color: var(--text-muted);">
-                            <span>⚡ 处理能力</span>
-                            <span class="status-value">78%</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 当值人员信息 -->
-            <div class="card">
-                <div class="card-header">
-                    <span class="icon">👥</span>
-                    <span class="title">当值人员</span>
-                </div>
-                <div class="card-body">
-                    <div class="status-item">
-                        <span class="status-label">当值人数</span>
-                        <span class="status-value" id="currentStaff" style="color: var(--accent-cyan);">4人</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">建议人数</span>
-                        <span class="status-value" id="suggestedStaff">4人</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">人员当量</span>
-                        <span class="status-value" id="staffCapacity">5.2</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">是否超负荷</span>
-                        <span class="status-value success" id="overloadStatus">否</span>
-                    </div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- 中间对话区 -->
-        <div class="center-panel">
-            <div class="chat-header">
-                <h2>
-                    <span>💬</span>
-                    智能对话
-                    <span class="smart-badge">
-                        <span>🤖</span>
-                        AI 驱动
-                    </span>
-                </h2>
-                <div class="feature-tags">
-                    <span class="feature-tag active">🧠 自动优化</span>
-                    <span class="feature-tag active">📊 多源分析</span>
-                    <span class="feature-tag active">⚠️ 智能预警</span>
-                    <span class="feature-tag active">⚡ 实时计算</span>
-                </div>
-            </div>
-            
-            <div class="chat-messages" id="messagesContainer">
-                <!-- 欢迎消息 -->
-                <div class="message">
-                    <div class="message-avatar bot">🤖</div>
-                    <div class="message-content">
-                        <p style="margin-bottom: 12px; font-weight: 600; color: var(--accent-cyan);">
-                            ⚡ 配网调度智能助手已就绪
-                        </p>
-                        <p style="margin-bottom: 8px;">我可以为您提供以下服务：</p>
-                        <ul style="margin-left: 16px; color: var(--text-secondary); line-height: 1.8;">
-                            <li>📊 <strong>业务量趋势预测</strong> - 基于历史数据和AI模型分析</li>
-                            <li>👥 <strong>智能人员配置建议</strong> - 自动优化值班安排</li>
-                            <li>⚠️ <strong>风险预警分析</strong> - 实时监测异常情况</li>
-                            <li>📋 <strong>综合决策报告</strong> - 一键生成分析报告</li>
-                            <li>📉 <strong>工作量统计看板</strong> - 实时工作量当量分析</li>
-                        </ul>
-                        <p style="margin-top: 12px; font-size: 12px; color: var(--text-muted); padding: 8px 12px; background: rgba(6, 182, 212, 0.1); border-radius: 6px; border-left: 2px solid var(--accent-cyan);">
-                            💡 请输入预测需求或使用左侧快速功能按钮开始
-                        </p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="chat-input">
-                <div class="input-wrapper">
-                    <textarea 
-                        id="userInput" 
-                        placeholder="⚡ 输入预测需求，例如：预测未来7天调度业务量，或查询当前工作量统计..."
-                        rows="2"
-                        onkeydown="handleKeyDown(event)"
-                    ></textarea>
-                    <button class="send-btn" onclick="sendMessage()" id="sendBtn">
-                        <span>发送</span>
-                        <span>⚡</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 右侧面板 -->
-        <aside class="right-panel">
-            <!-- 各模块业务情况 -->
-            <div class="card">
-                <div class="card-header">
-                    <span class="icon">📊</span>
-                    <span class="title">各模块业务情况</span>
-                    <button class="action-btn" style="padding: 2px 6px; font-size: 11px;">
-                        <span>☰</span>
-                    </button>
-                </div>
-                <div class="card-body">
-                    <div class="chart-container">
+                    <div class="card-body" style="height: 220px;">
                         <canvas id="moduleBusinessChart"></canvas>
                     </div>
                 </div>
-            </div>
-            
-            <!-- 操作票情况 -->
-            <div class="card">
-                <div class="card-header">
-                    <span class="icon">📋</span>
-                    <span class="title">操作票情况</span>
-                    <button class="action-btn" style="padding: 2px 6px; font-size: 11px;">
-                        <span>☰</span>
-                    </button>
-                </div>
-                <div class="card-body">
-                    <div class="chart-container" style="height: 160px;">
+                
+                <div class="card chart-card" style="flex: 1;">
+                    <div class="card-header">
+                        <span class="icon">📋</span>
+                        <span class="title">操作票情况</span>
+                    </div>
+                    <div class="card-body" style="height: 220px;">
                         <canvas id="ticketChart"></canvas>
                     </div>
-                    <div style="display: flex; gap: 16px; margin-top: 12px; font-size: 12px;">
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <span style="width: 10px; height: 10px; background: var(--accent-blue); border-radius: 2px;"></span>
-                            <span style="color: var(--text-secondary);">指令记录: <span style="color: var(--text-primary);">45</span></span>
+                </div>
+                
+                <div class="card chart-card" style="flex: 1;">
+                    <div class="card-header">
+                        <span class="icon">🌐</span>
+                        <span class="title">网络发令情况</span>
+                    </div>
+                    <div class="card-body" style="height: 220px;">
+                        <canvas id="networkOrderChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 各阶段工作业务当量 -->
+            <div class="card workload-card">
+                <div class="card-header">
+                    <span class="icon">📈</span>
+                    <span class="title">各阶段工作业务当量</span>
+                    <div class="chart-legend">
+                        <span class="legend-item"><span class="dot cyan"></span>工作任务总当量</span>
+                        <span class="legend-item"><span class="dot yellow"></span>班组人员工作当量</span>
+                        <span class="legend-item"><span class="dot green"></span>计划任务当量</span>
+                        <span class="legend-item"><span class="dot orange"></span>非计划任务当量</span>
+                    </div>
+                </div>
+                <div class="card-body" style="height: 200px;">
+                    <canvas id="workloadTimelineChart"></canvas>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 下半部分：左侧控制 + 中间对话 + 右侧状态 -->
+        <section class="control-section">
+            <!-- 左侧：快速操作 -->
+            <div class="left-controls">
+                <div class="card control-card">
+                    <div class="card-header">
+                        <span class="icon">⚡</span>
+                        <span class="title">快速操作</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="quick-btns">
+                            <button onclick="quickPredict('today')" class="quick-btn primary">
+                                <span>📊</span>
+                                <span>今日预测</span>
+                            </button>
+                            <button onclick="quickPredict('week')" class="quick-btn">
+                                <span>📈</span>
+                                <span>7天预测</span>
+                            </button>
+                            <button onclick="quickAction('staffing')" class="quick-btn">
+                                <span>👥</span>
+                                <span>人员建议</span>
+                            </button>
+                            <button onclick="quickAction('risk')" class="quick-btn">
+                                <span>⚠️</span>
+                                <span>风险预警</span>
+                            </button>
+                            <button onclick="quickAction('workload')" class="quick-btn">
+                                <span>📉</span>
+                                <span>工作量统计</span>
+                            </button>
+                            <button onclick="quickAction('report')" class="quick-btn">
+                                <span>📋</span>
+                                <span>决策报告</span>
+                            </button>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <span style="width: 10px; height: 10px; background: var(--accent-yellow); border-radius: 2px;"></span>
-                            <span style="color: var(--text-secondary);">逐项令: <span style="color: var(--text-primary);">34</span></span>
+                    </div>
+                </div>
+                
+                <!-- 当值人员信息 -->
+                <div class="card control-card">
+                    <div class="card-header">
+                        <span class="icon">👥</span>
+                        <span class="title">当值人员</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="staff-info">
+                            <div class="staff-row">
+                                <span class="staff-label">当值人数</span>
+                                <span class="staff-value highlight" id="currentStaff">4人</span>
+                            </div>
+                            <div class="staff-row">
+                                <span class="staff-label">建议人数</span>
+                                <span class="staff-value" id="suggestedStaff">4人</span>
+                            </div>
+                            <div class="staff-row">
+                                <span class="staff-label">人员当量</span>
+                                <span class="staff-value" id="staffCapacity">5.2</span>
+                            </div>
+                            <div class="staff-row">
+                                <span class="staff-label">超负荷</span>
+                                <span class="staff-value success" id="overloadStatus">否</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 系统状态 -->
+                <div class="card control-card">
+                    <div class="card-header">
+                        <span class="icon">🔋</span>
+                        <span class="title">系统状态</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="system-status">
+                            <div class="status-row">
+                                <span class="status-label">数据采集</span>
+                                <span class="status-dot success"></span>
+                                <span class="status-text">正常</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="status-label">AI 模型</span>
+                                <span class="status-dot success"></span>
+                                <span class="status-text">运行中</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="status-label">数据同步</span>
+                                <span class="status-dot success"></span>
+                                <span class="status-text">实时</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="status-label">最后更新</span>
+                                <span class="status-text" id="lastUpdate">--:--</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <!-- 网络发令情况 -->
-            <div class="card">
-                <div class="card-header">
-                    <span class="icon">🌐</span>
-                    <span class="title">网络发令情况</span>
-                    <button class="action-btn" style="padding: 2px 6px; font-size: 11px;">
-                        <span>☰</span>
-                    </button>
-                </div>
-                <div class="card-body">
-                    <div class="chart-container" style="height: 140px;">
-                        <canvas id="networkOrderChart"></canvas>
+            <!-- 中间：智能对话 -->
+            <div class="chat-area">
+                <div class="card chat-card">
+                    <div class="card-header">
+                        <span class="icon">💬</span>
+                        <span class="title">智能对话</span>
+                        <span class="smart-badge">🤖 AI 驱动</span>
                     </div>
-                    <div style="display: flex; justify-content: center; gap: 24px; margin-top: 12px; font-size: 12px;">
-                        <div style="text-align: center;">
-                            <div style="color: var(--accent-cyan); font-size: 20px; font-weight: 700;">106</div>
-                            <div style="color: var(--text-muted);">逐项令</div>
+                    <div class="card-body chat-body">
+                        <div class="chat-messages" id="messagesContainer">
+                            <div class="message">
+                                <div class="message-avatar bot">🤖</div>
+                                <div class="message-content">
+                                    <p class="welcome-title">⚡ 配网调度智能助手已就绪</p>
+                                    <p>我可以为您提供：业务量预测、人员配置建议、风险预警、工作量统计等服务。</p>
+                                    <p class="hint">💡 请输入需求或使用左侧快速操作按钮</p>
+                                </div>
+                            </div>
                         </div>
-                        <div style="text-align: center;">
-                            <div style="color: var(--text-secondary); font-size: 20px; font-weight: 700;">0</div>
-                            <div style="color: var(--text-muted);">许可令</div>
+                        <div class="chat-input-area">
+                            <textarea 
+                                id="userInput" 
+                                placeholder="输入预测需求或问题..."
+                                rows="1"
+                                onkeydown="handleKeyDown(event)"
+                            ></textarea>
+                            <button class="send-btn" onclick="sendMessage()" id="sendBtn">
+                                <span>发送</span>
+                                <span>⚡</span>
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
-        </aside>
+            
+            <!-- 右侧：预警信息 -->
+            <div class="right-panel">
+                <div class="card alert-card">
+                    <div class="card-header">
+                        <span class="icon">⚠️</span>
+                        <span class="title">风险预警</span>
+                    </div>
+                    <div class="card-body" id="riskAlerts">
+                        <div class="alert-item warning">
+                            <span class="alert-icon">⚡</span>
+                            <div class="alert-content">
+                                <div class="alert-title">业务高峰预警</div>
+                                <div class="alert-desc">预计周三业务量增长 35%</div>
+                            </div>
+                        </div>
+                        <div class="alert-item warning">
+                            <span class="alert-icon">🔌</span>
+                            <div class="alert-content">
+                                <div class="alert-title">设备检修提醒</div>
+                                <div class="alert-desc">EQ-004 配电柜需关注</div>
+                            </div>
+                        </div>
+                        <div class="alert-item success">
+                            <span class="alert-icon">✓</span>
+                            <div class="alert-content">
+                                <div class="alert-title">系统运行正常</div>
+                                <div class="alert-desc">所有服务稳定运行</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card alert-card">
+                    <div class="card-header">
+                        <span class="icon">📋</span>
+                        <span class="title">今日待办</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="todo-item">
+                            <span class="todo-checkbox">☐</span>
+                            <span class="todo-text">审核检修计划单 #2024-0156</span>
+                        </div>
+                        <div class="todo-item">
+                            <span class="todo-checkbox">☐</span>
+                            <span class="todo-text">确认设备投退操作票</span>
+                        </div>
+                        <div class="todo-item">
+                            <span class="todo-checkbox">☑</span>
+                            <span class="todo-text done">完成早班交接记录</span>
+                        </div>
+                        <div class="todo-item">
+                            <span class="todo-checkbox">☐</span>
+                            <span class="todo-text">检查重过载设备状态</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
-
-    <!-- 底部工作量当量图表 -->
-    <section class="workload-section">
-        <div class="workload-chart-card">
-            <div class="workload-chart-header">
-                <div class="workload-chart-title">
-                    <span>📈</span>
-                    <span>各阶段工作业务当量</span>
-                    <span class="smart-badge">实时更新</span>
-                </div>
-                <div style="display: flex; gap: 16px; font-size: 12px; color: var(--text-secondary);">
-                    <span><span style="color: var(--accent-cyan);">●</span> 工作任务总当量</span>
-                    <span><span style="color: var(--accent-yellow);">●</span> 班组人员工作当量</span>
-                    <span><span style="color: var(--accent-green);">●</span> 计划任务当量</span>
-                    <span><span style="color: var(--accent-orange);">●</span> 非计划任务当量</span>
-                </div>
-            </div>
-            <div class="workload-chart-container">
-                <canvas id="workloadTimelineChart"></canvas>
-            </div>
-        </div>
-    </section>
 
     <!-- 加载遮罩 -->
     <div id="loadingOverlay" class="modal-overlay hidden">
-        <div style="text-align: center; background: var(--bg-card); padding: 32px; border-radius: 12px; border: 1px solid var(--border-color);">
-            <div class="loading-spinner" style="margin: 0 auto 16px;"></div>
-            <p style="color: var(--text-primary); font-weight: 600; margin-bottom: 8px;">🤖 AI 正在分析中...</p>
-            <p style="color: var(--text-secondary); font-size: 13px;">正在处理多源数据，请稍候...</p>
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p class="loading-title">🤖 AI 正在分析中...</p>
+            <p class="loading-desc">正在处理多源数据，请稍候...</p>
         </div>
     </div>
 

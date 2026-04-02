@@ -17,6 +17,7 @@ langgraph-prebuilt==1.0.2
 coze-coding-dev-sdk==0.5.11
 coze-coding-utils==0.2.4
 coze-workload-identity==0.1.4
+cozeloop
 
 # ========================================
 # 数据处理

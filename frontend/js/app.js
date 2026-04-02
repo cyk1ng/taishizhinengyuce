@@ -1,5 +1,6 @@
 /**
  * 配网调度业务量智能预测系统 - 主应用逻辑
+ * 深蓝科技感主题
  */
 
 // Markdown 解析器
@@ -98,6 +99,9 @@ function handleStreamMessage(data, messageId) {
     } else if (data.type === 'staffing') {
         // 人员建议
         handleStaffingRecommendation(data);
+    } else if (data.type === 'workload') {
+        // 工作量统计
+        handleWorkloadData(data);
     } else if (data.type === 'risk') {
         // 风险预警
         handleRiskAlert(data);
@@ -119,22 +123,15 @@ function appendMessage(role, content, isStreaming = false) {
     
     const messageDiv = document.createElement('div');
     messageDiv.id = messageId;
-    messageDiv.className = `flex items-start space-x-3 message-bubble ${role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`;
+    messageDiv.className = 'message';
     
     const avatar = role === 'user' ? '👤' : '🤖';
-    const avatarBg = role === 'user' 
-        ? 'bg-gradient-to-br from-gray-500 to-gray-600' 
-        : 'bg-gradient-to-br from-blue-500 to-purple-600';
+    const avatarClass = role === 'user' ? 'user' : 'bot';
     
     messageDiv.innerHTML = `
-        <div class="flex-shrink-0 w-10 h-10 ${avatarBg} rounded-full flex items-center justify-center text-xl">
-            ${avatar}
-        </div>
-        <div class="flex-1 ${role === 'user' ? 'text-right' : ''}">
-            <div class="${role === 'user' ? 'bg-blue-700' : 'bg-gray-700'} rounded-lg px-4 py-3 shadow inline-block ${role === 'user' ? 'text-left' : ''}">
-                <div class="message-content markdown-content ${isStreaming ? 'streaming' : ''}">${content || '<span class="typing-indicator"><span></span><span></span><span></span></span>'}</div>
-            </div>
-            <div class="message-timestamp text-xs mt-1 ${role === 'user' ? 'text-right' : ''}">${formatTime(new Date())}</div>
+        <div class="message-avatar ${avatarClass}">${avatar}</div>
+        <div class="message-content ${isStreaming ? 'streaming' : ''}">
+            ${content || '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>'}
         </div>
     `;
     
@@ -197,11 +194,11 @@ function handleToolCall(data, messageId) {
     const toolArgs = data.args || {};
     
     const toolDiv = document.createElement('div');
-    toolDiv.className = 'tool-call';
+    toolDiv.style.cssText = 'margin-top: 8px; padding: 8px 12px; background: rgba(6, 182, 212, 0.1); border-left: 2px solid var(--accent-cyan); border-radius: 4px; font-size: 12px;';
     toolDiv.innerHTML = `
-        <div class="tool-call-header">🔧 调用工具: ${toolName}</div>
-        <div class="text-xs text-gray-400">
-            ${Object.entries(toolArgs).map(([k, v]) => `<span class="tag tag-blue mr-2">${k}: ${v}</span>`).join('')}
+        <div style="color: var(--accent-cyan); font-weight: 500;">🔧 调用工具: ${toolName}</div>
+        <div style="color: var(--text-muted); margin-top: 4px;">
+            ${Object.entries(toolArgs).map(([k, v]) => `<span style="margin-right: 8px;">${k}: ${v}</span>`).join('')}
         </div>
     `;
     
@@ -220,11 +217,12 @@ function handleToolCall(data, messageId) {
 function handlePredictionResult(data) {
     if (data.chart) {
         // 更新图表
-        chartManager.updatePredictionChart(data.chart.labels, data.chart.values);
+        if (typeof updateWorkloadData === 'function') {
+            updateWorkloadData({ workloadTimeline: data.chart });
+        }
     }
     
     if (data.summary) {
-        // 显示摘要
         console.log('Prediction summary:', data.summary);
     }
 }
@@ -233,47 +231,38 @@ function handlePredictionResult(data) {
  * 处理人员建议
  */
 function handleStaffingRecommendation(data) {
-    const container = document.getElementById('staffingRecommendations');
-    if (!container || !data.recommendations) return;
-    
-    container.innerHTML = '';
-    
-    data.recommendations.forEach(rec => {
-        const recDiv = document.createElement('div');
-        recDiv.className = 'bg-gray-700 rounded p-3 text-sm';
-        recDiv.innerHTML = `
-            <div class="flex items-center justify-between mb-2">
-                <span class="font-semibold text-orange-300">${rec.title}</span>
-                <span class="tag ${getTagClass(rec.priority)}">${rec.priority}</span>
-            </div>
-            <p class="text-gray-300 text-xs">${rec.description}</p>
-            ${rec.count ? `<div class="mt-2 text-xs"><span class="highlight-number">${rec.count}</span> 人</div>` : ''}
-        `;
-        container.appendChild(recDiv);
-    });
+    // 更新当值人员信息
+    if (data.currentStaff !== undefined) {
+        document.getElementById('currentStaff').textContent = data.currentStaff + '人';
+    }
+    if (data.suggestedStaff !== undefined) {
+        document.getElementById('suggestedStaff').textContent = data.suggestedStaff + '人';
+    }
+    if (data.staffCapacity !== undefined) {
+        document.getElementById('staffCapacity').textContent = data.staffCapacity.toFixed(1);
+    }
+    if (data.isOverload !== undefined) {
+        const statusEl = document.getElementById('overloadStatus');
+        statusEl.textContent = data.isOverload ? '是' : '否';
+        statusEl.className = 'status-value ' + (data.isOverload ? 'warning' : 'success');
+    }
+}
+
+/**
+ * 处理工作量数据
+ */
+function handleWorkloadData(data) {
+    if (typeof updateWorkloadData === 'function') {
+        updateWorkloadData(data);
+    }
 }
 
 /**
  * 处理风险预警
  */
 function handleRiskAlert(data) {
-    const container = document.getElementById('riskAlerts');
-    if (!container || !data.alerts) return;
-    
-    container.innerHTML = '';
-    
-    data.alerts.forEach(alert => {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `p-3 rounded text-sm ${getRiskClass(alert.level)}`;
-        alertDiv.innerHTML = `
-            <div class="flex items-center mb-1">
-                <span class="mr-2">${getRiskIcon(alert.level)}</span>
-                <span class="font-semibold">${alert.title}</span>
-            </div>
-            <p class="text-xs text-gray-300 ml-6">${alert.description}</p>
-        `;
-        container.appendChild(alertDiv);
-    });
+    // 可以在这里更新风险预警面板
+    console.log('Risk alert:', data);
 }
 
 /**
@@ -298,12 +287,29 @@ function quickAction(type) {
     const messages = {
         staffing: '请根据当前业务量预测，提供值班人员调整建议。',
         risk: '请分析当前业务风险点，并提供预警建议。',
-        report: '请生成一份完整的配网调度业务量预测决策报告。'
+        report: '请生成一份完整的配网调度业务量预测决策报告。',
+        workload: '请统计当前工作量当量，分析各时段业务情况。'
     };
     
     const input = document.getElementById('userInput');
     input.value = messages[type];
     sendMessage();
+}
+
+/**
+ * 刷新数据
+ */
+function refreshData() {
+    // 重新初始化图表
+    if (typeof initAllCharts === 'function') {
+        initAllCharts();
+    }
+    
+    // 更新最后更新时间
+    updateLastUpdate();
+    
+    // 显示提示
+    appendMessage('assistant', '🔄 数据已刷新，所有图表已更新。');
 }
 
 /**
@@ -313,40 +319,16 @@ function clearChat() {
     if (confirm('确定要清空所有对话记录吗？')) {
         const container = document.getElementById('messagesContainer');
         container.innerHTML = `
-            <div class="flex items-start space-x-3">
-                <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-xl">
-                    🤖
-                </div>
-                <div class="flex-1">
-                    <div class="bg-gray-700 rounded-lg px-4 py-3 shadow">
-                        <p class="text-gray-100">对话已清空。有什么我可以帮助您的吗？</p>
-                    </div>
+            <div class="message">
+                <div class="message-avatar bot">🤖</div>
+                <div class="message-content">
+                    <p style="color: var(--accent-cyan); font-weight: 600; margin-bottom: 8px;">⚡ 对话已清空</p>
+                    <p style="color: var(--text-secondary);">有什么我可以帮助您的吗？</p>
                 </div>
             </div>
         `;
         AppState.messages = [];
-        chartManager.clearAllCharts();
-        
-        // 清空右侧面板
-        document.getElementById('staffingRecommendations').innerHTML = '<div class="text-center text-gray-400 text-sm py-4">暂无人员建议</div>';
-        document.getElementById('riskAlerts').innerHTML = '<div class="text-center text-gray-400 text-sm py-4">暂无风险预警</div>';
     }
-}
-
-/**
- * 显示帮助
- */
-function showHelp() {
-    document.getElementById('helpModal').classList.remove('hidden');
-    document.getElementById('helpModal').classList.add('flex');
-}
-
-/**
- * 关闭帮助
- */
-function closeHelp() {
-    document.getElementById('helpModal').classList.add('hidden');
-    document.getElementById('helpModal').classList.remove('flex');
 }
 
 /**
@@ -356,15 +338,19 @@ function setLoading(loading) {
     const sendBtn = document.getElementById('sendBtn');
     const overlay = document.getElementById('loadingOverlay');
     
-    sendBtn.disabled = loading;
-    sendBtn.innerHTML = loading ? '发送中...' : '发送 ⚡';
+    if (sendBtn) {
+        sendBtn.disabled = loading;
+        sendBtn.innerHTML = loading 
+            ? '<span>处理中...</span><span class="loading-spinner" style="width: 16px; height: 16px; border-width: 2px;"></span>'
+            : '<span>发送</span><span>⚡</span>';
+    }
     
-    if (loading) {
-        overlay.classList.remove('hidden');
-        overlay.classList.add('flex');
-    } else {
-        overlay.classList.add('hidden');
-        overlay.classList.remove('flex');
+    if (overlay) {
+        if (loading) {
+            overlay.classList.remove('hidden');
+        } else {
+            overlay.classList.add('hidden');
+        }
     }
 }
 
@@ -386,42 +372,6 @@ function formatTime(date) {
 }
 
 /**
- * 获取标签样式类
- */
-function getTagClass(priority) {
-    const classes = {
-        '高': 'tag-red',
-        '中': 'tag-yellow',
-        '低': 'tag-green'
-    };
-    return classes[priority] || 'tag-blue';
-}
-
-/**
- * 获取风险样式类
- */
-function getRiskClass(level) {
-    const classes = {
-        'high': 'risk-high',
-        'medium': 'risk-medium',
-        'low': 'risk-low'
-    };
-    return classes[level] || 'risk-low';
-}
-
-/**
- * 获取风险图标
- */
-function getRiskIcon(level) {
-    const icons = {
-        'high': '🔴',
-        'medium': '🟡',
-        'low': '🟢'
-    };
-    return icons[level] || '⚪';
-}
-
-/**
  * 更新最后更新时间
  */
 function updateLastUpdate() {
@@ -433,26 +383,6 @@ function updateLastUpdate() {
         });
     }
 }
-
-// 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', function() {
-    // 更新最后更新时间
-    updateLastUpdate();
-    setInterval(updateLastUpdate, 60000); // 每分钟更新
-    
-    // 更新当前时间（每秒更新）
-    updateCurrentTime();
-    setInterval(updateCurrentTime, 1000);
-    
-    // 更新天气数据（每小时更新一次）
-    updateWeatherData();
-    setInterval(updateWeatherData, 3600000);
-    
-    // 聚焦输入框
-    document.getElementById('userInput').focus();
-    
-    console.log('⚡ 配网调度业务量智能预测系统已加载');
-});
 
 /**
  * 更新当前时间
@@ -467,68 +397,45 @@ function updateCurrentTime() {
 }
 
 /**
- * 获取真实天气数据
+ * 获取天气数据
  */
 async function updateWeatherData() {
     try {
-        // 调用后端天气API
         const response = await fetch('/api/weather');
         const result = await response.json();
         
         if (result.success && result.data) {
             const data = result.data;
-            
-            // 更新天气显示
             const weatherEl = document.getElementById('weatherText');
-            const tempEl = document.getElementById('tempText');
-            const windTextEl = document.getElementById('windText');
-            const windSpeedEl = document.getElementById('windSpeedText');
             
-            if (weatherEl) weatherEl.textContent = data.text;
-            if (tempEl) tempEl.textContent = `${data.temp}°C`;
-            if (windTextEl) windTextEl.textContent = `${data.wind_dir} ${data.wind_scale}`;
-            if (windSpeedEl) windSpeedEl.textContent = `${data.wind_speed}m/s`;
-            
-            // 如果是模拟数据，添加提示
-            if (data.is_mock) {
-                console.log('💡 当前使用模拟天气数据');
+            if (weatherEl) {
+                weatherEl.textContent = `${data.text} ${data.temp}°C`;
             }
-        } else {
-            console.error('获取天气数据失败:', result.error);
-            // 使用备用数据
-            useFallbackWeather();
         }
     } catch (error) {
-        console.error('天气API调用失败:', error);
-        // 使用备用数据
-        useFallbackWeather();
+        console.log('Weather data not available');
     }
 }
 
-/**
- * 使用备用天气数据
- */
-function useFallbackWeather() {
-    const weatherEl = document.getElementById('weatherText');
-    const tempEl = document.getElementById('tempText');
-    const windTextEl = document.getElementById('windText');
-    const windSpeedEl = document.getElementById('windSpeedText');
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 更新最后更新时间
+    updateLastUpdate();
+    setInterval(updateLastUpdate, 60000);
     
-    if (weatherEl) weatherEl.textContent = '晴';
-    if (tempEl) tempEl.textContent = '25°C';
-    if (windTextEl) windTextEl.textContent = '微风';
-    if (windSpeedEl) windSpeedEl.textContent = '2.5m/s';
-}
-
-// 点击模态框外部关闭
-document.getElementById('helpModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeHelp();
+    // 更新当前时间（每秒更新）
+    updateCurrentTime();
+    setInterval(updateCurrentTime, 1000);
+    
+    // 更新天气数据
+    updateWeatherData();
+    setInterval(updateWeatherData, 3600000);
+    
+    // 聚焦输入框
+    const inputEl = document.getElementById('userInput');
+    if (inputEl) {
+        inputEl.focus();
     }
-});
-
-document.getElementById('loadingOverlay').addEventListener('click', function(e) {
-    if (e.target === this && !AppState.isProcessing) {
-        setLoading(false);
-    }
+    
+    console.log('⚡ 配网调度业务量智能预测系统已加载');
 });

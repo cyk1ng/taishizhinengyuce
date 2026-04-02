@@ -63,6 +63,13 @@ from tools.scheduling import (
     export_schedule_report,
     save_schedule_records
 )
+# 导入工作量统计工具模块
+from tools.workload_statistics import (
+    get_realtime_workload_dashboard,
+    get_workload_weights_config,
+    analyze_staff_requirement,
+    update_hr_capacity_config
+)
 
 
 # 配置文件路径
@@ -164,7 +171,13 @@ def build_agent(ctx=None):
         generate_intelligent_schedule,
         analyze_schedule_fairness,
         export_schedule_report,
-        save_schedule_records
+        save_schedule_records,
+        
+        # 工作量统计工具
+        get_realtime_workload_dashboard,
+        get_workload_weights_config,
+        analyze_staff_requirement,
+        update_hr_capacity_config
     ]
     
     # 创建Agent
@@ -182,8 +195,8 @@ def build_agent(ctx=None):
 # Agent元数据
 AGENT_METADATA = {
     "name": "配网调度业务量智能预测Agent",
-    "version": "1.1.0",
-    "description": "基于多源数据融合和AI技术的配网调度业务量预测、人员决策支持与智能排班系统",
+    "version": "2.0.0",
+    "description": "基于多源数据融合和AI技术的配网调度业务量预测、人员决策支持、智能排班与工作量实时看板系统",
     "capabilities": [
         "多源数据融合",
         "业务量智能预测",
@@ -191,7 +204,10 @@ AGENT_METADATA = {
         "风险预警分析",
         "智能排班生成",
         "排班公平性分析",
-        "排班方案优化"
+        "排班方案优化",
+        "实时工作量统计",
+        "工作当量计算",
+        "人力资源建议"
     ],
     "data_sources": [
         "历史调度记录",
@@ -200,14 +216,19 @@ AGENT_METADATA = {
         "设备状态监控",
         "人员信息表(working_user)",
         "班组表(working_groups)",
-        "排班记录表(work_schedule_recode)"
+        "排班记录表(work_schedule_recode)",
+        "检修业务表(maintenance_records)",
+        "故障日志表(fault_logs)",
+        "缺陷记录表(defect_records)"
     ],
     "output_formats": [
         "JSON格式预测结果",
         "Markdown格式决策报告",
         "人员调整建议",
         "智能排班方案",
-        "排班公平性报告"
+        "排班公平性报告",
+        "实时工作量看板",
+        "人力资源建议"
     ],
     "deployment_requirements": {
         "python_version": ">=3.10",

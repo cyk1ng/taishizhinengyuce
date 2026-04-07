@@ -130,9 +130,10 @@ function initTicketChart(data = null) {
         ticketChart.destroy();
     }
     
+    // 空数据（无模拟数据）
     const defaultData = {
         labels: ['指令记录', '逐项令', '综合令', '许可令'],
-        values: [45, 34, 0, 0]
+        values: [0, 0, 0, 0]
     };
     
     const chartData = data || defaultData;

@@ -538,6 +538,11 @@ async function updateWeatherData() {
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
+    // 初始化所有图表（默认显示0，等待真实数据）
+    if (typeof initAllCharts === 'function') {
+        initAllCharts();
+    }
+    
     // 更新最后更新时间
     updateLastUpdate();
     setInterval(updateLastUpdate, 60000);

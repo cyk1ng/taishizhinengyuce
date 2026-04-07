@@ -68,7 +68,7 @@ from tools.workload_statistics import (
     get_realtime_workload_dashboard,
     get_workload_weights_config,
     analyze_staff_requirement,
-    update_hr_capacity_config
+    get_workload_by_module
 )
 
 
@@ -177,7 +177,7 @@ def build_agent(ctx=None):
         get_realtime_workload_dashboard,
         get_workload_weights_config,
         analyze_staff_requirement,
-        update_hr_capacity_config
+        get_workload_by_module
     ]
     
     # 创建Agent

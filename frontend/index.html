@@ -75,10 +75,10 @@
                     <span>📋</span>
                     <span>检修业务单总量</span>
                 </div>
-                <div class="stat-value green" id="stat-maintenance">16<span class="unit">单</span></div>
+                <div class="stat-value green" id="stat-maintenance">--<span class="unit">单</span></div>
                 <div class="stat-detail">
-                    <span><span class="label">开展中:</span> <span id="stat-maintenance-ongoing">13</span></span>
-                    <span><span class="label">已终结:</span> <span id="stat-maintenance-done">1</span></span>
+                    <span><span class="label">开展中:</span> <span id="stat-maintenance-ongoing">--</span></span>
+                    <span><span class="label">已终结:</span> <span id="stat-maintenance-done">--</span></span>
                 </div>
             </div>
             
@@ -87,10 +87,10 @@
                     <span>📅</span>
                     <span>周计划开展量</span>
                 </div>
-                <div class="stat-value yellow" id="stat-weekly-plan">24<span class="unit">单</span></div>
+                <div class="stat-value yellow" id="stat-weekly-plan">--<span class="unit">单</span></div>
                 <div class="stat-detail">
-                    <span><span class="label">开展中:</span> <span id="stat-weekly-ongoing">13</span></span>
-                    <span><span class="label">已终结:</span> <span id="stat-weekly-done">11</span></span>
+                    <span><span class="label">开展中:</span> <span id="stat-weekly-ongoing">--</span></span>
+                    <span><span class="label">已终结:</span> <span id="stat-weekly-done">--</span></span>
                 </div>
             </div>
             
@@ -99,10 +99,10 @@
                     <span>🔄</span>
                     <span>方式单业务总量</span>
                 </div>
-                <div class="stat-value green" id="stat-mode-order">20<span class="unit">单</span></div>
+                <div class="stat-value green" id="stat-mode-order">--<span class="unit">单</span></div>
                 <div class="stat-detail">
-                    <span><span class="label">转出任务:</span> <span id="stat-mode-transfer">10</span></span>
-                    <span><span class="label">恢复任务:</span> <span id="stat-mode-recover">10</span></span>
+                    <span><span class="label">转出任务:</span> <span id="stat-mode-transfer">--</span></span>
+                    <span><span class="label">恢复任务:</span> <span id="stat-mode-recover">--</span></span>
                 </div>
             </div>
             
@@ -111,10 +111,10 @@
                     <span>🔌</span>
                     <span>新投业务总量</span>
                 </div>
-                <div class="stat-value blue" id="stat-new-invest">0<span class="unit">单</span></div>
+                <div class="stat-value blue" id="stat-new-invest">--<span class="unit">单</span></div>
                 <div class="stat-detail">
-                    <span><span class="label">开展中:</span> <span id="stat-new-ongoing">0</span></span>
-                    <span><span class="label">已终结:</span> <span id="stat-new-done">0</span></span>
+                    <span><span class="label">开展中:</span> <span id="stat-new-ongoing">--</span></span>
+                    <span><span class="label">已终结:</span> <span id="stat-new-done">--</span></span>
                 </div>
             </div>
             
@@ -123,10 +123,10 @@
                     <span>⚡</span>
                     <span>跳闸总量</span>
                 </div>
-                <div class="stat-value red" id="stat-trip">11<span class="unit">起</span></div>
+                <div class="stat-value red" id="stat-trip">--<span class="unit">起</span></div>
                 <div class="stat-detail">
-                    <span><span class="label">重合成功:</span> <span id="stat-trip-success">6</span></span>
-                    <span><span class="label">重合失败:</span> <span id="stat-trip-fail">5</span></span>
+                    <span><span class="label">重合成功:</span> <span id="stat-trip-success">--</span></span>
+                    <span><span class="label">重合失败:</span> <span id="stat-trip-fail">--</span></span>
                 </div>
             </div>
             
@@ -135,9 +135,9 @@
                     <span>⚠️</span>
                     <span>重过载业务数量</span>
                 </div>
-                <div class="stat-value yellow" id="stat-overload">0<span class="unit">起</span></div>
+                <div class="stat-value yellow" id="stat-overload">--<span class="unit">起</span></div>
                 <div class="stat-detail">
-                    <span><span class="label">需关注:</span> 0</span>
+                    <span><span class="label">需关注:</span> --</span>
                 </div>
             </div>
         </div>
@@ -248,19 +248,19 @@
                         <div class="staff-info">
                             <div class="staff-row">
                                 <span class="staff-label">当值人数</span>
-                                <span class="staff-value highlight" id="currentStaff">4人</span>
+                                <span class="staff-value highlight" id="currentStaff">--人</span>
                             </div>
                             <div class="staff-row">
                                 <span class="staff-label">建议人数</span>
-                                <span class="staff-value" id="suggestedStaff">4人</span>
+                                <span class="staff-value" id="suggestedStaff">--人</span>
                             </div>
                             <div class="staff-row">
                                 <span class="staff-label">人员当量</span>
-                                <span class="staff-value" id="staffCapacity">5.2</span>
+                                <span class="staff-value" id="staffCapacity">--</span>
                             </div>
                             <div class="staff-row">
                                 <span class="staff-label">超负荷</span>
-                                <span class="staff-value success" id="overloadStatus">否</span>
+                                <span class="staff-value" id="overloadStatus">--</span>
                             </div>
                         </div>
                     </div>
@@ -341,25 +341,11 @@
                         <span class="title">风险预警</span>
                     </div>
                     <div class="card-body" id="riskAlerts">
-                        <div class="alert-item warning">
-                            <span class="alert-icon">⚡</span>
+                        <div class="alert-item info">
+                            <span class="alert-icon">ℹ️</span>
                             <div class="alert-content">
-                                <div class="alert-title">业务高峰预警</div>
-                                <div class="alert-desc">预计周三业务量增长 35%</div>
-                            </div>
-                        </div>
-                        <div class="alert-item warning">
-                            <span class="alert-icon">🔌</span>
-                            <div class="alert-content">
-                                <div class="alert-title">设备检修提醒</div>
-                                <div class="alert-desc">EQ-004 配电柜需关注</div>
-                            </div>
-                        </div>
-                        <div class="alert-item success">
-                            <span class="alert-icon">✓</span>
-                            <div class="alert-content">
-                                <div class="alert-title">系统运行正常</div>
-                                <div class="alert-desc">所有服务稳定运行</div>
+                                <div class="alert-title">等待数据加载</div>
+                                <div class="alert-desc">请通过对话或刷新按钮获取实时数据</div>
                             </div>
                         </div>
                     </div>
@@ -370,22 +356,13 @@
                         <span class="icon">📋</span>
                         <span class="title">今日待办</span>
                     </div>
-                    <div class="card-body">
-                        <div class="todo-item">
-                            <span class="todo-checkbox">☐</span>
-                            <span class="todo-text">审核检修计划单 #2024-0156</span>
-                        </div>
-                        <div class="todo-item">
-                            <span class="todo-checkbox">☐</span>
-                            <span class="todo-text">确认设备投退操作票</span>
-                        </div>
-                        <div class="todo-item">
-                            <span class="todo-checkbox">☑</span>
-                            <span class="todo-text done">完成早班交接记录</span>
-                        </div>
-                        <div class="todo-item">
-                            <span class="todo-checkbox">☐</span>
-                            <span class="todo-text">检查重过载设备状态</span>
+                    <div class="card-body" id="todoList">
+                        <div class="alert-item info">
+                            <span class="alert-icon">ℹ️</span>
+                            <div class="alert-content">
+                                <div class="alert-title">暂无待办</div>
+                                <div class="alert-desc">数据将从数据库实时获取</div>
+                            </div>
                         </div>
                     </div>
                 </div>

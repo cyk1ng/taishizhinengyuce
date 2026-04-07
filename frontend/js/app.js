@@ -192,6 +192,7 @@ function appendToMessage(messageId, content) {
 function handleToolCall(data, messageId) {
     const toolName = data.name || '未知工具';
     const toolArgs = data.args || {};
+    const toolResult = data.result || '';
     
     const toolDiv = document.createElement('div');
     toolDiv.style.cssText = 'margin-top: 8px; padding: 8px 12px; background: rgba(6, 182, 212, 0.1); border-left: 2px solid var(--accent-cyan); border-radius: 4px; font-size: 12px;';
@@ -207,6 +208,38 @@ function handleToolCall(data, messageId) {
         const contentDiv = messageDiv.querySelector('.message-content');
         if (contentDiv) {
             contentDiv.appendChild(toolDiv);
+        }
+    }
+    
+    // 尝试解析工具返回的 JSON 数据
+    if (toolResult && typeof toolResult === 'string') {
+        try {
+            const parsedResult = JSON.parse(toolResult);
+            
+            // 处理工作量看板数据
+            if (parsedResult.success && parsedResult.hourly_details) {
+                handleWorkloadData(parsedResult);
+            }
+            
+            // 处理其他类型的工具返回数据
+            if (parsedResult.success && parsedResult.weights) {
+                // 权重配置，不需要特殊处理
+                console.log('Received weights config');
+            }
+            
+            if (parsedResult.success && parsedResult.analysis) {
+                // 人力资源分析结果
+                handleStaffingRecommendation({
+                    currentStaff: parsedResult.workload_summary?.total_equivalent || 0,
+                    suggestedStaff: parsedResult.analysis.total_shortage_hours || 0,
+                    staffCapacity: parsedResult.workload_summary?.total_equivalent || 0,
+                    isOverload: parsedResult.analysis.total_shortage_hours > 0
+                });
+            }
+            
+        } catch (e) {
+            // 不是 JSON 格式，忽略
+            console.log('Tool result is not JSON format');
         }
     }
 }
@@ -252,6 +285,10 @@ function handleStaffingRecommendation(data) {
  * 处理工作量数据
  */
 function handleWorkloadData(data) {
+    // 直接更新看板数据
+    updateDashboardWithData(data);
+    
+    // 同时通过图表函数更新
     if (typeof updateWorkloadData === 'function') {
         updateWorkloadData(data);
     }
@@ -300,16 +337,98 @@ function quickAction(type) {
  * 刷新数据
  */
 function refreshData() {
-    // 重新初始化图表
-    if (typeof initAllCharts === 'function') {
-        initAllCharts();
+    // 重新加载真实数据
+    loadRealTimeData();
+    
+    // 更新最后更新时间
+    updateLastUpdate();
+}
+
+/**
+ * 加载实时数据
+ * 通过发送对话请求给AI，获取数据库中的真实数据
+ */
+async function loadRealTimeData() {
+    try {
+        // 发送请求给后端获取数据
+        const response = await fetch(`${window.location.origin}/api/workload_dashboard`);
+        
+        if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+                updateDashboardWithData(result);
+                return;
+            }
+        }
+        
+        // 如果API不可用，通过对话获取数据
+        await fetchWorkloadViaChat();
+        
+    } catch (error) {
+        console.log('API not available, using chat-based data loading');
+        // 如果API不可用，通过对话获取数据
+        await fetchWorkloadViaChat();
+    }
+}
+
+/**
+ * 通过对话方式获取工作量数据
+ */
+async function fetchWorkloadViaChat() {
+    const input = document.getElementById('userInput');
+    if (!input) return;
+    
+    // 清空输入框并填入请求
+    const originalValue = input.value;
+    input.value = '请获取今日工作量看板数据，并更新界面上的图表和统计卡片。返回的数据请包含小时粒度的计划任务数、非计划任务数、工作当量、值班人员数等信息。';
+    
+    // 发送消息
+    await sendMessage();
+    
+    // 恢复原始输入
+    input.value = originalValue;
+}
+
+/**
+ * 使用获取到的数据更新看板
+ */
+function updateDashboardWithData(data) {
+    if (!data || !data.success) return;
+    
+    const summary = data.summary || {};
+    const hourlyDetails = data.hourly_details || [];
+    
+    // 更新统计数据
+    document.getElementById('stat-maintenance').innerHTML = 
+        `${summary.total_plan_count || 0}<span class="unit">单</span>`;
+    document.getElementById('stat-weekly-plan').innerHTML = 
+        `${summary.total_plan_count || 0}<span class="unit">单</span>`;
+    document.getElementById('stat-trip').innerHTML = 
+        `${summary.total_non_plan_count || 0}<span class="unit">起</span>`;
+    
+    // 更新当值人员信息
+    const totalStaff = hourlyDetails.reduce((sum, h) => sum + (h.staff_count || 0), 0) / 24 || 0;
+    document.getElementById('currentStaff').textContent = Math.round(totalStaff) + '人';
+    
+    // 更新人员当量
+    const avgCapacity = hourlyDetails.reduce((sum, h) => sum + (h.staff_capacity || 0), 0) / 24 || 0;
+    document.getElementById('staffCapacity').textContent = avgCapacity.toFixed(1);
+    
+    // 更新超负荷状态
+    const overloadCount = summary.overload_count || 0;
+    const overloadEl = document.getElementById('overloadStatus');
+    overloadEl.textContent = overloadCount > 0 ? '是' : '否';
+    overloadEl.className = 'staff-value ' + (overloadCount > 0 ? 'warning' : 'success');
+    
+    // 更新图表
+    if (typeof updateWorkloadData === 'function') {
+        updateWorkloadData({
+            workloadTimeline: hourlyDetails
+        });
     }
     
     // 更新最后更新时间
     updateLastUpdate();
-    
-    // 显示提示
-    appendMessage('assistant', '🔄 数据已刷新，所有图表已更新。');
 }
 
 /**
@@ -436,6 +555,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (inputEl) {
         inputEl.focus();
     }
+    
+    // 尝试加载实时数据（通过对话方式）
+    // 由于没有直接的API端点，我们通过发送对话请求获取数据
+    setTimeout(() => {
+        loadRealTimeData();
+    }, 1000);
     
     console.log('⚡ 配网调度业务量智能预测系统已加载');
 });

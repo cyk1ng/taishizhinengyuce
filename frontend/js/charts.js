@@ -44,9 +44,10 @@ function initModuleBusinessChart(data = null) {
         moduleBusinessChart.destroy();
     }
     
+    // 空数据（无模拟数据）
     const defaultData = {
         labels: ['周计划', '设备投退', '跳闸', '缺陷', '重过载', '保供电', '检修业务', '方式单'],
-        values: [25, 0, 11, 8, 0, 3, 15, 20]
+        values: [0, 0, 0, 0, 0, 0, 0, 0]
     };
     
     const chartData = data || defaultData;
@@ -190,9 +191,10 @@ function initNetworkOrderChart(data = null) {
         networkOrderChart.destroy();
     }
     
+    // 空数据（无模拟数据）
     const defaultData = {
         labels: ['逐项令', '许可令'],
-        values: [106, 0]
+        values: [0, 0]
     };
     
     const chartData = data || defaultData;
@@ -256,13 +258,13 @@ function initWorkloadTimelineChart(data = null) {
         timeLabels.push(`${i}:00`);
     }
     
-    // 24小时默认数据
+    // 空数据（无模拟数据）
     const defaultData = {
         labels: timeLabels,
-        workloadTotal: [0, 0, 0, 0, 0, 0, 0, 0.5, 2.5, 3.8, 4.2, 3.5, 2.8, 3.2, 3.8, 4.5, 5.2, 4.8, 3.5, 2.8, 1.5, 0.8, 0.3, 0],
-        staffCapacity: [5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2],
-        plannedTask: [0, 0, 0, 0, 0, 0, 0, 0.3, 1.5, 2.0, 2.5, 1.8, 1.2, 1.5, 2.0, 2.5, 3.0, 2.8, 2.0, 1.5, 1.0, 0.5, 0.2, 0],
-        unplannedTask: [0, 0, 0, 0, 0, 0, 0, 0.2, 1.0, 1.8, 1.7, 1.7, 1.6, 1.7, 1.8, 2.0, 2.2, 2.0, 1.5, 1.3, 0.5, 0.3, 0.1, 0]
+        workloadTotal: Array(24).fill(0),
+        staffCapacity: Array(24).fill(0),
+        plannedTask: Array(24).fill(0),
+        unplannedTask: Array(24).fill(0)
     };
     
     const chartData = data || defaultData;
@@ -384,9 +386,89 @@ function initAllCharts() {
 }
 
 /**
- * 更新工作量数据
+ * 更新工作量数据（处理真实数据）
  */
 function updateWorkloadData(data) {
+    // 处理工作量时间轴数据（从后端API返回的格式）
+    if (data && data.hourly_details && Array.isArray(data.hourly_details)) {
+        const hourlyData = data.hourly_details;
+        
+        // 生成时间标签
+        const timeLabels = hourlyData.map((h, i) => `${i}:00`);
+        
+        // 提取数据
+        const workloadTotal = hourlyData.map(h => h.total_equivalent || 0);
+        const staffCapacity = hourlyData.map(h => h.staff_capacity || 0);
+        const plannedTask = hourlyData.map(h => h.plan_equivalent || 0);
+        const unplannedTask = hourlyData.map(h => h.non_plan_equivalent || 0);
+        
+        // 更新图表
+        initWorkloadTimelineChart({
+            labels: timeLabels,
+            workloadTotal: workloadTotal,
+            staffCapacity: staffCapacity,
+            plannedTask: plannedTask,
+            unplannedTask: unplannedTask
+        });
+        
+        // 更新统计卡片
+        if (data.summary) {
+            const summary = data.summary;
+            
+            // 更新检修业务单总量（使用计划任务数）
+            document.getElementById('stat-maintenance').innerHTML = 
+                `${summary.total_plan_count || 0}<span class="unit">单</span>`;
+            
+            // 更新周计划开展量
+            document.getElementById('stat-weekly-plan').innerHTML = 
+                `${summary.total_plan_count || 0}<span class="unit">单</span>`;
+            
+            // 更新跳闸总量（使用非计划任务数）
+            document.getElementById('stat-trip').innerHTML = 
+                `${summary.total_non_plan_count || 0}<span class="unit">起</span>`;
+            
+            // 更新方式单业务总量
+            document.getElementById('stat-mode-order').innerHTML = 
+                `${summary.total_plan_count || 0}<span class="unit">单</span>`;
+            
+            // 更新当值人员信息
+            const totalStaff = hourlyData.reduce((sum, h) => sum + (h.staff_count || 0), 0) / 24 || 0;
+            document.getElementById('currentStaff').textContent = Math.round(totalStaff) + '人';
+            
+            // 更新人员当量
+            const avgCapacity = hourlyData.reduce((sum, h) => sum + (h.staff_capacity || 0), 0) / 24 || 0;
+            document.getElementById('staffCapacity').textContent = avgCapacity.toFixed(1);
+            
+            // 更新超负荷状态
+            const overloadCount = summary.overload_count || 0;
+            const overloadEl = document.getElementById('overloadStatus');
+            if (overloadEl) {
+                overloadEl.textContent = overloadCount > 0 ? '是' : '否';
+                overloadEl.className = 'staff-value ' + (overloadCount > 0 ? 'warning' : 'success');
+            }
+            
+            // 更新系统状态
+            const statusText = document.querySelector('.status-text');
+            if (statusText && statusText.id === 'lastUpdate') {
+                statusText.textContent = new Date().toLocaleTimeString('zh-CN', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+            }
+        }
+        
+        // 更新各模块业务情况图表
+        const planCount = data.summary?.total_plan_count || 0;
+        const nonPlanCount = data.summary?.total_non_plan_count || 0;
+        initModuleBusinessChart({
+            labels: ['周计划', '设备投退', '跳闸', '缺陷', '重过载', '保供电', '检修业务', '方式单'],
+            values: [planCount, 0, nonPlanCount, nonPlanCount, 0, 0, planCount, planCount]
+        });
+        
+        return;
+    }
+    
+    // 处理其他格式的数据（旧格式兼容）
     // 更新统计卡片
     if (data.stats) {
         const stats = data.stats;
@@ -394,7 +476,7 @@ function updateWorkloadData(data) {
         // 更新检修业务单总量
         if (stats.maintenance !== undefined) {
             document.getElementById('stat-maintenance').innerHTML = 
-                `${stats.maintenance}<span style="font-size: 16px; margin-left: 4px;">单</span>`;
+                `${stats.maintenance}<span class="unit">单</span>`;
             document.getElementById('stat-maintenance-ongoing').textContent = stats.maintenanceOngoing || 0;
             document.getElementById('stat-maintenance-done').textContent = stats.maintenanceDone || 0;
         }
@@ -402,7 +484,7 @@ function updateWorkloadData(data) {
         // 更新周计划开展量
         if (stats.weeklyPlan !== undefined) {
             document.getElementById('stat-weekly-plan').innerHTML = 
-                `${stats.weeklyPlan}<span style="font-size: 16px; margin-left: 4px;">单</span>`;
+                `${stats.weeklyPlan}<span class="unit">单</span>`;
             document.getElementById('stat-weekly-ongoing').textContent = stats.weeklyOngoing || 0;
             document.getElementById('stat-weekly-done').textContent = stats.weeklyDone || 0;
         }
@@ -410,7 +492,7 @@ function updateWorkloadData(data) {
         // 更新跳闸总量
         if (stats.trip !== undefined) {
             document.getElementById('stat-trip').innerHTML = 
-                `${stats.trip}<span style="font-size: 16px; margin-left: 4px;">起</span>`;
+                `${stats.trip}<span class="unit">起</span>`;
             document.getElementById('stat-trip-success').textContent = stats.tripSuccess || 0;
             document.getElementById('stat-trip-fail').textContent = stats.tripFail || 0;
         }
@@ -426,7 +508,7 @@ function updateWorkloadData(data) {
     if (data.networkOrder) {
         initNetworkOrderChart(data.networkOrder);
     }
-    if (data.workloadTimeline) {
+    if (data.workloadTimeline && !Array.isArray(data.workloadTimeline)) {
         initWorkloadTimelineChart(data.workloadTimeline);
     }
 }

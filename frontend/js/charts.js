@@ -44,10 +44,10 @@ function initModuleBusinessChart(data = null) {
         moduleBusinessChart.destroy();
     }
     
-    // 空数据（无模拟数据）
+    // 假数据展示效果
     const defaultData = {
         labels: ['周计划', '设备投退', '跳闸', '缺陷', '重过载', '保供电', '检修业务', '方式单'],
-        values: [0, 0, 0, 0, 0, 0, 0, 0]
+        values: [8, 5, 0, 3, 2, 4, 6, 7]
     };
     
     const chartData = data || defaultData;
@@ -130,10 +130,10 @@ function initTicketChart(data = null) {
         ticketChart.destroy();
     }
     
-    // 空数据（无模拟数据）
+    // 假数据展示效果
     const defaultData = {
         labels: ['指令记录', '逐项令', '综合令', '许可令'],
-        values: [0, 0, 0, 0]
+        values: [45, 28, 15, 12]
     };
     
     const chartData = data || defaultData;
@@ -192,10 +192,10 @@ function initNetworkOrderChart(data = null) {
         networkOrderChart.destroy();
     }
     
-    // 空数据（无模拟数据）
+    // 假数据展示效果
     const defaultData = {
         labels: ['逐项令', '许可令'],
-        values: [0, 0]
+        values: [28, 12]
     };
     
     const chartData = data || defaultData;
@@ -259,13 +259,13 @@ function initWorkloadTimelineChart(data = null) {
         timeLabels.push(`${i}:00`);
     }
     
-    // 空数据（无模拟数据）
+    // 假数据展示效果 - 24小时工作量分布
     const defaultData = {
         labels: timeLabels,
-        workloadTotal: Array(24).fill(0),
-        staffCapacity: Array(24).fill(0),
-        plannedTask: Array(24).fill(0),
-        unplannedTask: Array(24).fill(0)
+        workloadTotal: [2.5, 2.1, 2.0, 1.8, 1.5, 1.8, 3.2, 4.5, 5.8, 6.2, 5.9, 5.5, 5.8, 6.0, 6.3, 6.5, 6.2, 5.8, 5.2, 4.8, 4.2, 3.8, 3.2, 2.8],
+        staffCapacity: Array(24).fill(5.2),
+        plannedTask: [1.8, 1.5, 1.4, 1.2, 1.0, 1.2, 2.2, 3.2, 4.0, 4.2, 4.0, 3.8, 4.0, 4.2, 4.4, 4.5, 4.2, 4.0, 3.6, 3.2, 2.8, 2.6, 2.2, 1.8],
+        unplannedTask: [0.7, 0.6, 0.6, 0.6, 0.5, 0.6, 1.0, 1.3, 1.8, 2.0, 1.9, 1.7, 1.8, 1.8, 1.9, 2.0, 2.0, 1.8, 1.6, 1.6, 1.4, 1.2, 1.0, 1.0]
     };
     
     const chartData = data || defaultData;

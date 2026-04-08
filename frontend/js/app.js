@@ -561,11 +561,10 @@ document.addEventListener('DOMContentLoaded', function() {
         inputEl.focus();
     }
     
-    // 尝试加载实时数据（通过对话方式）
-    // 由于没有直接的API端点，我们通过发送对话请求获取数据
-    setTimeout(() => {
-        loadRealTimeData();
-    }, 1000);
-    
-    console.log('⚡ 配网调度业务量智能预测系统已加载');
+    // 注释：暂时不自动加载实时数据，使用假数据展示效果
+    // setTimeout(() => {
+    //     loadRealTimeData();
+    // }, 1000);
+
+    console.log('⚡ 配网调度业务量智能预测系统已加载（使用假数据展示）');
 });

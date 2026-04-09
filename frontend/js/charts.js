@@ -328,6 +328,13 @@ function initWorkloadTimelineChart(data = null) {
                 intersect: false,
                 mode: 'index'
             },
+            onClick: function(event, elements) {
+                if (elements.length > 0) {
+                    const element = elements[0];
+                    const index = element.index;
+                    showTimeSlotDetail(index, chartData);
+                }
+            },
             plugins: {
                 legend: { display: false },
                 tooltip: {
@@ -355,9 +362,9 @@ function initWorkloadTimelineChart(data = null) {
             scales: {
                 x: {
                     grid: { color: chartColors.gridColor, drawBorder: false },
-                    ticks: { 
-                        color: '#5a7a9e', 
-                        font: { size: 9 }, 
+                    ticks: {
+                        color: '#5a7a9e',
+                        font: { size: 9 },
                         maxRotation: 0,
                         // 每2小时显示一个标签
                         callback: function(value, index) {
@@ -648,6 +655,201 @@ function createRiskGauge(containerId, value) {
             }
         }]
     });
+}
+
+// ============================================================
+// 弹窗和编辑功能
+// ============================================================
+
+/**
+ * 打开弹窗
+ */
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+}
+
+/**
+ * 关闭弹窗
+ */
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+/**
+ * 编辑天气信息
+ */
+function editWeather() {
+    const weatherText = document.getElementById('weatherText').textContent;
+
+    // 解析当前天气信息
+    const match = weatherText.match(/(.+)\s+(-?\d+)°C/);
+    if (match) {
+        const condition = match[1];
+        const temp = match[2];
+
+        document.getElementById('weatherCondition').value = condition;
+        document.getElementById('weatherTemp').value = temp;
+    }
+
+    openModal('weatherModal');
+}
+
+/**
+ * 保存天气信息
+ */
+function saveWeather() {
+    const condition = document.getElementById('weatherCondition').value;
+    const temp = document.getElementById('weatherTemp').value;
+
+    // 更新显示
+    const weatherText = `${condition} ${temp}°C`;
+    document.getElementById('weatherText').textContent = weatherText;
+
+    closeModal('weatherModal');
+
+    // 这里可以调用后端API保存数据
+    console.log('保存天气信息:', { condition, temp });
+}
+
+/**
+ * 编辑计划工作量
+ */
+function editPlannedWorkload(event) {
+    event.stopPropagation();
+
+    // 获取当前值
+    const total = document.getElementById('stat-weekly-plan').textContent;
+    const ongoing = document.getElementById('stat-weekly-ongoing').textContent;
+    const done = document.getElementById('stat-weekly-done').textContent;
+
+    // 提取数字
+    document.getElementById('plannedTotal').value = parseInt(total) || 0;
+    document.getElementById('plannedOngoing').value = parseInt(ongoing) || 0;
+    document.getElementById('plannedDone').value = parseInt(done) || 0;
+
+    openModal('plannedModal');
+}
+
+/**
+ * 保存计划工作量
+ */
+function savePlannedWorkload() {
+    const total = document.getElementById('plannedTotal').value;
+    const ongoing = document.getElementById('plannedOngoing').value;
+    const done = document.getElementById('plannedDone').value;
+
+    // 更新显示
+    document.getElementById('stat-weekly-plan').innerHTML = `${total}<span class="unit">单</span>`;
+    document.getElementById('stat-weekly-ongoing').textContent = ongoing;
+    document.getElementById('stat-weekly-done').textContent = done;
+
+    closeModal('plannedModal');
+
+    // 这里可以调用后端API保存数据
+    console.log('保存计划工作量:', { total, ongoing, done });
+}
+
+/**
+ * 编辑非计划工作量
+ */
+function editUnplannedWorkload(event) {
+    event.stopPropagation();
+
+    // 获取当前值
+    const total = document.getElementById('stat-trip').textContent;
+    const success = document.getElementById('stat-trip-success').textContent;
+    const fail = document.getElementById('stat-trip-fail').textContent;
+
+    // 提取数字
+    document.getElementById('unplannedTotal').value = parseInt(total) || 0;
+    document.getElementById('unplannedSuccess').value = parseInt(success) || 0;
+    document.getElementById('unplannedFail').value = parseInt(fail) || 0;
+
+    openModal('unplannedModal');
+}
+
+/**
+ * 保存非计划工作量
+ */
+function saveUnplannedWorkload() {
+    const total = document.getElementById('unplannedTotal').value;
+    const success = document.getElementById('unplannedSuccess').value;
+    const fail = document.getElementById('unplannedFail').value;
+
+    // 更新显示
+    document.getElementById('stat-trip').innerHTML = `${total}<span class="unit">起</span>`;
+    document.getElementById('stat-trip-success').textContent = success;
+    document.getElementById('stat-trip-fail').textContent = fail;
+
+    closeModal('unplannedModal');
+
+    // 这里可以调用后端API保存数据
+    console.log('保存非计划工作量:', { total, success, fail });
+}
+
+/**
+ * 显示人员详情
+ */
+function showStaffDetail() {
+    openModal('staffModal');
+}
+
+/**
+ * 显示时间段详情
+ */
+function showTimeSlotDetail(index, chartData) {
+    const timeLabel = chartData.labels[index];
+    const nextIndex = (index + 1) % chartData.labels.length;
+    const nextTimeLabel = chartData.labels[nextIndex];
+
+    // 计算时间段
+    const period = getShiftPeriod(index);
+
+    // 更新弹窗内容
+    document.getElementById('timeSlotTitle').textContent = `📊 时间段详情 - ${timeLabel}`;
+    document.getElementById('timeSlotTime').textContent = `${timeLabel} - ${nextTimeLabel}`;
+    document.getElementById('timeSlotPeriod').textContent = period;
+    document.getElementById('timeSlotTotal').textContent = chartData.workloadTotal[index].toFixed(1);
+    document.getElementById('timeSlotCapacity').textContent = chartData.staffCapacity[index].toFixed(1);
+    document.getElementById('timeSlotPlanned').textContent = chartData.plannedTask[index].toFixed(1);
+    document.getElementById('timeSlotUnplanned').textContent = chartData.unplannedTask[index].toFixed(1);
+
+    // 判断工作状态
+    const total = chartData.workloadTotal[index];
+    const capacity = chartData.staffCapacity[index];
+    const statusEl = document.getElementById('timeSlotStatus');
+
+    if (total > capacity * 1.5) {
+        statusEl.textContent = '严重超负荷';
+        statusEl.style.color = 'var(--highlight-red)';
+    } else if (total > capacity) {
+        statusEl.textContent = '超负荷';
+        statusEl.style.color = 'var(--highlight-yellow)';
+    } else {
+        statusEl.textContent = '正常';
+        statusEl.style.color = 'var(--highlight-green)';
+    }
+
+    openModal('timeSlotModal');
+}
+
+/**
+ * 获取班次时段
+ */
+function getShiftPeriod(hour) {
+    if (hour >= 8 && hour < 14) {
+        return '早班 (08:00-14:00)';
+    } else if (hour >= 14 && hour < 21) {
+        return '中班 (14:00-21:00)';
+    } else {
+        return '夜班 (21:00-08:00)';
+    }
 }
 
 // 页面加载完成后初始化图表

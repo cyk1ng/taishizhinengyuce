@@ -59,9 +59,10 @@
                     <span>🕐</span>
                     <span class="value" id="currentTime">--:--:--</span>
                 </div>
-                <div class="header-info">
+                <div class="header-info weather-info" onclick="editWeather()">
                     <span>🌤️</span>
                     <span class="value" id="weatherText">晴 28°C</span>
+                    <span class="edit-icon">✏️</span>
                 </div>
             </div>
         </div>
@@ -86,6 +87,7 @@
                 <div class="stat-title">
                     <span>📅</span>
                     <span>周计划开展量</span>
+                    <span class="edit-badge" onclick="editPlannedWorkload(event)">✏️</span>
                 </div>
                 <div class="stat-value yellow" id="stat-weekly-plan">24<span class="unit">单</span></div>
                 <div class="stat-detail">
@@ -122,6 +124,7 @@
                 <div class="stat-title">
                     <span>⚡</span>
                     <span>跳闸总量</span>
+                    <span class="edit-badge" onclick="editUnplannedWorkload(event)">✏️</span>
                 </div>
                 <div class="stat-value red" id="stat-trip">11<span class="unit">起</span></div>
                 <div class="stat-detail">
@@ -185,7 +188,7 @@
             <div class="card workload-card">
                 <div class="card-header">
                     <span class="icon">📈</span>
-                    <span class="title">各阶段工作业务当量</span>
+                    <span class="title">各时段工作业务当量</span>
                     <div class="chart-legend">
                         <span class="legend-item"><span class="dot cyan"></span>工作任务总当量</span>
                         <span class="legend-item"><span class="dot yellow"></span>班组人员工作当量</span>
@@ -239,10 +242,11 @@
                 </div>
                 
                 <!-- 当值人员信息 -->
-                <div class="card control-card">
+                <div class="card control-card" onclick="showStaffDetail()">
                     <div class="card-header">
                         <span class="icon">👥</span>
                         <span class="title">当值人员</span>
+                        <span class="click-hint">点击查看详情</span>
                     </div>
                     <div class="card-body">
                         <div class="staff-info">
@@ -390,6 +394,231 @@
             <div class="loading-spinner"></div>
             <p class="loading-title">🤖 AI 正在分析中...</p>
             <p class="loading-desc">正在处理多源数据，请稍候...</p>
+        </div>
+    </div>
+
+    <!-- 天气编辑弹窗 -->
+    <div id="weatherModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🌤️ 编辑天气信息</h3>
+                <button class="modal-close" onclick="closeModal('weatherModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>天气状况</label>
+                    <select id="weatherCondition" class="form-select">
+                        <option value="晴">☀️ 晴</option>
+                        <option value="多云">⛅ 多云</option>
+                        <option value="阴">☁️ 阴</option>
+                        <option value="小雨">🌧️ 小雨</option>
+                        <option value="中雨">🌧️ 中雨</option>
+                        <option value="大雨">⛈️ 大雨</option>
+                        <option value="雪">❄️ 雪</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>温度 (°C)</label>
+                    <input type="number" id="weatherTemp" class="form-input" value="28" min="-50" max="60">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('weatherModal')">取消</button>
+                <button class="btn btn-primary" onclick="saveWeather()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 计划工作量编辑弹窗 -->
+    <div id="plannedModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📋 编辑计划工作量</h3>
+                <button class="modal-close" onclick="closeModal('plannedModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>周计划开展总量 (单)</label>
+                    <input type="number" id="plannedTotal" class="form-input" value="24" min="0">
+                </div>
+                <div class="form-group">
+                    <label>开展中 (单)</label>
+                    <input type="number" id="plannedOngoing" class="form-input" value="13" min="0">
+                </div>
+                <div class="form-group">
+                    <label>已终结 (单)</label>
+                    <input type="number" id="plannedDone" class="form-input" value="11" min="0">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('plannedModal')">取消</button>
+                <button class="btn btn-primary" onclick="savePlannedWorkload()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 非计划工作量编辑弹窗 -->
+    <div id="unplannedModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚡ 编辑非计划工作量</h3>
+                <button class="modal-close" onclick="closeModal('unplannedModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>跳闸总量 (起)</label>
+                    <input type="number" id="unplannedTotal" class="form-input" value="11" min="0">
+                </div>
+                <div class="form-group">
+                    <label>重合成功 (起)</label>
+                    <input type="number" id="unplannedSuccess" class="form-input" value="6" min="0">
+                </div>
+                <div class="form-group">
+                    <label>重合失败 (起)</label>
+                    <input type="number" id="unplannedFail" class="form-input" value="5" min="0">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('unplannedModal')">取消</button>
+                <button class="btn btn-primary" onclick="saveUnplannedWorkload()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 人员详情弹窗 -->
+    <div id="staffModal" class="modal-overlay hidden">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3>👥 值班人员详情</h3>
+                <button class="modal-close" onclick="closeModal('staffModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="staff-detail-container">
+                    <div class="staff-section">
+                        <h4 class="staff-section-title">当值人员</h4>
+                        <div class="staff-list">
+                            <div class="staff-card active">
+                                <div class="staff-avatar">👨‍💼</div>
+                                <div class="staff-info">
+                                    <div class="staff-name">张伟</div>
+                                    <div class="staff-role">值班长</div>
+                                    <div class="staff-badges">
+                                        <span class="badge role-3">值班长</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="staff-card active">
+                                <div class="staff-avatar">👨‍💼</div>
+                                <div class="staff-info">
+                                    <div class="staff-name">李强</div>
+                                    <div class="staff-role">正值</div>
+                                    <div class="staff-badges">
+                                        <span class="badge role-2">正值</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="staff-card active">
+                                <div class="staff-avatar">👨‍💼</div>
+                                <div class="staff-info">
+                                    <div class="staff-name">王明</div>
+                                    <div class="staff-role">正值</div>
+                                    <div class="staff-badges">
+                                        <span class="badge role-2">正值</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="staff-card active">
+                                <div class="staff-avatar">👨‍💼</div>
+                                <div class="staff-info">
+                                    <div class="staff-name">刘洋</div>
+                                    <div class="staff-role">副值</div>
+                                    <div class="staff-badges">
+                                        <span class="badge role-1">副值</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="staff-divider"></div>
+                    <div class="staff-section">
+                        <h4 class="staff-section-title">休息人员</h4>
+                        <div class="staff-list">
+                            <div class="staff-card inactive">
+                                <div class="staff-avatar">👨‍💼</div>
+                                <div class="staff-info">
+                                    <div class="staff-name">赵磊</div>
+                                    <div class="staff-role">正值</div>
+                                    <div class="staff-status">休息中</div>
+                                </div>
+                            </div>
+                            <div class="staff-card inactive">
+                                <div class="staff-avatar">👨‍💼</div>
+                                <div class="staff-info">
+                                    <div class="staff-name">孙杰</div>
+                                    <div class="staff-role">副值</div>
+                                    <div class="staff-status">休息中</div>
+                                </div>
+                            </div>
+                            <div class="staff-card inactive">
+                                <div class="staff-avatar">👨‍💼</div>
+                                <div class="staff-info">
+                                    <div class="staff-name">周涛</div>
+                                    <div class="staff-role">副值</div>
+                                    <div class="staff-status">休息中</div>
+                                </div>
+                            </div>
+                            <div class="staff-card inactive">
+                                <div class="staff-avatar">👨‍💼</div>
+                                <div class="staff-info">
+                                    <div class="staff-name">吴鹏</div>
+                                    <div class="staff-role">其他</div>
+                                    <div class="staff-status">休息中</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 时间段详情弹窗 -->
+    <div id="timeSlotModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="timeSlotTitle">📊 时间段详情</h3>
+                <button class="modal-close" onclick="closeModal('timeSlotModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="time-slot-detail">
+                    <div class="time-slot-header">
+                        <span class="time-slot-time" id="timeSlotTime">09:00 - 10:00</span>
+                        <span class="time-slot-period" id="timeSlotPeriod">早班</span>
+                    </div>
+                    <div class="time-slot-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">工作任务总当量</span>
+                            <span class="stat-value cyan" id="timeSlotTotal">6.2</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">班组人员工作当量</span>
+                            <span class="stat-value yellow" id="timeSlotCapacity">5.2</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">计划任务当量</span>
+                            <span class="stat-value green" id="timeSlotPlanned">4.2</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">非计划任务当量</span>
+                            <span class="stat-value orange" id="timeSlotUnplanned">2.0</span>
+                        </div>
+                    </div>
+                    <div class="time-slot-status">
+                        <span class="status-label">工作状态:</span>
+                        <span class="status-badge" id="timeSlotStatus">正常</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

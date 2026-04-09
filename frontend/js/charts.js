@@ -665,9 +665,15 @@ function createRiskGauge(containerId, value) {
  * 打开弹窗
  */
 function openModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.classList.remove('hidden');
+    try {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('hidden');
+        } else {
+            console.error('找不到弹窗元素:', modalId);
+        }
+    } catch (error) {
+        console.error('打开弹窗错误:', error);
     }
 }
 
@@ -804,39 +810,44 @@ function showStaffDetail() {
  * 显示时间段详情
  */
 function showTimeSlotDetail(index, chartData) {
-    const timeLabel = chartData.labels[index];
-    const nextIndex = (index + 1) % chartData.labels.length;
-    const nextTimeLabel = chartData.labels[nextIndex];
+    try {
+        const timeLabel = chartData.labels[index];
+        const nextIndex = (index + 1) % chartData.labels.length;
+        const nextTimeLabel = chartData.labels[nextIndex];
 
-    // 计算时间段
-    const period = getShiftPeriod(index);
+        // 计算时间段
+        const period = getShiftPeriod(index);
 
-    // 更新弹窗内容
-    document.getElementById('timeSlotTitle').textContent = `📊 时间段详情 - ${timeLabel}`;
-    document.getElementById('timeSlotTime').textContent = `${timeLabel} - ${nextTimeLabel}`;
-    document.getElementById('timeSlotPeriod').textContent = period;
-    document.getElementById('timeSlotTotal').textContent = chartData.workloadTotal[index].toFixed(1);
-    document.getElementById('timeSlotCapacity').textContent = chartData.staffCapacity[index].toFixed(1);
-    document.getElementById('timeSlotPlanned').textContent = chartData.plannedTask[index].toFixed(1);
-    document.getElementById('timeSlotUnplanned').textContent = chartData.unplannedTask[index].toFixed(1);
+        // 更新弹窗内容
+        document.getElementById('timeSlotTitle').textContent = `📊 时间段详情 - ${timeLabel}`;
+        document.getElementById('timeSlotTime').textContent = `${timeLabel} - ${nextTimeLabel}`;
+        document.getElementById('timeSlotPeriod').textContent = period;
+        document.getElementById('timeSlotTotal').textContent = chartData.workloadTotal[index].toFixed(1);
+        document.getElementById('timeSlotCapacity').textContent = chartData.staffCapacity[index].toFixed(1);
+        document.getElementById('timeSlotPlanned').textContent = chartData.plannedTask[index].toFixed(1);
+        document.getElementById('timeSlotUnplanned').textContent = chartData.unplannedTask[index].toFixed(1);
 
-    // 判断工作状态
-    const total = chartData.workloadTotal[index];
-    const capacity = chartData.staffCapacity[index];
-    const statusEl = document.getElementById('timeSlotStatus');
+        // 判断工作状态
+        const total = chartData.workloadTotal[index];
+        const capacity = chartData.staffCapacity[index];
+        const statusEl = document.getElementById('timeSlotStatus');
 
-    if (total > capacity * 1.5) {
-        statusEl.textContent = '严重超负荷';
-        statusEl.style.color = 'var(--highlight-red)';
-    } else if (total > capacity) {
-        statusEl.textContent = '超负荷';
-        statusEl.style.color = 'var(--highlight-yellow)';
-    } else {
-        statusEl.textContent = '正常';
-        statusEl.style.color = 'var(--highlight-green)';
+        if (total > capacity * 1.5) {
+            statusEl.textContent = '严重超负荷';
+            statusEl.style.color = 'var(--highlight-red)';
+        } else if (total > capacity) {
+            statusEl.textContent = '超负荷';
+            statusEl.style.color = 'var(--highlight-yellow)';
+        } else {
+            statusEl.textContent = '正常';
+            statusEl.style.color = 'var(--highlight-green)';
+        }
+
+        openModal('timeSlotModal');
+    } catch (error) {
+        console.error('显示时间段详情错误:', error);
+        alert('显示时间段详情失败: ' + error.message);
     }
-
-    openModal('timeSlotModal');
 }
 
 /**

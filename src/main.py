@@ -272,7 +272,7 @@ async def read_root():
         index_file = FRONTEND_DIR / "index.html"
         logger.info(f"🔍 尝试访问首页: {index_file}")
         logger.info(f"   文件存在: {index_file.exists()}")
-        
+
         if index_file.exists():
             return FileResponse(str(index_file))
         else:
@@ -280,6 +280,28 @@ async def read_root():
     except Exception as e:
         logger.error(f"❌ 返回首页失败: {e}")
         return {"error": str(e), "frontend_path": str(FRONTEND_DIR)}
+
+# 前端 HTML 文件路由
+@app.get("/{file_name:path}")
+async def read_html_files(file_name: str):
+    """返回前端 HTML 文件"""
+    # 检查是否是 HTML 文件
+    if file_name.endswith('.html'):
+        try:
+            html_file = FRONTEND_DIR / file_name
+            logger.info(f"🔍 尝试访问HTML文件: {html_file}")
+            logger.info(f"   文件存在: {html_file.exists()}")
+
+            if html_file.exists():
+                return FileResponse(str(html_file))
+            else:
+                return {"error": "文件不存在", "file": file_name}
+        except Exception as e:
+            logger.error(f"❌ 返回HTML文件失败: {e}")
+            return {"error": str(e)}
+    # 如果不是 HTML 文件，返回 404
+    else:
+        raise HTTPException(status_code=404, detail="Not Found")
 
 # 健康检查接口
 @app.get("/health")

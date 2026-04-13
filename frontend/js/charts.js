@@ -691,112 +691,232 @@ function closeModal(modalId) {
  * 编辑天气信息
  */
 function editWeather() {
-    const weatherText = document.getElementById('weatherText').textContent;
+    try {
+        const weatherTextEl = document.getElementById('weatherText');
+        if (!weatherTextEl) {
+            console.error('找不到weatherText元素');
+            return;
+        }
 
-    // 解析当前天气信息
-    const match = weatherText.match(/(.+)\s+(-?\d+)°C/);
-    if (match) {
-        const condition = match[1];
-        const temp = match[2];
+        const weatherText = weatherTextEl.textContent;
 
-        document.getElementById('weatherCondition').value = condition;
-        document.getElementById('weatherTemp').value = temp;
+        // 解析当前天气信息
+        const match = weatherText.match(/(.+)\s+(-?\d+)°C/);
+        if (match) {
+            const condition = match[1];
+            const temp = match[2];
+
+            const conditionEl = document.getElementById('weatherCondition');
+            const tempEl = document.getElementById('weatherTemp');
+
+            if (conditionEl) conditionEl.value = condition;
+            if (tempEl) tempEl.value = temp;
+        } else {
+            console.warn('天气信息格式不匹配，使用默认值');
+            const conditionEl = document.getElementById('weatherCondition');
+            const tempEl = document.getElementById('weatherTemp');
+            if (conditionEl) conditionEl.value = '晴';
+            if (tempEl) tempEl.value = '28';
+        }
+
+        openModal('weatherModal');
+    } catch (error) {
+        console.error('编辑天气信息错误:', error);
+        alert('编辑天气信息失败，请稍后重试');
     }
-
-    openModal('weatherModal');
 }
 
 /**
  * 保存天气信息
  */
 function saveWeather() {
-    const condition = document.getElementById('weatherCondition').value;
-    const temp = document.getElementById('weatherTemp').value;
+    try {
+        const conditionEl = document.getElementById('weatherCondition');
+        const tempEl = document.getElementById('weatherTemp');
 
-    // 更新显示
-    const weatherText = `${condition} ${temp}°C`;
-    document.getElementById('weatherText').textContent = weatherText;
+        if (!conditionEl || !tempEl) {
+            console.error('找不到天气输入框');
+            alert('保存失败，请刷新页面后重试');
+            return;
+        }
 
-    closeModal('weatherModal');
+        const condition = conditionEl.value || '晴';
+        const temp = tempEl.value || '28';
 
-    // 这里可以调用后端API保存数据
-    console.log('保存天气信息:', { condition, temp });
+        // 更新显示
+        const weatherTextEl = document.getElementById('weatherText');
+        if (weatherTextEl) {
+            weatherTextEl.textContent = `${condition} ${temp}°C`;
+        }
+
+        closeModal('weatherModal');
+
+        // 这里可以调用后端API保存数据
+        console.log('保存天气信息:', { condition, temp });
+    } catch (error) {
+        console.error('保存天气信息错误:', error);
+        alert('保存天气信息失败，请稍后重试');
+    }
 }
 
 /**
  * 编辑计划工作量
  */
 function editPlannedWorkload(event) {
-    event.stopPropagation();
+    try {
+        event.stopPropagation();
 
-    // 获取当前值
-    const total = document.getElementById('stat-weekly-plan').textContent;
-    const ongoing = document.getElementById('stat-weekly-ongoing').textContent;
-    const done = document.getElementById('stat-weekly-done').textContent;
+        // 获取当前值
+        const totalEl = document.getElementById('stat-weekly-plan');
+        const ongoingEl = document.getElementById('stat-weekly-ongoing');
+        const doneEl = document.getElementById('stat-weekly-done');
 
-    // 提取数字
-    document.getElementById('plannedTotal').value = parseInt(total) || 0;
-    document.getElementById('plannedOngoing').value = parseInt(ongoing) || 0;
-    document.getElementById('plannedDone').value = parseInt(done) || 0;
+        if (!totalEl || !ongoingEl || !doneEl) {
+            console.error('找不到计划工作量元素');
+            alert('无法编辑计划工作量，请刷新页面后重试');
+            return;
+        }
 
-    openModal('plannedModal');
+        // 提取数字（处理可能包含单位的情况）
+        const totalText = totalEl.textContent || totalEl.innerText || '0';
+        const ongoingText = ongoingEl.textContent || ongoingEl.innerText || '0';
+        const doneText = doneEl.textContent || doneEl.innerText || '0';
+
+        const totalVal = parseInt(totalText.replace(/[^\d-]/g, '')) || 0;
+        const ongoingVal = parseInt(ongoingText.replace(/[^\d-]/g, '')) || 0;
+        const doneVal = parseInt(doneText.replace(/[^\d-]/g, '')) || 0;
+
+        const plannedTotalEl = document.getElementById('plannedTotal');
+        const plannedOngoingEl = document.getElementById('plannedOngoing');
+        const plannedDoneEl = document.getElementById('plannedDone');
+
+        if (plannedTotalEl) plannedTotalEl.value = totalVal;
+        if (plannedOngoingEl) plannedOngoingEl.value = ongoingVal;
+        if (plannedDoneEl) plannedDoneEl.value = doneVal;
+
+        openModal('plannedModal');
+    } catch (error) {
+        console.error('编辑计划工作量错误:', error);
+        alert('编辑计划工作量失败，请稍后重试');
+    }
 }
 
 /**
  * 保存计划工作量
  */
 function savePlannedWorkload() {
-    const total = document.getElementById('plannedTotal').value;
-    const ongoing = document.getElementById('plannedOngoing').value;
-    const done = document.getElementById('plannedDone').value;
+    try {
+        const totalEl = document.getElementById('plannedTotal');
+        const ongoingEl = document.getElementById('plannedOngoing');
+        const doneEl = document.getElementById('plannedDone');
 
-    // 更新显示
-    document.getElementById('stat-weekly-plan').innerHTML = `${total}<span class="unit">单</span>`;
-    document.getElementById('stat-weekly-ongoing').textContent = ongoing;
-    document.getElementById('stat-weekly-done').textContent = done;
+        if (!totalEl || !ongoingEl || !doneEl) {
+            console.error('找不到计划工作量输入框');
+            alert('保存失败，请刷新页面后重试');
+            return;
+        }
 
-    closeModal('plannedModal');
+        const total = totalEl.value || 0;
+        const ongoing = ongoingEl.value || 0;
+        const done = doneEl.value || 0;
 
-    // 这里可以调用后端API保存数据
-    console.log('保存计划工作量:', { total, ongoing, done });
+        // 更新显示
+        const statPlanEl = document.getElementById('stat-weekly-plan');
+        const statOngoingEl = document.getElementById('stat-weekly-ongoing');
+        const statDoneEl = document.getElementById('stat-weekly-done');
+
+        if (statPlanEl) statPlanEl.innerHTML = `${total}<span class="unit">单</span>`;
+        if (statOngoingEl) statOngoingEl.textContent = ongoing;
+        if (statDoneEl) statDoneEl.textContent = done;
+
+        closeModal('plannedModal');
+
+        // 这里可以调用后端API保存数据
+        console.log('保存计划工作量:', { total, ongoing, done });
+    } catch (error) {
+        console.error('保存计划工作量错误:', error);
+        alert('保存计划工作量失败，请稍后重试');
+    }
 }
 
 /**
  * 编辑非计划工作量
  */
 function editUnplannedWorkload(event) {
-    event.stopPropagation();
+    try {
+        event.stopPropagation();
 
-    // 获取当前值
-    const total = document.getElementById('stat-trip').textContent;
-    const success = document.getElementById('stat-trip-success').textContent;
-    const fail = document.getElementById('stat-trip-fail').textContent;
+        // 获取当前值
+        const totalEl = document.getElementById('stat-trip');
+        const successEl = document.getElementById('stat-trip-success');
+        const failEl = document.getElementById('stat-trip-fail');
 
-    // 提取数字
-    document.getElementById('unplannedTotal').value = parseInt(total) || 0;
-    document.getElementById('unplannedSuccess').value = parseInt(success) || 0;
-    document.getElementById('unplannedFail').value = parseInt(fail) || 0;
+        if (!totalEl || !successEl || !failEl) {
+            console.error('找不到非计划工作量元素');
+            alert('无法编辑非计划工作量，请刷新页面后重试');
+            return;
+        }
 
-    openModal('unplannedModal');
+        // 提取数字（处理可能包含单位的情况）
+        const totalText = totalEl.textContent || totalEl.innerText || '0';
+        const successText = successEl.textContent || successEl.innerText || '0';
+        const failText = failEl.textContent || failEl.innerText || '0';
+
+        const totalVal = parseInt(totalText.replace(/[^\d-]/g, '')) || 0;
+        const successVal = parseInt(successText.replace(/[^\d-]/g, '')) || 0;
+        const failVal = parseInt(failText.replace(/[^\d-]/g, '')) || 0;
+
+        const unplannedTotalEl = document.getElementById('unplannedTotal');
+        const unplannedSuccessEl = document.getElementById('unplannedSuccess');
+        const unplannedFailEl = document.getElementById('unplannedFail');
+
+        if (unplannedTotalEl) unplannedTotalEl.value = totalVal;
+        if (unplannedSuccessEl) unplannedSuccessEl.value = successVal;
+        if (unplannedFailEl) unplannedFailEl.value = failVal;
+
+        openModal('unplannedModal');
+    } catch (error) {
+        console.error('编辑非计划工作量错误:', error);
+        alert('编辑非计划工作量失败，请稍后重试');
+    }
 }
 
 /**
  * 保存非计划工作量
  */
 function saveUnplannedWorkload() {
-    const total = document.getElementById('unplannedTotal').value;
-    const success = document.getElementById('unplannedSuccess').value;
-    const fail = document.getElementById('unplannedFail').value;
+    try {
+        const totalEl = document.getElementById('unplannedTotal');
+        const successEl = document.getElementById('unplannedSuccess');
+        const failEl = document.getElementById('unplannedFail');
 
-    // 更新显示
-    document.getElementById('stat-trip').innerHTML = `${total}<span class="unit">起</span>`;
-    document.getElementById('stat-trip-success').textContent = success;
-    document.getElementById('stat-trip-fail').textContent = fail;
+        if (!totalEl || !successEl || !failEl) {
+            console.error('找不到非计划工作量输入框');
+            alert('保存失败，请刷新页面后重试');
+            return;
+        }
 
-    closeModal('unplannedModal');
+        const total = totalEl.value || 0;
+        const success = successEl.value || 0;
+        const fail = failEl.value || 0;
 
-    // 这里可以调用后端API保存数据
-    console.log('保存非计划工作量:', { total, success, fail });
+        // 更新显示
+        const statTripEl = document.getElementById('stat-trip');
+        const statSuccessEl = document.getElementById('stat-trip-success');
+        const statFailEl = document.getElementById('stat-trip-fail');
+
+        if (statTripEl) statTripEl.innerHTML = `${total}<span class="unit">起</span>`;
+        if (statSuccessEl) statSuccessEl.textContent = success;
+        if (statFailEl) statFailEl.textContent = fail;
+
+        closeModal('unplannedModal');
+
+        // 这里可以调用后端API保存数据
+        console.log('保存非计划工作量:', { total, success, fail });
+    } catch (error) {
+        console.error('保存非计划工作量错误:', error);
+        alert('保存非计划工作量失败，请稍后重试');
+    }
 }
 
 /**

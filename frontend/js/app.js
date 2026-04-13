@@ -555,12 +555,6 @@ document.addEventListener('DOMContentLoaded', function() {
     updateWeatherData();
     setInterval(updateWeatherData, 3600000);
     
-    // 聚焦输入框
-    const inputEl = document.getElementById('userInput');
-    if (inputEl) {
-        inputEl.focus();
-    }
-    
     // 注释：暂时不自动加载实时数据，使用假数据展示效果
     // setTimeout(() => {
     //     loadRealTimeData();

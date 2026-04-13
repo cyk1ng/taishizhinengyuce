@@ -692,24 +692,29 @@ function closeModal(modalId) {
  */
 function editWeather() {
     try {
-        const weatherTextEl = document.getElementById('weatherText');
-        if (!weatherTextEl) {
-            console.error('找不到weatherText元素');
-            return;
-        }
+        // 从天气显示卡片读取当前数据
+        const weatherTempDisplayEl = document.getElementById('weatherTempDisplay');
+        const weatherPrecipDisplayEl = document.getElementById('weatherPrecipDisplay');
+        const weatherWindDisplayEl = document.getElementById('weatherWindDisplay');
+        const weatherExtremeDisplayEl = document.getElementById('weatherExtremeDisplay');
 
-        const weatherText = weatherTextEl.textContent;
+        if (weatherTempDisplayEl && weatherPrecipDisplayEl && weatherWindDisplayEl) {
+            // 从显示卡片提取数据
+            const tempText = weatherTempDisplayEl.textContent || '';
+            const tempMatch = tempText.match(/(\d+)~(\d+)/);
+            const tempMin = tempMatch ? tempMatch[1] : '25';
+            const tempMax = tempMatch ? tempMatch[2] : '35';
 
-        // 解析当前天气信息
-        // 新格式示例: "17~25℃ 大 中 暴雨"
-        const match = weatherText.match(/(-?\d+)~(-?\d+)℃\s+(小|中|大)\s+(小|中|大)(?:\s+(\S+))?/);
-        if (match) {
-            const tempMin = match[1];
-            const tempMax = match[2];
-            const precipitation = match[3];
-            const wind = match[4];
-            const extreme = match[5] || '';
+            const precipText = weatherPrecipDisplayEl.textContent || '降水量: 小';
+            const precipitation = precipText.replace('降水量: ', '').trim();
 
+            const windText = weatherWindDisplayEl.textContent || '风力: 小';
+            const wind = windText.replace('风力: ', '').trim();
+
+            const extreme = (weatherExtremeDisplayEl && !weatherExtremeDisplayEl.classList.contains('hidden')) ?
+                weatherExtremeDisplayEl.textContent.replace('⚠️ ', '').trim() : '';
+
+            // 填充到编辑弹窗
             const tempMinEl = document.getElementById('weatherTempMin');
             const tempMaxEl = document.getElementById('weatherTempMax');
             const precipEl = document.getElementById('weatherPrecipitation');
@@ -722,7 +727,7 @@ function editWeather() {
             if (windEl) windEl.value = wind;
             if (extremeEl) extremeEl.value = extreme;
         } else {
-            console.warn('天气信息格式不匹配，使用默认值');
+            console.warn('天气显示卡片不存在，使用默认值');
             // 使用默认值
             const tempMinEl = document.getElementById('weatherTempMin');
             const tempMaxEl = document.getElementById('weatherTempMax');
@@ -829,10 +834,28 @@ function saveWeather() {
             displayText += ` ${extreme}`;
         }
 
-        // 更新显示
-        const weatherTextEl = document.getElementById('weatherText');
-        if (weatherTextEl) {
-            weatherTextEl.textContent = displayText;
+        // 更新天气显示卡片
+        const weatherTempDisplayEl = document.getElementById('weatherTempDisplay');
+        const weatherPrecipDisplayEl = document.getElementById('weatherPrecipDisplay');
+        const weatherWindDisplayEl = document.getElementById('weatherWindDisplay');
+        const weatherExtremeDisplayEl = document.getElementById('weatherExtremeDisplay');
+
+        if (weatherTempDisplayEl) {
+            weatherTempDisplayEl.innerHTML = `${tempMin}~${tempMax}<span class="unit">℃</span>`;
+        }
+        if (weatherPrecipDisplayEl) {
+            weatherPrecipDisplayEl.textContent = `降水量: ${precipitation}`;
+        }
+        if (weatherWindDisplayEl) {
+            weatherWindDisplayEl.textContent = `风力: ${wind}`;
+        }
+        if (weatherExtremeDisplayEl) {
+            if (extreme) {
+                weatherExtremeDisplayEl.textContent = `⚠️ ${extreme}`;
+                weatherExtremeDisplayEl.classList.add('show');
+            } else {
+                weatherExtremeDisplayEl.classList.remove('show');
+            }
         }
 
         closeModal('weatherModal');

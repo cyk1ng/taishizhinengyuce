@@ -525,22 +525,36 @@ async function updateWeatherData() {
 
         if (result.success && result.data) {
             const data = result.data;
-            const weatherEl = document.getElementById('weatherText');
 
-            if (weatherEl) {
-                // 新格式: 温度区段 降水量 风力 极端天气
-                const tempMin = data.tempMin || 25;
-                const tempMax = data.tempMax || 35;
-                const precipitation = data.precipitation || '小';
-                const wind = data.wind || '小';
-                const extreme = data.extreme || '';
+            // 新格式: 温度区段 降水量 风力 极端天气
+            const tempMin = data.tempMin || 25;
+            const tempMax = data.tempMax || 35;
+            const precipitation = data.precipitation || '小';
+            const wind = data.wind || '小';
+            const extreme = data.extreme || '';
 
-                let displayText = `${tempMin}~${tempMax}℃ ${precipitation} ${wind}`;
+            // 更新天气显示卡片
+            const weatherTempDisplayEl = document.getElementById('weatherTempDisplay');
+            const weatherPrecipDisplayEl = document.getElementById('weatherPrecipDisplay');
+            const weatherWindDisplayEl = document.getElementById('weatherWindDisplay');
+            const weatherExtremeDisplayEl = document.getElementById('weatherExtremeDisplay');
+
+            if (weatherTempDisplayEl) {
+                weatherTempDisplayEl.innerHTML = `${tempMin}~${tempMax}<span class="unit">℃</span>`;
+            }
+            if (weatherPrecipDisplayEl) {
+                weatherPrecipDisplayEl.textContent = `降水量: ${precipitation}`;
+            }
+            if (weatherWindDisplayEl) {
+                weatherWindDisplayEl.textContent = `风力: ${wind}`;
+            }
+            if (weatherExtremeDisplayEl) {
                 if (extreme) {
-                    displayText += ` ${extreme}`;
+                    weatherExtremeDisplayEl.textContent = `⚠️ ${extreme}`;
+                    weatherExtremeDisplayEl.classList.add('show');
+                } else {
+                    weatherExtremeDisplayEl.classList.remove('show');
                 }
-
-                weatherEl.textContent = displayText;
             }
         }
     } catch (error) {

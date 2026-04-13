@@ -228,7 +228,7 @@ body {
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(6, 1fr) 280px;
     gap: 0;
     max-width: 1800px;
     margin: 0 auto;
@@ -238,12 +238,12 @@ body {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: 6px;
-    padding: 10px 12px;
+    padding: 8px 10px;
     transition: all 0.2s;
     border-right: 1px solid rgba(59, 130, 246, 0.15);
 }
 
-.stat-card:last-child {
+.stat-card:last-of-type {
     border-right: 1px solid var(--border-color);
 }
 
@@ -253,25 +253,25 @@ body {
 }
 
 .stat-card .stat-title {
-    font-size: 10px;
+    font-size: 9px;
     color: var(--text-muted);
-    margin-bottom: 4px;
+    margin-bottom: 3px;
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 2px;
 }
 
 .stat-card .stat-value {
-    font-size: 22px;
+    font-size: 18px;
     font-weight: 700;
-    margin-bottom: 3px;
+    margin-bottom: 2px;
     display: flex;
     align-items: baseline;
     gap: 2px;
 }
 
 .stat-card .stat-value .unit {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 400;
     opacity: 0.7;
 }
@@ -282,14 +282,119 @@ body {
 .stat-card .stat-value.blue { color: var(--highlight-blue); }
 
 .stat-card .stat-detail {
-    font-size: 10px;
+    font-size: 9px;
     color: var(--text-secondary);
     display: flex;
-    gap: 10px;
+    gap: 8px;
 }
 
 .stat-card .stat-detail .label {
     color: var(--text-muted);
+}
+
+/* ========================================
+   天气显示卡片
+   ======================================== */
+.weather-display-card {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(6, 182, 212, 0.1));
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 6px;
+    padding: 10px 12px;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.weather-display-card:hover {
+    border-color: rgba(59, 130, 246, 0.6);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.weather-display-card .weather-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.weather-display-card .weather-title {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.weather-display-card .weather-edit-icon {
+    font-size: 11px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.weather-display-card:hover .weather-edit-icon {
+    opacity: 1;
+}
+
+.weather-display-card .weather-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.weather-display-card .weather-icon {
+    font-size: 24px;
+}
+
+.weather-display-card .weather-temp {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--highlight-blue);
+}
+
+.weather-display-card .weather-temp .unit {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.weather-display-card .weather-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+}
+
+.weather-display-card .weather-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 9px;
+    color: var(--text-secondary);
+}
+
+.weather-display-card .weather-detail-icon {
+    font-size: 10px;
+}
+
+.weather-display-card .weather-detail-value {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.weather-display-card .weather-extreme {
+    margin-top: 6px;
+    padding: 4px 6px;
+    background: rgba(239, 68, 68, 0.2);
+    border-radius: 4px;
+    font-size: 9px;
+    color: var(--highlight-red);
+    font-weight: 600;
+    text-align: center;
+    display: none;
+}
+
+.weather-display-card .weather-extreme.show {
+    display: block;
 }
 
 /* ========================================

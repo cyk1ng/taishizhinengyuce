@@ -59,11 +59,6 @@
                     <span>🕐</span>
                     <span class="value" id="currentTime">--:--:--</span>
                 </div>
-                <div class="header-info weather-info" onclick="editWeather()">
-                    <span>🌤️</span>
-                    <span class="value" id="weatherText">25~35℃ 小 小</span>
-                    <span class="edit-icon">✏️</span>
-                </div>
             </div>
         </div>
     </header>
@@ -141,6 +136,31 @@
                 <div class="stat-value yellow" id="stat-overload">2<span class="unit">起</span></div>
                 <div class="stat-detail">
                     <span><span class="label">需关注:</span> 2</span>
+                </div>
+            </div>
+
+            <!-- 天气显示卡片 -->
+            <div class="weather-display-card" onclick="editWeather()">
+                <div class="weather-header">
+                    <span class="weather-title">🌤️ 天气状况</span>
+                    <span class="weather-edit-icon">✏️</span>
+                </div>
+                <div class="weather-main">
+                    <span class="weather-icon">🌡️</span>
+                    <span class="weather-temp" id="weatherTempDisplay">25~35<span class="unit">℃</span></span>
+                </div>
+                <div class="weather-details">
+                    <div class="weather-detail-item">
+                        <span class="weather-detail-icon">💧</span>
+                        <span class="weather-detail-value" id="weatherPrecipDisplay">降水量: 小</span>
+                    </div>
+                    <div class="weather-detail-item">
+                        <span class="weather-detail-icon">💨</span>
+                        <span class="weather-detail-value" id="weatherWindDisplay">风力: 小</span>
+                    </div>
+                </div>
+                <div class="weather-extreme" id="weatherExtremeDisplay">
+                    ⚠️ 暴雨
                 </div>
             </div>
         </div>

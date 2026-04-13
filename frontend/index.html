@@ -61,7 +61,7 @@
                 </div>
                 <div class="header-info weather-info" onclick="editWeather()">
                     <span>🌤️</span>
-                    <span class="value" id="weatherText">晴 28°C</span>
+                    <span class="value" id="weatherText">25~35℃ 小 小</span>
                     <span class="edit-icon">✏️</span>
                 </div>
             </div>
@@ -406,20 +406,70 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>天气状况</label>
-                    <select id="weatherCondition" class="form-select">
-                        <option value="晴">☀️ 晴</option>
-                        <option value="多云">⛅ 多云</option>
-                        <option value="阴">☁️ 阴</option>
-                        <option value="小雨">🌧️ 小雨</option>
-                        <option value="中雨">🌧️ 中雨</option>
-                        <option value="大雨">⛈️ 大雨</option>
-                        <option value="雪">❄️ 雪</option>
+                    <label>温度区段 (°C)</label>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <input type="number" id="weatherTempMin" class="form-input" value="25" min="-50" max="60" placeholder="最低温度">
+                        </div>
+                        <span class="form-separator">-</span>
+                        <div class="form-col">
+                            <input type="number" id="weatherTempMax" class="form-input" value="35" min="-50" max="60" placeholder="最高温度">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>降水量</label>
+                    <select id="weatherPrecipitation" class="form-select">
+                        <option value="小">小 (9.9mm以下)</option>
+                        <option value="中">中 (10-24.9mm)</option>
+                        <option value="大">大 (25mm以上)</option>
                     </select>
                 </div>
+
                 <div class="form-group">
-                    <label>温度 (°C)</label>
-                    <input type="number" id="weatherTemp" class="form-input" value="28" min="-50" max="60">
+                    <label>风力</label>
+                    <select id="weatherWind" class="form-select">
+                        <option value="小">小 (6级及以下)</option>
+                        <option value="中">中 (7-10级)</option>
+                        <option value="大">大 (11级及以上)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>极端天气情况</label>
+                    <select id="weatherExtreme" class="form-select">
+                        <option value="">无</option>
+                        <option value="寒潮">寒潮</option>
+                        <option value="冰雹">冰雹</option>
+                        <option value="雷雨">雷雨</option>
+                        <option value="暴雨">暴雨</option>
+                        <option value="台风">台风</option>
+                        <option value="暴雪">暴雪</option>
+                        <option value="大风">大风</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>智能填充</label>
+                    <div class="form-row">
+                        <select id="weatherMonth" class="form-select" style="flex: 1;">
+                            <option value="">选择月份...</option>
+                            <option value="1">1月</option>
+                            <option value="2">2月</option>
+                            <option value="3">3月</option>
+                            <option value="4">4月</option>
+                            <option value="5">5月</option>
+                            <option value="6">6月</option>
+                            <option value="7">7月</option>
+                            <option value="8">8月</option>
+                            <option value="9">9月</option>
+                            <option value="10">10月</option>
+                            <option value="11">11月</option>
+                            <option value="12">12月</option>
+                        </select>
+                        <button type="button" class="btn btn-secondary" onclick="autoFillWeather()" style="flex: 1;">自动填充</button>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">

@@ -522,13 +522,25 @@ async function updateWeatherData() {
     try {
         const response = await fetch('/api/weather');
         const result = await response.json();
-        
+
         if (result.success && result.data) {
             const data = result.data;
             const weatherEl = document.getElementById('weatherText');
-            
+
             if (weatherEl) {
-                weatherEl.textContent = `${data.text} ${data.temp}°C`;
+                // 新格式: 温度区段 降水量 风力 极端天气
+                const tempMin = data.tempMin || 25;
+                const tempMax = data.tempMax || 35;
+                const precipitation = data.precipitation || '小';
+                const wind = data.wind || '小';
+                const extreme = data.extreme || '';
+
+                let displayText = `${tempMin}~${tempMax}℃ ${precipitation} ${wind}`;
+                if (extreme) {
+                    displayText += ` ${extreme}`;
+                }
+
+                weatherEl.textContent = displayText;
             }
         }
     } catch (error) {

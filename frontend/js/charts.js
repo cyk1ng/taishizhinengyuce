@@ -701,22 +701,40 @@ function editWeather() {
         const weatherText = weatherTextEl.textContent;
 
         // 解析当前天气信息
-        const match = weatherText.match(/(.+)\s+(-?\d+)°C/);
+        // 新格式示例: "17~25℃ 大 中 暴雨"
+        const match = weatherText.match(/(-?\d+)~(-?\d+)℃\s+(小|中|大)\s+(小|中|大)(?:\s+(\S+))?/);
         if (match) {
-            const condition = match[1];
-            const temp = match[2];
+            const tempMin = match[1];
+            const tempMax = match[2];
+            const precipitation = match[3];
+            const wind = match[4];
+            const extreme = match[5] || '';
 
-            const conditionEl = document.getElementById('weatherCondition');
-            const tempEl = document.getElementById('weatherTemp');
+            const tempMinEl = document.getElementById('weatherTempMin');
+            const tempMaxEl = document.getElementById('weatherTempMax');
+            const precipEl = document.getElementById('weatherPrecipitation');
+            const windEl = document.getElementById('weatherWind');
+            const extremeEl = document.getElementById('weatherExtreme');
 
-            if (conditionEl) conditionEl.value = condition;
-            if (tempEl) tempEl.value = temp;
+            if (tempMinEl) tempMinEl.value = tempMin;
+            if (tempMaxEl) tempMaxEl.value = tempMax;
+            if (precipEl) precipEl.value = precipitation;
+            if (windEl) windEl.value = wind;
+            if (extremeEl) extremeEl.value = extreme;
         } else {
             console.warn('天气信息格式不匹配，使用默认值');
-            const conditionEl = document.getElementById('weatherCondition');
-            const tempEl = document.getElementById('weatherTemp');
-            if (conditionEl) conditionEl.value = '晴';
-            if (tempEl) tempEl.value = '28';
+            // 使用默认值
+            const tempMinEl = document.getElementById('weatherTempMin');
+            const tempMaxEl = document.getElementById('weatherTempMax');
+            const precipEl = document.getElementById('weatherPrecipitation');
+            const windEl = document.getElementById('weatherWind');
+            const extremeEl = document.getElementById('weatherExtreme');
+
+            if (tempMinEl) tempMinEl.value = 25;
+            if (tempMaxEl) tempMaxEl.value = 35;
+            if (precipEl) precipEl.value = '小';
+            if (windEl) windEl.value = '小';
+            if (extremeEl) extremeEl.value = '';
         }
 
         openModal('weatherModal');
@@ -727,32 +745,106 @@ function editWeather() {
 }
 
 /**
+ * 根据月份自动填充天气数据
+ */
+function autoFillWeather() {
+    try {
+        const monthSelect = document.getElementById('weatherMonth');
+        const month = parseInt(monthSelect.value);
+
+        if (!month) {
+            alert('请选择月份');
+            return;
+        }
+
+        // 根据月份设置典型的天气数据
+        const weatherData = {
+            1: { tempMin: 5, tempMax: 15, precipitation: '小', wind: '中', extreme: '寒潮' },  // 1月：冬季，寒冷
+            2: { tempMin: 8, tempMax: 18, precipitation: '小', wind: '中', extreme: '' },     // 2月：冬季末，稍回暖
+            3: { tempMin: 12, tempMax: 22, precipitation: '小', wind: '小', extreme: '' },   // 3月：春季，温和
+            4: { tempMin: 16, tempMax: 26, precipitation: '中', wind: '小', extreme: '' },   // 4月：春季，开始多雨
+            5: { tempMin: 20, tempMax: 30, precipitation: '中', wind: '小', extreme: '' },   // 5月：春末，温暖
+            6: { tempMin: 25, tempMax: 35, precipitation: '大', wind: '中', extreme: '暴雨' }, // 6月：雨季开始
+            7: { tempMin: 26, tempMax: 36, precipitation: '大', wind: '中', extreme: '暴雨' }, // 7月：雨季高峰
+            8: { tempMin: 25, tempMax: 35, precipitation: '大', wind: '中', extreme: '雷雨' }, // 8月：雨季，高温
+            9: { tempMin: 20, tempMax: 30, precipitation: '中', wind: '小', extreme: '' },   // 9月：秋季，凉爽
+            10: { tempMin: 15, tempMax: 25, precipitation: '小', wind: '小', extreme: '' },  // 10月：秋季，干燥
+            11: { tempMin: 10, tempMax: 20, precipitation: '小', wind: '中', extreme: '寒潮' }, // 11月：初冬
+            12: { tempMin: 5, tempMax: 15, precipitation: '小', wind: '中', extreme: '寒潮' }  // 12月：冬季
+        };
+
+        const data = weatherData[month];
+
+        const tempMinEl = document.getElementById('weatherTempMin');
+        const tempMaxEl = document.getElementById('weatherTempMax');
+        const precipEl = document.getElementById('weatherPrecipitation');
+        const windEl = document.getElementById('weatherWind');
+        const extremeEl = document.getElementById('weatherExtreme');
+
+        if (tempMinEl) tempMinEl.value = data.tempMin;
+        if (tempMaxEl) tempMaxEl.value = data.tempMax;
+        if (precipEl) precipEl.value = data.precipitation;
+        if (windEl) windEl.value = data.wind;
+        if (extremeEl) extremeEl.value = data.extreme;
+
+        console.log(`已自动填充${month}月的天气数据:`, data);
+    } catch (error) {
+        console.error('自动填充天气数据错误:', error);
+        alert('自动填充天气数据失败，请稍后重试');
+    }
+}
+
+/**
  * 保存天气信息
  */
 function saveWeather() {
     try {
-        const conditionEl = document.getElementById('weatherCondition');
-        const tempEl = document.getElementById('weatherTemp');
+        const tempMinEl = document.getElementById('weatherTempMin');
+        const tempMaxEl = document.getElementById('weatherTempMax');
+        const precipEl = document.getElementById('weatherPrecipitation');
+        const windEl = document.getElementById('weatherWind');
+        const extremeEl = document.getElementById('weatherExtreme');
 
-        if (!conditionEl || !tempEl) {
+        if (!tempMinEl || !tempMaxEl || !precipEl || !windEl || !extremeEl) {
             console.error('找不到天气输入框');
             alert('保存失败，请刷新页面后重试');
             return;
         }
 
-        const condition = conditionEl.value || '晴';
-        const temp = tempEl.value || '28';
+        const tempMin = tempMinEl.value || 25;
+        const tempMax = tempMaxEl.value || 35;
+        const precipitation = precipEl.value || '小';
+        const wind = windEl.value || '小';
+        const extreme = extremeEl.value || '';
+
+        // 验证温度范围
+        if (parseInt(tempMin) > parseInt(tempMax)) {
+            alert('最低温度不能大于最高温度');
+            return;
+        }
+
+        // 构建显示文本
+        let displayText = `${tempMin}~${tempMax}℃ ${precipitation} ${wind}`;
+        if (extreme) {
+            displayText += ` ${extreme}`;
+        }
 
         // 更新显示
         const weatherTextEl = document.getElementById('weatherText');
         if (weatherTextEl) {
-            weatherTextEl.textContent = `${condition} ${temp}°C`;
+            weatherTextEl.textContent = displayText;
         }
 
         closeModal('weatherModal');
 
         // 这里可以调用后端API保存数据
-        console.log('保存天气信息:', { condition, temp });
+        console.log('保存天气信息:', {
+            tempMin,
+            tempMax,
+            precipitation,
+            wind,
+            extreme
+        });
     } catch (error) {
         console.error('保存天气信息错误:', error);
         alert('保存天气信息失败，请稍后重试');

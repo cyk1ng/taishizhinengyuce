@@ -1607,3 +1607,22 @@ body {
 .hidden {
     display: none !important;
 }
+
+/* ========================================
+   表单布局样式
+   ======================================== */
+.form-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-col {
+    flex: 1;
+}
+
+.form-separator {
+    color: var(--text-muted);
+    font-weight: 600;
+    padding: 0 4px;
+}

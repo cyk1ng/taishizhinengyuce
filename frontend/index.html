@@ -665,36 +665,53 @@
     <div id="timeSlotModal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="timeSlotTitle">📊 时间段详情</h3>
+                <h3>时间段详情</h3>
                 <button class="modal-close" onclick="closeModal('timeSlotModal')">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="time-slot-detail">
-                    <div class="time-slot-header">
-                        <span class="time-slot-time" id="timeSlotTime">09:00 - 10:00</span>
-                        <span class="time-slot-period" id="timeSlotPeriod">早班</span>
+                    <!-- 时间段 -->
+                    <div class="detail-section">
+                        <span class="detail-label">当前时间段:</span>
+                        <span class="detail-time" id="timeSlotTime">23:00-24:00</span>
                     </div>
-                    <div class="time-slot-stats">
-                        <div class="stat-item">
-                            <span class="stat-label">工作任务总当量</span>
-                            <span class="stat-value cyan" id="timeSlotTotal">6.2</span>
+
+                    <!-- 人员配置 -->
+                    <div class="detail-section">
+                        <div class="detail-row">
+                            <span class="detail-label">当值人员数量:</span>
+                            <div class="detail-value-row">
+                                <span class="detail-value blue" id="timeSlotTotal">7</span>
+                                <button class="confirm-btn">确认</button>
+                            </div>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">班组人员工作当量</span>
-                            <span class="stat-value yellow" id="timeSlotCapacity">5.2</span>
+                        <div class="detail-row">
+                            <span class="detail-label">班组人员工作量:</span>
+                            <input type="text" class="detail-input" id="timeSlotCapacity" placeholder="">
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">计划任务当量</span>
-                            <span class="stat-value green" id="timeSlotPlanned">4.2</span>
+                        <div class="detail-row">
+                            <span class="detail-label">是否超员人员当量:</span>
+                            <input type="text" class="detail-input" placeholder="">
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">非计划任务当量</span>
-                            <span class="stat-value orange" id="timeSlotUnplanned">2.0</span>
+                        <div class="detail-row">
+                            <span class="detail-label">需增配人员量:</span>
+                            <input type="text" class="detail-input" placeholder="">
                         </div>
                     </div>
-                    <div class="time-slot-status">
-                        <span class="status-label">工作状态:</span>
-                        <span class="status-badge" id="timeSlotStatus">正常</span>
+
+                    <!-- 气象配置 -->
+                    <div class="detail-section">
+                        <div class="detail-row">
+                            <span class="detail-label">气象预警等级:</span>
+                            <select class="detail-select" id="weatherWarningLevel">
+                                <option value="">请选择</option>
+                                <option value="无">无</option>
+                                <option value="蓝色">蓝色预警</option>
+                                <option value="黄色">黄色预警</option>
+                                <option value="橙色">橙色预警</option>
+                                <option value="红色">红色预警</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -101,6 +101,21 @@ function initModuleBusinessChart(data = null) {
                             return `${context.label}: ${context.parsed.y}单`;
                         }
                     }
+                },
+                // 柱状图上方显示数字
+                datalabels: {
+                    display: true,
+                    color: '#e8f1ff',
+                    font: {
+                        size: 11,
+                        weight: 'normal'
+                    },
+                    anchor: 'end',
+                    align: 'top',
+                    offset: 2,
+                    formatter: function(value) {
+                        return value;
+                    }
                 }
             },
             scales: {
@@ -115,7 +130,24 @@ function initModuleBusinessChart(data = null) {
                     ticks: { color: '#5a7a9e', font: { size: 10 }, stepSize: 10 }
                 }
             }
-        }
+        },
+        plugins: [{
+            id: 'datalabels',
+            afterDatasetsDraw: function(chart) {
+                const ctx = chart.ctx;
+                chart.data.datasets.forEach(function(dataset, i) {
+                    const meta = chart.getDatasetMeta(i);
+                    meta.data.forEach(function(bar, index) {
+                        const data = dataset.data[index];
+                        ctx.fillStyle = '#e8f1ff';
+                        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'bottom';
+                        ctx.fillText(data, bar.x, bar.y - 2);
+                    });
+                });
+            }
+        }]
     });
 }
 
@@ -253,10 +285,12 @@ function initWorkloadTimelineChart(data = null) {
         workloadTimelineChart.destroy();
     }
     
-    // 生成时间标签 (0:00-23:00 完整24小时)
+    // 生成时间标签 (00-01 到 23-24 时间段)
     const timeLabels = [];
-    for (let i = 0; i <= 23; i++) {
-        timeLabels.push(`${i}:00`);
+    for (let i = 0; i < 24; i++) {
+        const start = i.toString().padStart(2, '0');
+        const end = (i + 1).toString().padStart(2, '0');
+        timeLabels.push(`${start}-${end}`);
     }
     
     // 假数据展示效果 - 24小时工作量分布
@@ -357,6 +391,24 @@ function initWorkloadTimelineChart(data = null) {
                             return `${context.dataset.label}: ${context.parsed.y.toFixed(1)}`;
                         }
                     }
+                },
+                // 在数据点上显示数字
+                datalabels: {
+                    display: function(context) {
+                        // 只在每2小时的数据点显示标签
+                        return context.dataIndex % 2 === 0;
+                    },
+                    color: '#e8f1ff',
+                    font: {
+                        size: 9,
+                        weight: 'normal'
+                    },
+                    anchor: 'end',
+                    align: 'top',
+                    offset: 5,
+                    formatter: function(value) {
+                        return value.toFixed(1);
+                    }
                 }
             },
             scales: {
@@ -366,7 +418,7 @@ function initWorkloadTimelineChart(data = null) {
                         color: '#5a7a9e',
                         font: { size: 9 },
                         maxRotation: 0,
-                        // 每2小时显示一个标签
+                        // 显示所有时间标签
                         callback: function(value, index) {
                             return index % 2 === 0 ? this.getLabelForValue(value) : '';
                         }
@@ -379,7 +431,30 @@ function initWorkloadTimelineChart(data = null) {
                     ticks: { color: '#5a7a9e', font: { size: 9 }, stepSize: 2 }
                 }
             }
-        }
+        },
+        plugins: [{
+            id: 'datalabels',
+            afterDatasetsDraw: function(chart) {
+                const ctx = chart.ctx;
+                chart.data.datasets.forEach(function(dataset, i) {
+                    const meta = chart.getDatasetMeta(i);
+                    // 只在第一个数据集上显示标签（工作任务总当量）
+                    if (i === 0) {
+                        meta.data.forEach(function(point, index) {
+                            // 只在每2小时的数据点显示标签
+                            if (index % 2 === 0) {
+                                const data = dataset.data[index];
+                                ctx.fillStyle = '#e8f1ff';
+                                ctx.font = '9px -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'bottom';
+                                ctx.fillText(data.toFixed(1), point.x, point.y - 5);
+                            }
+                        });
+                    }
+                });
+            }
+        }]
     });
 }
 
@@ -423,16 +498,10 @@ function initTicketChart(data = null) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: '50%',
+            cutout: '55%',
             plugins: {
                 legend: {
-                    position: 'right',
-                    labels: {
-                        color: '#8ba3c7',
-                        font: { size: 10 },
-                        padding: 8,
-                        boxWidth: 12
-                    }
+                    display: false
                 },
                 tooltip: {
                     backgroundColor: chartColors.tooltipBg,
@@ -442,9 +511,47 @@ function initTicketChart(data = null) {
                     borderWidth: 1,
                     cornerRadius: 4,
                     padding: 8
+                },
+                // 中心文本插件
+                centerText: {
+                    display: true,
+                    text: `指令记录: ${chartData.values.reduce((a, b) => a + b, 0)}`
+                }
+            },
+            pluginsConfig: {
+                centerText: {
+                    color: '#e8f1ff',
+                    font: {
+                        size: 14,
+                        weight: 'bold'
+                    },
+                    offset: 0
                 }
             }
-        }
+        },
+        plugins: [{
+            id: 'centerText',
+            beforeDraw: function(chart) {
+                if (chart.config.options.plugins.centerText &&
+                    chart.config.options.plugins.centerText.display) {
+                    const ctx = chart.ctx;
+                    const centerConfig = chart.config.options.plugins.centerText;
+                    const pluginsConfig = chart.config.options.pluginsConfig.centerText;
+                    const width = chart.width;
+                    const height = chart.height;
+                    const centerX = width / 2;
+                    const centerY = height / 2;
+
+                    ctx.save();
+                    ctx.fillStyle = pluginsConfig.color;
+                    ctx.font = `${pluginsConfig.font.weight} ${pluginsConfig.font.size}px -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(centerConfig.text, centerX, centerY);
+                    ctx.restore();
+                }
+            }
+        }]
     });
 }
 
@@ -488,16 +595,10 @@ function initNetworkOrderChart(data = null) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: '60%',
+            cutout: '65%',
             plugins: {
                 legend: {
-                    position: 'right',
-                    labels: {
-                        color: '#8ba3c7',
-                        font: { size: 10 },
-                        padding: 8,
-                        boxWidth: 12
-                    }
+                    display: false
                 },
                 tooltip: {
                     backgroundColor: chartColors.tooltipBg,
@@ -507,9 +608,47 @@ function initNetworkOrderChart(data = null) {
                     borderWidth: 1,
                     cornerRadius: 4,
                     padding: 8
+                },
+                // 中心文本插件
+                centerText: {
+                    display: true,
+                    text: `指令记录: ${chartData.values.reduce((a, b) => a + b, 0)}`
+                }
+            },
+            pluginsConfig: {
+                centerText: {
+                    color: '#e8f1ff',
+                    font: {
+                        size: 14,
+                        weight: 'bold'
+                    },
+                    offset: 0
                 }
             }
-        }
+        },
+        plugins: [{
+            id: 'centerText',
+            beforeDraw: function(chart) {
+                if (chart.config.options.plugins.centerText &&
+                    chart.config.options.plugins.centerText.display) {
+                    const ctx = chart.ctx;
+                    const centerConfig = chart.config.options.plugins.centerText;
+                    const pluginsConfig = chart.config.options.pluginsConfig.centerText;
+                    const width = chart.width;
+                    const height = chart.height;
+                    const centerX = width / 2;
+                    const centerY = height / 2;
+
+                    ctx.save();
+                    ctx.fillStyle = pluginsConfig.color;
+                    ctx.font = `${pluginsConfig.font.weight} ${pluginsConfig.font.size}px -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(centerConfig.text, centerX, centerY);
+                    ctx.restore();
+                }
+            }
+        }]
     });
 }
 
@@ -1204,36 +1343,27 @@ function showStaffDetail() {
  */
 function showTimeSlotDetail(index, chartData) {
     try {
-        const timeLabel = chartData.labels[index];
-        const nextIndex = (index + 1) % chartData.labels.length;
-        const nextTimeLabel = chartData.labels[nextIndex];
+        // 获取当前时间段和下一时间段
+        const currentHour = index;
+        const nextHour = (index + 1) % 24;
 
-        // 计算时间段
-        const period = getShiftPeriod(index);
+        const currentTime = `${currentHour.toString().padStart(2, '0')}:00`;
+        const nextTime = `${nextHour.toString().padStart(2, '0')}:00`;
 
         // 更新弹窗内容
-        document.getElementById('timeSlotTitle').textContent = `📊 时间段详情 - ${timeLabel}`;
-        document.getElementById('timeSlotTime').textContent = `${timeLabel} - ${nextTimeLabel}`;
-        document.getElementById('timeSlotPeriod').textContent = period;
-        document.getElementById('timeSlotTotal').textContent = chartData.workloadTotal[index].toFixed(1);
-        document.getElementById('timeSlotCapacity').textContent = chartData.staffCapacity[index].toFixed(1);
-        document.getElementById('timeSlotPlanned').textContent = chartData.plannedTask[index].toFixed(1);
-        document.getElementById('timeSlotUnplanned').textContent = chartData.unplannedTask[index].toFixed(1);
+        document.getElementById('timeSlotTime').textContent = `${currentTime}-${nextTime}`;
 
-        // 判断工作状态
-        const total = chartData.workloadTotal[index];
-        const capacity = chartData.staffCapacity[index];
-        const statusEl = document.getElementById('timeSlotStatus');
+        // 当值人员数量（从总当量中取整）
+        const totalWorkload = chartData.workloadTotal[index];
+        const staffCount = Math.ceil(totalWorkload);
+        document.getElementById('timeSlotTotal').textContent = staffCount;
 
-        if (total > capacity * 1.5) {
-            statusEl.textContent = '严重超负荷';
-            statusEl.style.color = 'var(--highlight-red)';
-        } else if (total > capacity) {
-            statusEl.textContent = '超负荷';
-            statusEl.style.color = 'var(--highlight-yellow)';
-        } else {
-            statusEl.textContent = '正常';
-            statusEl.style.color = 'var(--highlight-green)';
+        // 班组人员工作量
+        document.getElementById('timeSlotCapacity').value = chartData.staffCapacity[index].toFixed(1);
+
+        // 气象预警等级（如果数据中有，则设置，否则保持默认）
+        if (chartData.weatherWarningLevel && chartData.weatherWarningLevel[index]) {
+            document.getElementById('weatherWarningLevel').value = chartData.weatherWarningLevel[index];
         }
 
         openModal('timeSlotModal');

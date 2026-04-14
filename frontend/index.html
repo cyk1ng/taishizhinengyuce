@@ -566,13 +566,13 @@
 
     <!-- 人员详情弹窗 -->
     <div id="staffModal" class="modal-overlay hidden">
-        <div class="modal-content large">
+        <div class="modal-content large staff-modal">
             <div class="modal-header">
                 <h3>👥 值班人员详情</h3>
                 <button class="modal-close" onclick="closeModal('staffModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <!-- 班组选择器 -->
+                <!-- 班组选择器（固定在顶部） -->
                 <div class="team-selector">
                     <span class="team-label">当前班组：</span>
                     <div class="team-buttons" id="teamButtons">
@@ -585,18 +585,29 @@
                     </div>
                 </div>
 
-                <div class="staff-detail-container">
-                    <div class="staff-section">
-                        <h4 class="staff-section-title">当值人员</h4>
-                        <div class="staff-list" id="onDutyStaffList">
-                            <!-- 当值人员将通过JavaScript动态生成 -->
+                <!-- 人员列表容器（可滚动） -->
+                <div class="staff-lists-container">
+                    <div class="staff-detail-container">
+                        <div class="staff-section">
+                            <h4 class="staff-section-title">
+                                <span class="title-icon">👤</span>
+                                当值人员
+                                <span class="staff-count" id="onDutyCount">4人</span>
+                            </h4>
+                            <div class="staff-list" id="onDutyStaffList">
+                                <!-- 当值人员将通过JavaScript动态生成 -->
+                            </div>
                         </div>
-                    </div>
-                    <div class="staff-divider"></div>
-                    <div class="staff-section">
-                        <h4 class="staff-section-title">休息人员</h4>
-                        <div class="staff-list" id="restingStaffList">
-                            <!-- 休息人员将通过JavaScript动态生成 -->
+                        <div class="staff-divider"></div>
+                        <div class="staff-section">
+                            <h4 class="staff-section-title">
+                                <span class="title-icon">💤</span>
+                                休息人员
+                                <span class="staff-count" id="restingCount">11人</span>
+                            </h4>
+                            <div class="staff-list" id="restingStaffList">
+                                <!-- 休息人员将通过JavaScript动态生成 -->
+                            </div>
                         </div>
                     </div>
                 </div>

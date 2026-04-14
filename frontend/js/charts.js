@@ -1416,6 +1416,8 @@ function selectTeam(team) {
 function renderStaffList() {
     const onDutyList = document.getElementById('onDutyStaffList');
     const restingList = document.getElementById('restingStaffList');
+    const onDutyCount = document.getElementById('onDutyCount');
+    const restingCount = document.getElementById('restingCount');
     
     if (!onDutyList || !restingList) return;
     
@@ -1428,6 +1430,14 @@ function renderStaffList() {
     const restingStaff = staffData.filter(staff => 
         staff.team !== currentTeam || staff.status === 'rest'
     );
+    
+    // 更新人员数量显示
+    if (onDutyCount) {
+        onDutyCount.textContent = `${onDutyStaff.length}人`;
+    }
+    if (restingCount) {
+        restingCount.textContent = `${restingStaff.length}人`;
+    }
     
     // 渲染当值人员列表
     onDutyList.innerHTML = onDutyStaff.map(staff => createStaffCard(staff, 'on-duty')).join('');

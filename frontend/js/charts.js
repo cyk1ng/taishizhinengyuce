@@ -1366,7 +1366,143 @@ function getShiftPeriod(hour) {
     }
 }
 
+// ========================================
+// 值班人员管理
+// ========================================
+
+// 当前选中的班组
+let currentTeam = 'A';
+
+// 所有人员数据（假数据）
+const staffData = [
+    { id: 1, name: '张伟', role: '值班长', roleLevel: 3, team: 'A', status: 'on-duty' },
+    { id: 2, name: '李强', role: '正值', roleLevel: 2, team: 'A', status: 'on-duty' },
+    { id: 3, name: '王明', role: '正值', roleLevel: 2, team: 'A', status: 'on-duty' },
+    { id: 4, name: '刘洋', role: '副值', roleLevel: 1, team: 'A', status: 'on-duty' },
+    { id: 5, name: '陈静', role: '值班长', roleLevel: 3, team: 'B', status: 'rest' },
+    { id: 6, name: '赵磊', role: '正值', roleLevel: 2, team: 'B', status: 'rest' },
+    { id: 7, name: '孙杰', role: '副值', roleLevel: 1, team: 'B', status: 'rest' },
+    { id: 8, name: '周涛', role: '副值', roleLevel: 1, team: 'C', status: 'rest' },
+    { id: 9, name: '吴鹏', role: '其他', roleLevel: 0, team: 'C', status: 'rest' },
+    { id: 10, name: '郑华', role: '值班长', roleLevel: 3, team: 'D', status: 'rest' },
+    { id: 11, name: '钱勇', role: '正值', roleLevel: 2, team: 'D', status: 'rest' },
+    { id: 12, name: '王芳', role: '副值', roleLevel: 1, team: 'E', status: 'rest' },
+    { id: 13, name: '李娜', role: '正值', roleLevel: 2, team: 'E', status: 'rest' },
+    { id: 14, name: '张强', role: '值班长', roleLevel: 3, team: 'F', status: 'rest' },
+    { id: 15, name: '赵敏', role: '副值', roleLevel: 1, team: 'F', status: 'rest' }
+];
+
+/**
+ * 选择班组
+ */
+function selectTeam(team) {
+    currentTeam = team;
+    
+    // 更新班组按钮样式
+    document.querySelectorAll('.team-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.team === team) {
+            btn.classList.add('active');
+        }
+    });
+    
+    // 重新渲染人员列表
+    renderStaffList();
+}
+
+/**
+ * 渲染人员列表
+ */
+function renderStaffList() {
+    const onDutyList = document.getElementById('onDutyStaffList');
+    const restingList = document.getElementById('restingStaffList');
+    
+    if (!onDutyList || !restingList) return;
+    
+    // 筛选当前班组的当值人员
+    const onDutyStaff = staffData.filter(staff => 
+        staff.team === currentTeam && staff.status === 'on-duty'
+    );
+    
+    // 筛选其他班组的休息人员
+    const restingStaff = staffData.filter(staff => 
+        staff.team !== currentTeam || staff.status === 'rest'
+    );
+    
+    // 渲染当值人员列表
+    onDutyList.innerHTML = onDutyStaff.map(staff => createStaffCard(staff, 'on-duty')).join('');
+    
+    // 渲染休息人员列表
+    restingList.innerHTML = restingStaff.map(staff => createStaffCard(staff, 'rest')).join('');
+}
+
+/**
+ * 创建人员卡片HTML
+ */
+function createStaffCard(staff, type) {
+    const isActive = staff.status === 'on-duty';
+    const activeClass = isActive ? 'active' : 'inactive';
+    
+    let actionButtons = '';
+    if (type === 'on-duty' && isActive) {
+        // 当值人员显示设置为休息的按钮
+        actionButtons = `
+            <div class="staff-actions">
+                <button class="staff-action-btn rest-btn" onclick="setStaffRest(${staff.id})">设为休息</button>
+            </div>
+        `;
+    } else if (type === 'rest') {
+        // 休息人员显示加入当值的按钮
+        actionButtons = `
+            <div class="staff-actions">
+                <button class="staff-action-btn duty-btn" onclick="setStaffOnDuty(${staff.id})">加入当值</button>
+            </div>
+        `;
+    }
+    
+    return `
+        <div class="staff-card ${activeClass}">
+            <div class="staff-avatar">👨‍💼</div>
+            <div class="staff-info">
+                <div class="staff-name">${staff.name}</div>
+                <div class="staff-role">${staff.role}</div>
+                <div class="staff-badges">
+                    ${staff.roleLevel > 0 ? `<span class="badge role-${staff.roleLevel}">${staff.role}</span>` : ''}
+                    <span class="badge team-badge">${staff.team}班</span>
+                    ${!isActive ? '<span class="badge">休息中</span>' : ''}
+                </div>
+            </div>
+            ${actionButtons}
+        </div>
+    `;
+}
+
+/**
+ * 设置人员为休息
+ */
+function setStaffRest(staffId) {
+    const staff = staffData.find(s => s.id === staffId);
+    if (staff) {
+        staff.status = 'rest';
+        renderStaffList();
+    }
+}
+
+/**
+ * 设置人员为当值
+ */
+function setStaffOnDuty(staffId) {
+    const staff = staffData.find(s => s.id === staffId);
+    if (staff) {
+        staff.status = 'on-duty';
+        staff.team = currentTeam; // 将人员加入当前班组
+        renderStaffList();
+    }
+}
+
 // 页面加载完成后初始化图表
 document.addEventListener('DOMContentLoaded', function() {
     initAllCharts();
+    // 初始化人员列表
+    renderStaffList();
 });

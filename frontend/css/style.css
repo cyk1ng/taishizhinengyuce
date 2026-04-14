@@ -1378,6 +1378,56 @@ body {
 /* ========================================
    人员详情样式
    ======================================== */
+
+/* 班组选择器 */
+.team-selector {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.team-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.team-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.team-btn {
+    padding: 6px 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.team-btn:hover {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: #fff;
+}
+
+.team-btn.active {
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+    border-color: var(--accent-blue);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+}
+
 .staff-detail-container {
     display: flex;
     gap: 24px;
@@ -1557,6 +1607,58 @@ body {
     background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1));
     color: var(--accent-red);
     border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.badge.team-badge {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.1));
+    color: var(--accent-purple);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+/* 人员状态切换按钮 */
+.staff-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.staff-action-btn {
+    padding: 4px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.staff-action-btn:hover {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: #fff;
+}
+
+.staff-action-btn.rest-btn {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05));
+    border-color: rgba(245, 158, 11, 0.3);
+    color: var(--accent-yellow);
+}
+
+.staff-action-btn.rest-btn:hover {
+    background: var(--accent-yellow);
+    color: #fff;
+}
+
+.staff-action-btn.duty-btn {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+    border-color: rgba(16, 185, 129, 0.3);
+    color: var(--accent-green);
+}
+
+.staff-action-btn.duty-btn:hover {
+    background: var(--accent-green);
+    color: #fff;
 }
 
 .staff-divider {

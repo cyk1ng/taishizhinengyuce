@@ -572,88 +572,31 @@
                 <button class="modal-close" onclick="closeModal('staffModal')">&times;</button>
             </div>
             <div class="modal-body">
+                <!-- 班组选择器 -->
+                <div class="team-selector">
+                    <span class="team-label">当前班组：</span>
+                    <div class="team-buttons" id="teamButtons">
+                        <button class="team-btn active" data-team="A" onclick="selectTeam('A')">A班</button>
+                        <button class="team-btn" data-team="B" onclick="selectTeam('B')">B班</button>
+                        <button class="team-btn" data-team="C" onclick="selectTeam('C')">C班</button>
+                        <button class="team-btn" data-team="D" onclick="selectTeam('D')">D班</button>
+                        <button class="team-btn" data-team="E" onclick="selectTeam('E')">E班</button>
+                        <button class="team-btn" data-team="F" onclick="selectTeam('F')">F班</button>
+                    </div>
+                </div>
+
                 <div class="staff-detail-container">
                     <div class="staff-section">
                         <h4 class="staff-section-title">当值人员</h4>
-                        <div class="staff-list">
-                            <div class="staff-card active">
-                                <div class="staff-avatar">👨‍💼</div>
-                                <div class="staff-info">
-                                    <div class="staff-name">张伟</div>
-                                    <div class="staff-role">值班长</div>
-                                    <div class="staff-badges">
-                                        <span class="badge role-3">值班长</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="staff-card active">
-                                <div class="staff-avatar">👨‍💼</div>
-                                <div class="staff-info">
-                                    <div class="staff-name">李强</div>
-                                    <div class="staff-role">正值</div>
-                                    <div class="staff-badges">
-                                        <span class="badge role-2">正值</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="staff-card active">
-                                <div class="staff-avatar">👨‍💼</div>
-                                <div class="staff-info">
-                                    <div class="staff-name">王明</div>
-                                    <div class="staff-role">正值</div>
-                                    <div class="staff-badges">
-                                        <span class="badge role-2">正值</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="staff-card active">
-                                <div class="staff-avatar">👨‍💼</div>
-                                <div class="staff-info">
-                                    <div class="staff-name">刘洋</div>
-                                    <div class="staff-role">副值</div>
-                                    <div class="staff-badges">
-                                        <span class="badge role-1">副值</span>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="staff-list" id="onDutyStaffList">
+                            <!-- 当值人员将通过JavaScript动态生成 -->
                         </div>
                     </div>
                     <div class="staff-divider"></div>
                     <div class="staff-section">
                         <h4 class="staff-section-title">休息人员</h4>
-                        <div class="staff-list">
-                            <div class="staff-card inactive">
-                                <div class="staff-avatar">👨‍💼</div>
-                                <div class="staff-info">
-                                    <div class="staff-name">赵磊</div>
-                                    <div class="staff-role">正值</div>
-                                    <div class="staff-status">休息中</div>
-                                </div>
-                            </div>
-                            <div class="staff-card inactive">
-                                <div class="staff-avatar">👨‍💼</div>
-                                <div class="staff-info">
-                                    <div class="staff-name">孙杰</div>
-                                    <div class="staff-role">副值</div>
-                                    <div class="staff-status">休息中</div>
-                                </div>
-                            </div>
-                            <div class="staff-card inactive">
-                                <div class="staff-avatar">👨‍💼</div>
-                                <div class="staff-info">
-                                    <div class="staff-name">周涛</div>
-                                    <div class="staff-role">副值</div>
-                                    <div class="staff-status">休息中</div>
-                                </div>
-                            </div>
-                            <div class="staff-card inactive">
-                                <div class="staff-avatar">👨‍💼</div>
-                                <div class="staff-info">
-                                    <div class="staff-name">吴鹏</div>
-                                    <div class="staff-role">其他</div>
-                                    <div class="staff-status">休息中</div>
-                                </div>
-                            </div>
+                        <div class="staff-list" id="restingStaffList">
+                            <!-- 休息人员将通过JavaScript动态生成 -->
                         </div>
                     </div>
                 </div>

@@ -164,14 +164,14 @@ function initTicketChart(data = null) {
     
     // 假数据展示效果
     const defaultData = {
-        labels: ['指令记录', '逐项令', '综合令', '许可令'],
-        values: [45, 28, 15, 12]
+        labels: ['综合令', '逐项令', '许可令', '指令记录'],
+        values: [15, 28, 12, 45]
     };
     
     const chartData = data || defaultData;
     
     ticketChart = new Chart(ctx, {
-        type: 'pie',
+        type: 'doughnut',
         data: {
             labels: chartData.labels,
             datasets: [{
@@ -190,6 +190,7 @@ function initTicketChart(data = null) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            cutout: '65%',
             plugins: {
                 legend: {
                     display: false
@@ -204,73 +205,52 @@ function initTicketChart(data = null) {
                     padding: 10,
                     callbacks: {
                         label: function(context) {
-                            return `${context.label}: ${context.parsed}`;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((context.parsed / total) * 100).toFixed(1);
+                            return `${context.label}: ${context.parsed} (${percentage}%)`;
                         }
                     }
+                },
+                // 中心文本插件
+                centerText: {
+                    display: true,
+                    text: `指令记录: ${chartData.values.reduce((a, b) => a + b, 0)}`
+                }
+            },
+            pluginsConfig: {
+                centerText: {
+                    color: '#e8f1ff',
+                    font: {
+                        size: 14,
+                        weight: 'bold'
+                    },
+                    offset: 0
                 }
             }
-        }
-    });
-}
-
-/**
- * 初始化网络发令情况图表（环形图）
- */
-function initNetworkOrderChart(data = null) {
-    const ctx = document.getElementById('networkOrderChart');
-    if (!ctx) return;
-    
-    if (networkOrderChart) {
-        networkOrderChart.destroy();
-    }
-    
-    // 假数据展示效果
-    const defaultData = {
-        labels: ['逐项令', '许可令'],
-        values: [28, 12]
-    };
-    
-    const chartData = data || defaultData;
-    
-    networkOrderChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: chartData.labels,
-            datasets: [{
-                data: chartData.values,
-                backgroundColor: [
-                    chartColors.yellow,
-                    chartColors.gray
-                ],
-                borderColor: '#0a1628',
-                borderWidth: 2,
-                hoverOffset: 8
-            }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '60%',
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    backgroundColor: chartColors.tooltipBg,
-                    titleColor: chartColors.tooltipText,
-                    bodyColor: chartColors.tooltipText,
-                    borderColor: chartColors.tooltipBorder,
-                    borderWidth: 1,
-                    cornerRadius: 6,
-                    padding: 10,
-                    callbacks: {
-                        label: function(context) {
-                            return `${context.label}: ${context.parsed}`;
-                        }
-                    }
+        plugins: [{
+            id: 'centerText',
+            beforeDraw: function(chart) {
+                if (chart.config.options.plugins.centerText &&
+                    chart.config.options.plugins.centerText.display) {
+                    const ctx = chart.ctx;
+                    const centerConfig = chart.config.options.plugins.centerText;
+                    const pluginsConfig = chart.config.options.pluginsConfig.centerText;
+                    const width = chart.width;
+                    const height = chart.height;
+                    const centerX = width / 2;
+                    const centerY = height / 2;
+
+                    ctx.save();
+                    ctx.fillStyle = pluginsConfig.color;
+                    ctx.font = `${pluginsConfig.font.weight} ${pluginsConfig.font.size}px -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(centerConfig.text, centerX, centerY);
+                    ctx.restore();
                 }
             }
-        }
+        }]
     });
 }
 
@@ -537,7 +517,7 @@ function initNetworkOrderChart(data = null) {
     }
 
     const defaultData = {
-        labels: ['综合令', '逐项令', '许可令', '口头令'],
+        labels: ['综合令', '逐项令', '许可令', '指令记录'],
         values: [22, 18, 12, 5]
     };
 

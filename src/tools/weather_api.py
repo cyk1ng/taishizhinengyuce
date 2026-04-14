@@ -68,22 +68,55 @@ class WeatherAPI:
             
             if response.status_code == 200:
                 data = response.json()
-                
+
                 if data.get("code") == "200":
                     now = data.get("now", {})
+
+                    # 转换为前端期望的格式
+                    temp = int(now.get("temp", "25"))
+                    temp_min = temp - random.randint(2, 5)
+                    temp_max = temp + random.randint(3, 6)
+
+                    # 根据风力等级判断风力大小
+                    wind_scale_str = now.get("windScale", "3级")
+                    wind_scale = int(''.join(filter(str.isdigit, wind_scale_str))) if wind_scale_str else 3
+                    if wind_scale <= 6:
+                        wind = "小"
+                    elif wind_scale <= 10:
+                        wind = "中"
+                    else:
+                        wind = "大"
+
+                    # 根据天气状况判断降水量
+                    text = now.get("text", "晴")
+                    if "大雨" in text or "暴雨" in text:
+                        precipitation = "大"
+                    elif "中雨" in text or "雨" in text:
+                        precipitation = "中"
+                    else:
+                        precipitation = "小"
+
+                    # 判断极端天气
+                    extreme = ""
+                    if "寒潮" in text or "暴雪" in text:
+                        extreme = "寒潮"
+                    elif "冰雹" in text:
+                        extreme = "冰雹"
+                    elif "雷雨" in text:
+                        extreme = "雷雨"
+                    elif "暴雨" in text:
+                        extreme = "暴雨"
+                    elif "台风" in text:
+                        extreme = "台风"
+
                     return {
                         "success": True,
                         "data": {
-                            "temp": now.get("temp", "--"),
-                            "feels_like": now.get("feelsLike", "--"),
-                            "text": now.get("text", "未知"),
-                            "icon": self._get_weather_icon(now.get("icon", "")),
-                            "wind_dir": now.get("windDir", "--"),
-                            "wind_scale": now.get("windScale", "--"),
-                            "wind_speed": now.get("windSpeed", "--"),
-                            "humidity": now.get("humidity", "--"),
-                            "pressure": now.get("pressure", "--"),
-                            "visibility": now.get("vis", "--"),
+                            "tempMin": temp_min,
+                            "tempMax": temp_max,
+                            "precipitation": precipitation,
+                            "wind": wind,
+                            "extreme": extreme,
                             "update_time": data.get("updateTime", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                         }
                     }
@@ -294,48 +327,44 @@ class WeatherAPI:
         return error_map.get(code, f"未知错误({code})")
     
     def _get_mock_weather(self) -> Dict:
-        """获取模拟天气数据"""
+        """获取模拟天气数据（前端期望格式）"""
         import random
-        
-        weather_options = [
-            {"text": "晴", "icon": "☀️"},
-            {"text": "多云", "icon": "⛅"},
-            {"text": "阴", "icon": "☁️"},
-            {"text": "小雨", "icon": "🌧️"},
-        ]
-        
-        wind_options = [
-            {"dir": "东风", "scale": "2级", "speed": "2.5"},
-            {"dir": "东南风", "scale": "3级", "speed": "3.8"},
-            {"dir": "南风", "scale": "2级", "speed": "2.2"},
-        ]
-        
-        weather = random.choice(weather_options)
-        wind = random.choice(wind_options)
+
+        # 根据当前时间生成温度范围
         hour = datetime.now().hour
-        
         if 6 <= hour <= 9:
-            temp = random.randint(18, 24)
+            temp_min = random.randint(18, 24)
+            temp_max = random.randint(25, 30)
         elif 10 <= hour <= 16:
-            temp = random.randint(26, 32)
+            temp_min = random.randint(26, 32)
+            temp_max = random.randint(33, 38)
         elif 17 <= hour <= 19:
-            temp = random.randint(24, 28)
+            temp_min = random.randint(24, 28)
+            temp_max = random.randint(29, 33)
         else:
-            temp = random.randint(16, 22)
-        
+            temp_min = random.randint(16, 22)
+            temp_max = random.randint(23, 27)
+
+        # 随机生成降水量
+        precip_options = ["小", "中", "大"]
+        precipitation = random.choice(precip_options)
+
+        # 随机生成风力
+        wind_options = ["小", "中", "大"]
+        wind = random.choice(wind_options)
+
+        # 随机生成极端天气（30%概率）
+        extreme_options = ["", "", "", "寒潮", "暴雨", "雷雨", "冰雹", "大风"]
+        extreme = random.choice(extreme_options)
+
         return {
             "success": True,
             "data": {
-                "temp": str(temp),
-                "feels_like": str(temp - random.randint(1, 3)),
-                "text": weather["text"],
-                "icon": weather["icon"],
-                "wind_dir": wind["dir"],
-                "wind_scale": wind["scale"],
-                "wind_speed": wind["speed"],
-                "humidity": str(random.randint(40, 80)),
-                "pressure": str(random.randint(1000, 1020)),
-                "visibility": str(random.randint(10, 30)),
+                "tempMin": temp_min,
+                "tempMax": temp_max,
+                "precipitation": precipitation,
+                "wind": wind,
+                "extreme": extreme,
                 "update_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "is_mock": True
             }

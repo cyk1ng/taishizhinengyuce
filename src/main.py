@@ -331,12 +331,11 @@ async def get_weather(city: str = None):
             "success": False,
             "error": str(e),
             "data": {
-                "temp": "--",
-                "text": "未知",
-                "icon": "🌤️",
-                "wind_dir": "--",
-                "wind_scale": "--",
-                "wind_speed": "--",
+                "tempMin": 25,
+                "tempMax": 35,
+                "precipitation": "小",
+                "wind": "小",
+                "extreme": "",
                 "update_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
         }

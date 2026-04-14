@@ -164,14 +164,14 @@ function initTicketChart(data = null) {
     
     // 假数据展示效果
     const defaultData = {
-        labels: ['综合令', '逐项令', '许可令', '指令记录'],
-        values: [15, 28, 12, 45]
+        labels: ['指令记录', '逐项令', '许可令', '综合令'],
+        values: [138, 79, 9, 0]
     };
     
     const chartData = data || defaultData;
     
     ticketChart = new Chart(ctx, {
-        type: 'doughnut',
+        type: 'pie',
         data: {
             labels: chartData.labels,
             datasets: [{
@@ -179,8 +179,8 @@ function initTicketChart(data = null) {
                 backgroundColor: [
                     chartColors.primary,
                     chartColors.yellow,
-                    chartColors.gray,
-                    chartColors.purple
+                    chartColors.red,
+                    chartColors.gray
                 ],
                 borderColor: '#0a1628',
                 borderWidth: 2,
@@ -190,7 +190,6 @@ function initTicketChart(data = null) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: '65%',
             plugins: {
                 legend: {
                     display: false
@@ -210,47 +209,9 @@ function initTicketChart(data = null) {
                             return `${context.label}: ${context.parsed} (${percentage}%)`;
                         }
                     }
-                },
-                // 中心文本插件
-                centerText: {
-                    display: true,
-                    text: `指令记录: ${chartData.values.reduce((a, b) => a + b, 0)}`
-                }
-            },
-            pluginsConfig: {
-                centerText: {
-                    color: '#e8f1ff',
-                    font: {
-                        size: 14,
-                        weight: 'bold'
-                    },
-                    offset: 0
                 }
             }
-        },
-        plugins: [{
-            id: 'centerText',
-            beforeDraw: function(chart) {
-                if (chart.config.options.plugins.centerText &&
-                    chart.config.options.plugins.centerText.display) {
-                    const ctx = chart.ctx;
-                    const centerConfig = chart.config.options.plugins.centerText;
-                    const pluginsConfig = chart.config.options.pluginsConfig.centerText;
-                    const width = chart.width;
-                    const height = chart.height;
-                    const centerX = width / 2;
-                    const centerY = height / 2;
-
-                    ctx.save();
-                    ctx.fillStyle = pluginsConfig.color;
-                    ctx.font = `${pluginsConfig.font.weight} ${pluginsConfig.font.size}px -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif`;
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(centerConfig.text, centerX, centerY);
-                    ctx.restore();
-                }
-            }
-        }]
+        }
     });
 }
 
@@ -450,8 +411,8 @@ function initNetworkOrderChart(data = null) {
     }
 
     const defaultData = {
-        labels: ['综合令', '逐项令', '许可令', '指令记录'],
-        values: [22, 18, 12, 5]
+        labels: ['逐项令', '综合令', '许可令'],
+        values: [15, 7, 3]
     };
 
     const chartData = data || defaultData;
@@ -463,17 +424,11 @@ function initNetworkOrderChart(data = null) {
             datasets: [{
                 data: chartData.values,
                 backgroundColor: [
-                    'rgba(59, 130, 246, 0.8)',
-                    'rgba(245, 158, 11, 0.8)',
-                    'rgba(236, 72, 153, 0.8)',
-                    'rgba(16, 185, 129, 0.8)'
+                    chartColors.yellow,
+                    chartColors.green,
+                    chartColors.red
                 ],
-                borderColor: [
-                    'rgba(59, 130, 246, 1)',
-                    'rgba(245, 158, 11, 1)',
-                    'rgba(236, 72, 153, 1)',
-                    'rgba(16, 185, 129, 1)'
-                ],
+                borderColor: '#0a1628',
                 borderWidth: 2
             }]
         },
@@ -501,20 +456,24 @@ function initNetworkOrderChart(data = null) {
                         }
                     }
                 },
-                // 中心文本插件
+                // 中心文本插件（多行显示）
                 centerText: {
                     display: true,
-                    text: `网络发令数: ${chartData.values.reduce((a, b) => a + b, 0)}`
+                    lines: [
+                        `许可令:${chartData.values[2]}`,
+                        `综合令:${chartData.values[1]}`,
+                        `逐项令:${chartData.values[0]}`
+                    ]
                 }
             },
             pluginsConfig: {
                 centerText: {
                     color: '#e8f1ff',
                     font: {
-                        size: 14,
-                        weight: 'bold'
+                        size: 12,
+                        weight: 'normal'
                     },
-                    offset: 0
+                    lineHeight: 18
                 }
             }
         },
@@ -536,7 +495,17 @@ function initNetworkOrderChart(data = null) {
                     ctx.font = `${pluginsConfig.font.weight} ${pluginsConfig.font.size}px -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif`;
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText(centerConfig.text, centerX, centerY);
+
+                    // 绘制多行文本
+                    const lines = centerConfig.lines;
+                    const totalHeight = lines.length * pluginsConfig.lineHeight;
+                    const startY = centerY - totalHeight / 2 + pluginsConfig.lineHeight / 2;
+
+                    lines.forEach((line, index) => {
+                        const y = startY + index * pluginsConfig.lineHeight;
+                        ctx.fillText(line, centerX, y);
+                    });
+
                     ctx.restore();
                 }
             }

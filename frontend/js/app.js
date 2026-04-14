@@ -230,9 +230,9 @@ function handleToolCall(data, messageId) {
             if (parsedResult.success && parsedResult.analysis) {
                 // 人力资源分析结果
                 handleStaffingRecommendation({
-                    currentStaff: parsedResult.workload_summary?.total_equivalent || 0,
+                    currentStaff: (parsedResult.workload_summary && parsedResult.workload_summary.total_equivalent) || 0,
                     suggestedStaff: parsedResult.analysis.total_shortage_hours || 0,
-                    staffCapacity: parsedResult.workload_summary?.total_equivalent || 0,
+                    staffCapacity: (parsedResult.workload_summary && parsedResult.workload_summary.total_equivalent) || 0,
                     isOverload: parsedResult.analysis.total_shortage_hours > 0
                 });
             }

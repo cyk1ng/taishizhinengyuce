@@ -464,10 +464,10 @@ function updateWorkloadData(data) {
                 });
             }
         }
-        
+
         // 更新各模块业务情况图表
-        const planCount = data.summary?.total_plan_count || 0;
-        const nonPlanCount = data.summary?.total_non_plan_count || 0;
+        const planCount = (data.summary && data.summary.total_plan_count) || 0;
+        const nonPlanCount = (data.summary && data.summary.total_non_plan_count) || 0;
         initModuleBusinessChart({
             labels: ['周计划', '设备投退', '跳闸', '缺陷', '重过载', '保供电', '检修业务', '方式单'],
             values: [planCount, 0, nonPlanCount, nonPlanCount, 0, 0, planCount, planCount]

@@ -414,15 +414,35 @@ body {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    min-height: 500px;
 }
 
 .charts-row {
     display: flex;
     gap: 12px;
+    flex: 1;
+    min-height: 480px;
+}
+
+/* 左侧列：包含2个折线图 */
+.charts-column-left {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* 右侧列：包含2个饼图 */
+.charts-column-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 .chart-card {
     flex: 1;
+    min-height: 0;
 }
 
 /* 下半部分：控制区 */
@@ -464,6 +484,27 @@ body {
 
 .card-body {
     padding: 12px;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 确保图表容器填充可用空间 */
+.chart-card .card-body,
+.workload-card .card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 0;
+}
+
+/* 图表canvas容器 */
+.chart-card .card-body canvas,
+.workload-card .card-body canvas {
+    flex: 1;
+    max-height: 100%;
+    width: 100% !important;
 }
 
 .smart-badge {
@@ -925,17 +966,22 @@ body {
 
 @media (max-width: 1200px) {
     .charts-row {
-        flex-wrap: wrap;
+        flex-direction: column;
     }
-    
+
+    .charts-column-left,
+    .charts-column-right {
+        flex: 1;
+    }
+
     .chart-card {
         flex: 1 1 300px !important;
     }
-    
+
     .control-section {
         grid-template-columns: 1fr;
     }
-    
+
     .left-controls, .right-panel {
         display: none;
     }

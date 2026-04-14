@@ -11,6 +11,7 @@ API文档: https://dev.qweather.com/docs/api/
 """
 
 import os
+import random
 import requests
 from typing import Dict, List, Optional
 from datetime import datetime

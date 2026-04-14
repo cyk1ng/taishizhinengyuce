@@ -860,7 +860,35 @@ function saveWeather() {
 
         closeModal('weatherModal');
 
-        // 这里可以调用后端API保存数据
+        // 调用后端API保存数据
+        fetch('/api/weather', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                tempMin: tempMin,
+                tempMax: tempMax,
+                precipitation: precipitation,
+                wind: wind,
+                extreme: extreme
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('天气信息保存成功:', data);
+                alert('天气信息保存成功');
+            } else {
+                console.error('天气信息保存失败:', data.error);
+                alert('天气信息保存失败: ' + (data.error || '未知错误'));
+            }
+        })
+        .catch(error => {
+            console.error('天气信息保存错误:', error);
+            alert('天气信息保存失败，请稍后重试');
+        });
+
         console.log('保存天气信息:', {
             tempMin,
             tempMax,

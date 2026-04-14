@@ -5,6 +5,7 @@ import json
 import threading
 import traceback
 import logging
+from datetime import datetime
 from typing import Any, Dict, Iterable, AsyncIterable, AsyncGenerator, Optional
 import cozeloop
 import uvicorn
@@ -231,6 +232,17 @@ class GraphService:
 service = GraphService()
 app = FastAPI()
 
+# 天气配置（全局变量）
+weather_config = {
+    "tempMin": 25,
+    "tempMax": 35,
+    "precipitation": "小",
+    "wind": "小",
+    "extreme": "",
+    "update_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    "is_mock": True
+}
+
 # 配置静态文件服务（前端界面）
 # 使用环境变量或当前工作目录来确定项目根目录
 workspace_path = os.getenv("COZE_WORKSPACE_PATH", os.getcwd())
@@ -281,7 +293,121 @@ async def read_root():
         logger.error(f"❌ 返回首页失败: {e}")
         return {"error": str(e), "frontend_path": str(FRONTEND_DIR)}
 
-# 前端 HTML 文件路由
+# 天气API接口
+@app.get("/api/weather")
+async def get_weather(city: str = None):
+    """
+    获取实时天气信息
+
+    参数:
+        city: 城市代码（可选，默认北京）
+
+    返回:
+        天气信息（温度、湿度、风力等）
+    """
+    try:
+        # 优先返回保存的天气配置
+        global weather_config
+        if weather_config:
+            return {
+                "success": True,
+                "data": weather_config
+            }
+
+        # 如果没有配置，则调用API获取
+        from tools.weather_api import get_weather_info
+        weather_data = get_weather_info(city)
+        return weather_data
+    except Exception as e:
+        logger.error(f"获取天气信息失败: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "data": {
+                "tempMin": 25,
+                "tempMax": 35,
+                "precipitation": "小",
+                "wind": "小",
+                "extreme": "",
+                "update_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+        }
+
+# 天气保存API接口
+@app.post("/api/weather")
+async def save_weather(request: Request):
+    """
+    保存天气信息
+
+    参数:
+        tempMin: 最低温度
+        tempMax: 最高温度
+        precipitation: 降水量等级
+        wind: 风力等级
+        extreme: 极端天气情况
+
+    返回:
+        保存结果
+    """
+    try:
+        import json
+        from datetime import datetime
+
+        raw_body = await request.body()
+        try:
+            body_text = raw_body.decode("utf-8")
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON format")
+
+        weather_data = json.loads(body_text)
+
+        # 验证必填字段
+        required_fields = ["tempMin", "tempMax", "precipitation", "wind"]
+        for field in required_fields:
+            if field not in weather_data:
+                raise HTTPException(status_code=400, detail=f"缺少必填字段: {field}")
+
+        temp_min = int(weather_data["tempMin"])
+        temp_max = int(weather_data["tempMax"])
+        precipitation = weather_data["precipitation"]
+        wind = weather_data["wind"]
+        extreme = weather_data.get("extreme", "")
+
+        # 验证温度范围
+        if temp_min > temp_max:
+            raise HTTPException(status_code=400, detail="最低温度不能大于最高温度")
+
+        # 更新天气配置（保存到全局变量或数据库）
+        weather_config.update({
+            "tempMin": temp_min,
+            "tempMax": temp_max,
+            "precipitation": precipitation,
+            "wind": wind,
+            "extreme": extreme,
+            "update_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "is_mock": False
+        })
+
+        logger.info(f"天气信息已更新: {weather_config}")
+
+        return {
+            "success": True,
+            "message": "天气信息保存成功",
+            "data": weather_config
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"保存天气信息失败: {e}")
+        raise HTTPException(status_code=500, detail=f"保存天气信息失败: {str(e)}")
+
+# 健康检查接口
+@app.get("/health")
+async def health_check():
+    """健康检查接口"""
+    return {"status": "ok", "service": "配网调度业务量智能预测系统"}
+
+# 前端 HTML 文件路由（必须放在最后，避免拦截API路由）
 @app.get("/{file_name:path}")
 async def read_html_files(file_name: str):
     """返回前端 HTML 文件"""
@@ -302,43 +428,6 @@ async def read_html_files(file_name: str):
     # 如果不是 HTML 文件，返回 404
     else:
         raise HTTPException(status_code=404, detail="Not Found")
-
-# 健康检查接口
-@app.get("/health")
-async def health_check():
-    """健康检查接口"""
-    return {"status": "ok", "service": "配网调度业务量智能预测系统"}
-
-# 天气API接口
-@app.get("/api/weather")
-async def get_weather(city: str = None):
-    """
-    获取实时天气信息
-    
-    参数:
-        city: 城市代码（可选，默认北京）
-    
-    返回:
-        天气信息（温度、湿度、风力等）
-    """
-    try:
-        from tools.weather_api import get_weather_info
-        weather_data = get_weather_info(city)
-        return weather_data
-    except Exception as e:
-        logger.error(f"获取天气信息失败: {e}")
-        return {
-            "success": False,
-            "error": str(e),
-            "data": {
-                "tempMin": 25,
-                "tempMax": 35,
-                "precipitation": "小",
-                "wind": "小",
-                "extreme": "",
-                "update_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            }
-        }
 
 # OpenAI 兼容接口处理器
 openai_handler = OpenAIChatHandler(service)

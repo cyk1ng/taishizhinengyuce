@@ -170,54 +170,63 @@
     <main class="main-container">
         <!-- 上半部分：图表区域 -->
         <section class="charts-section">
-            <!-- 各模块业务情况 + 操作票情况 + 网络发令情况 -->
+            <!-- 第二行：左侧2个折线图 + 右侧2个饼图 -->
             <div class="charts-row">
-                <div class="card chart-card" style="flex: 2;">
-                    <div class="card-header">
-                        <span class="icon">📊</span>
-                        <span class="title">各模块业务情况</span>
-                        <span class="smart-badge">实时更新</span>
+                <!-- 左侧：折线图区域 -->
+                <div class="charts-column-left">
+                    <!-- 各模块业务情况 -->
+                    <div class="card chart-card">
+                        <div class="card-header">
+                            <span class="icon">📊</span>
+                            <span class="title">各模块业务情况</span>
+                            <span class="smart-badge">实时更新</span>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="moduleBusinessChart"></canvas>
+                        </div>
                     </div>
-                    <div class="card-body" style="height: 220px;">
-                        <canvas id="moduleBusinessChart"></canvas>
-                    </div>
-                </div>
-                
-                <div class="card chart-card" style="flex: 1;">
-                    <div class="card-header">
-                        <span class="icon">📋</span>
-                        <span class="title">操作票情况</span>
-                    </div>
-                    <div class="card-body" style="height: 220px;">
-                        <canvas id="ticketChart"></canvas>
-                    </div>
-                </div>
-                
-                <div class="card chart-card" style="flex: 1;">
-                    <div class="card-header">
-                        <span class="icon">🌐</span>
-                        <span class="title">网络发令情况</span>
-                    </div>
-                    <div class="card-body" style="height: 220px;">
-                        <canvas id="networkOrderChart"></canvas>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 各阶段工作业务当量 -->
-            <div class="card workload-card">
-                <div class="card-header">
-                    <span class="icon">📈</span>
-                    <span class="title">各时段工作业务当量</span>
-                    <div class="chart-legend">
-                        <span class="legend-item"><span class="dot cyan"></span>工作任务总当量</span>
-                        <span class="legend-item"><span class="dot yellow"></span>班组人员工作当量</span>
-                        <span class="legend-item"><span class="dot green"></span>计划任务当量</span>
-                        <span class="legend-item"><span class="dot orange"></span>非计划任务当量</span>
+
+                    <!-- 各阶段工作业务当量 -->
+                    <div class="card workload-card">
+                        <div class="card-header">
+                            <span class="icon">📈</span>
+                            <span class="title">各阶段业务工作量</span>
+                            <div class="chart-legend">
+                                <span class="legend-item"><span class="dot cyan"></span>工作任务总当量</span>
+                                <span class="legend-item"><span class="dot yellow"></span>班组人员工作当量</span>
+                                <span class="legend-item"><span class="dot green"></span>计划任务当量</span>
+                                <span class="legend-item"><span class="dot orange"></span>非计划任务当量</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="workloadTimelineChart"></canvas>
+                        </div>
                     </div>
                 </div>
-                <div class="card-body" style="height: 200px;">
-                    <canvas id="workloadTimelineChart"></canvas>
+
+                <!-- 右侧：饼图区域 -->
+                <div class="charts-column-right">
+                    <!-- 操作票情况 -->
+                    <div class="card chart-card">
+                        <div class="card-header">
+                            <span class="icon">📋</span>
+                            <span class="title">操作票情况</span>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="ticketChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 网络发令情况 -->
+                    <div class="card chart-card">
+                        <div class="card-header">
+                            <span class="icon">🌐</span>
+                            <span class="title">网络发令情况</span>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="networkOrderChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>

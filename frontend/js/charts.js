@@ -384,6 +384,136 @@ function initWorkloadTimelineChart(data = null) {
 }
 
 /**
+ * 初始化操作票情况饼图
+ */
+function initTicketChart(data = null) {
+    const ctx = document.getElementById('ticketChart');
+    if (!ctx) return;
+
+    if (ticketChart) {
+        ticketChart.destroy();
+    }
+
+    const defaultData = {
+        labels: ['综合令', '逐项令', '许可令'],
+        values: [0, 79, 9]
+    };
+
+    const chartData = data || defaultData;
+
+    ticketChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: chartData.labels,
+            datasets: [{
+                data: chartData.values,
+                backgroundColor: [
+                    'rgba(59, 130, 246, 0.8)',
+                    'rgba(245, 158, 11, 0.8)',
+                    'rgba(236, 72, 153, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(59, 130, 246, 1)',
+                    'rgba(245, 158, 11, 1)',
+                    'rgba(236, 72, 153, 1)'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '50%',
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        color: '#8ba3c7',
+                        font: { size: 10 },
+                        padding: 8,
+                        boxWidth: 12
+                    }
+                },
+                tooltip: {
+                    backgroundColor: chartColors.tooltipBg,
+                    titleColor: chartColors.tooltipText,
+                    bodyColor: chartColors.tooltipText,
+                    borderColor: chartColors.tooltipBorder,
+                    borderWidth: 1,
+                    cornerRadius: 4,
+                    padding: 8
+                }
+            }
+        }
+    });
+}
+
+/**
+ * 初始化网络发令情况饼图
+ */
+function initNetworkOrderChart(data = null) {
+    const ctx = document.getElementById('networkOrderChart');
+    if (!ctx) return;
+
+    if (networkOrderChart) {
+        networkOrderChart.destroy();
+    }
+
+    const defaultData = {
+        labels: ['综合令', '逐项令', '许可令'],
+        values: [7, 15, 3]
+    };
+
+    const chartData = data || defaultData;
+
+    networkOrderChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: chartData.labels,
+            datasets: [{
+                data: chartData.values,
+                backgroundColor: [
+                    'rgba(59, 130, 246, 0.8)',
+                    'rgba(245, 158, 11, 0.8)',
+                    'rgba(236, 72, 153, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(59, 130, 246, 1)',
+                    'rgba(245, 158, 11, 1)',
+                    'rgba(236, 72, 153, 1)'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '60%',
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        color: '#8ba3c7',
+                        font: { size: 10 },
+                        padding: 8,
+                        boxWidth: 12
+                    }
+                },
+                tooltip: {
+                    backgroundColor: chartColors.tooltipBg,
+                    titleColor: chartColors.tooltipText,
+                    bodyColor: chartColors.tooltipText,
+                    borderColor: chartColors.tooltipBorder,
+                    borderWidth: 1,
+                    cornerRadius: 4,
+                    padding: 8
+                }
+            }
+        }
+    });
+}
+
+/**
  * 初始化所有图表
  */
 function initAllCharts() {

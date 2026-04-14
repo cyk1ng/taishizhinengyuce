@@ -439,73 +439,6 @@ function initWorkloadTimelineChart(data = null) {
 }
 
 /**
- * 初始化操作票情况饼图
- */
-function initTicketChart(data = null) {
-    const ctx = document.getElementById('ticketChart');
-    if (!ctx) return;
-
-    if (ticketChart) {
-        ticketChart.destroy();
-    }
-
-    const defaultData = {
-        labels: ['综合令', '逐项令', '许可令', '口头令'],
-        values: [15, 45, 20, 8]
-    };
-
-    const chartData = data || defaultData;
-
-    ticketChart = new Chart(ctx, {
-        type: 'pie',
-        data: {
-            labels: chartData.labels,
-            datasets: [{
-                data: chartData.values,
-                backgroundColor: [
-                    'rgba(59, 130, 246, 0.8)',
-                    'rgba(245, 158, 11, 0.8)',
-                    'rgba(236, 72, 153, 0.8)',
-                    'rgba(16, 185, 129, 0.8)'
-                ],
-                borderColor: [
-                    'rgba(59, 130, 246, 1)',
-                    'rgba(245, 158, 11, 1)',
-                    'rgba(236, 72, 153, 1)',
-                    'rgba(16, 185, 129, 1)'
-                ],
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    backgroundColor: chartColors.tooltipBg,
-                    titleColor: chartColors.tooltipText,
-                    bodyColor: chartColors.tooltipText,
-                    borderColor: chartColors.tooltipBorder,
-                    borderWidth: 1,
-                    cornerRadius: 4,
-                    padding: 8,
-                    callbacks: {
-                        label: function(context) {
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = ((context.parsed / total) * 100).toFixed(1);
-                            return `${context.label}: ${context.parsed} (${percentage}%)`;
-                        }
-                    }
-                }
-            }
-        }
-    });
-}
-
-/**
  * 初始化网络发令情况饼图
  */
 function initNetworkOrderChart(data = null) {
@@ -571,7 +504,7 @@ function initNetworkOrderChart(data = null) {
                 // 中心文本插件
                 centerText: {
                     display: true,
-                    text: `指令记录: ${chartData.values.reduce((a, b) => a + b, 0)}`
+                    text: `网络发令数: ${chartData.values.reduce((a, b) => a + b, 0)}`
                 }
             },
             pluginsConfig: {

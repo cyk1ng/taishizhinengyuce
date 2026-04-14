@@ -165,7 +165,7 @@ function initTicketChart(data = null) {
     // 假数据展示效果
     const defaultData = {
         labels: ['指令记录', '逐项令', '许可令', '综合令'],
-        values: [138, 79, 9, 0]
+        values: [138, 79, 9, 25]
     };
     
     const chartData = data || defaultData;

@@ -1860,6 +1860,16 @@ body {
     background: var(--bg-card);
 }
 
+/* 弹窗底部 */
+.modal-footer {
+    padding: 16px 20px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 /* 表单项 */
 .form-item {
     display: flex;
@@ -1898,12 +1908,12 @@ body {
 
 /* 确认按钮 */
 .form-confirm-btn {
-    padding: 6px 16px;
+    padding: 8px 24px;
     background: var(--accent-blue);
     border: none;
     border-radius: 4px;
     color: white;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -1911,16 +1921,17 @@ body {
 
 .form-confirm-btn:hover {
     background: #2563eb;
+    transform: translateY(-1px);
 }
 
 /* 表单输入框 */
 .form-input {
     flex: 1;
     padding: 8px 12px;
-    background: white;
-    border: 1px solid #d1d5db;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
     border-radius: 4px;
-    color: #6b7280;
+    color: var(--text-primary);
     font-size: 13px;
     outline: none;
     transition: all 0.3s ease;
@@ -1932,23 +1943,23 @@ body {
 }
 
 .form-input::placeholder {
-    color: #9ca3af;
+    color: var(--text-muted);
 }
 
 /* 表单下拉框 */
 .form-select {
     flex: 1;
     padding: 8px 12px;
-    background: white;
-    border: 1px solid #d1d5db;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
     border-radius: 4px;
-    color: #6b7280;
+    color: var(--text-primary);
     font-size: 13px;
     outline: none;
     cursor: pointer;
     transition: all 0.3s ease;
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%238ba3c7'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 8px center;
     background-size: 16px;
@@ -1961,6 +1972,6 @@ body {
 }
 
 .form-select option {
-    background: white;
-    color: #374151;
+    background: var(--bg-card);
+    color: var(--text-primary);
 }

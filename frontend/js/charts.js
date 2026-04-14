@@ -209,9 +209,53 @@ function initTicketChart(data = null) {
                             return `${context.label}: ${context.parsed} (${percentage}%)`;
                         }
                     }
+                },
+                // 扇形图标签插件
+                pieLabels: {
+                    display: true,
+                    formatter: function(context) {
+                        return `${context.label}:${context.parsed}`;
+                    },
+                    color: '#e8f1ff',
+                    font: {
+                        size: 11,
+                        weight: 'normal'
+                    },
+                    padding: 6
                 }
             }
-        }
+        },
+        plugins: [{
+            id: 'pieLabels',
+            afterDatasetsDraw: function(chart) {
+                const ctx = chart.ctx;
+                chart.data.datasets.forEach(function(dataset, i) {
+                    const meta = chart.getDatasetMeta(i);
+                    meta.data.forEach(function(arc, index) {
+                        const data = dataset.data[index];
+                        const label = chart.data.labels[index];
+                        
+                        // 跳过值为0的数据
+                        if (data === 0) return;
+
+                        const midAngle = arc.startAngle + (arc.endAngle - arc.startAngle) / 2;
+                        const radius = (arc.outerRadius + arc.innerRadius) / 2;
+
+                        const x = arc.x + Math.cos(midAngle) * radius;
+                        const y = arc.y + Math.sin(midAngle) * radius;
+
+                        ctx.fillStyle = '#e8f1ff';
+                        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+
+                        // 显示 "名称:数量"
+                        const text = `${label}:${data}`;
+                        ctx.fillText(text, x, y);
+                    });
+                });
+            }
+        }]
     });
 }
 
@@ -477,39 +521,72 @@ function initNetworkOrderChart(data = null) {
                 }
             }
         },
-        plugins: [{
-            id: 'centerText',
-            beforeDraw: function(chart) {
-                if (chart.config.options.plugins.centerText &&
-                    chart.config.options.plugins.centerText.display) {
+        plugins: [
+            {
+                id: 'centerText',
+                beforeDraw: function(chart) {
+                    if (chart.config.options.plugins.centerText &&
+                        chart.config.options.plugins.centerText.display) {
+                        const ctx = chart.ctx;
+                        const centerConfig = chart.config.options.plugins.centerText;
+                        const pluginsConfig = chart.config.options.pluginsConfig.centerText;
+                        const width = chart.width;
+                        const height = chart.height;
+                        const centerX = width / 2;
+                        const centerY = height / 2;
+
+                        ctx.save();
+                        ctx.fillStyle = pluginsConfig.color;
+                        ctx.font = `${pluginsConfig.font.weight} ${pluginsConfig.font.size}px -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+
+                        // 绘制多行文本
+                        const lines = centerConfig.lines;
+                        const totalHeight = lines.length * pluginsConfig.lineHeight;
+                        const startY = centerY - totalHeight / 2 + pluginsConfig.lineHeight / 2;
+
+                        lines.forEach((line, index) => {
+                            const y = startY + index * pluginsConfig.lineHeight;
+                            ctx.fillText(line, centerX, y);
+                        });
+
+                        ctx.restore();
+                    }
+                }
+            },
+            {
+                id: 'doughnutLabels',
+                afterDatasetsDraw: function(chart) {
                     const ctx = chart.ctx;
-                    const centerConfig = chart.config.options.plugins.centerText;
-                    const pluginsConfig = chart.config.options.pluginsConfig.centerText;
-                    const width = chart.width;
-                    const height = chart.height;
-                    const centerX = width / 2;
-                    const centerY = height / 2;
+                    chart.data.datasets.forEach(function(dataset, i) {
+                        const meta = chart.getDatasetMeta(i);
+                        meta.data.forEach(function(arc, index) {
+                            const data = dataset.data[index];
+                            const label = chart.data.labels[index];
+                            
+                            // 跳过值为0的数据
+                            if (data === 0) return;
 
-                    ctx.save();
-                    ctx.fillStyle = pluginsConfig.color;
-                    ctx.font = `${pluginsConfig.font.weight} ${pluginsConfig.font.size}px -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif`;
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
+                            const midAngle = arc.startAngle + (arc.endAngle - arc.startAngle) / 2;
+                            const radius = (arc.outerRadius + arc.innerRadius) / 2;
 
-                    // 绘制多行文本
-                    const lines = centerConfig.lines;
-                    const totalHeight = lines.length * pluginsConfig.lineHeight;
-                    const startY = centerY - totalHeight / 2 + pluginsConfig.lineHeight / 2;
+                            const x = arc.x + Math.cos(midAngle) * radius;
+                            const y = arc.y + Math.sin(midAngle) * radius;
 
-                    lines.forEach((line, index) => {
-                        const y = startY + index * pluginsConfig.lineHeight;
-                        ctx.fillText(line, centerX, y);
+                            ctx.fillStyle = '#e8f1ff';
+                            ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+
+                            // 显示 "名称:数量"
+                            const text = `${label}:${data}`;
+                            ctx.fillText(text, x, y);
+                        });
                     });
-
-                    ctx.restore();
                 }
             }
-        }]
+        ]
     });
 }
 

@@ -285,11 +285,11 @@ function initWorkloadTimelineChart(data = null) {
         workloadTimelineChart.destroy();
     }
     
-    // 生成时间标签 (00-01 到 23-24 时间段)
+    // 生成时间标签 (0-1 到 23-24 时间段)
     const timeLabels = [];
     for (let i = 0; i < 24; i++) {
-        const start = i.toString().padStart(2, '0');
-        const end = (i + 1).toString().padStart(2, '0');
+        const start = i.toString();
+        const end = (i + 1).toString();
         timeLabels.push(`${start}-${end}`);
     }
     
@@ -1347,8 +1347,8 @@ function showTimeSlotDetail(index, chartData) {
         const currentHour = index;
         const nextHour = (index + 1) % 24;
 
-        const currentTime = `${currentHour.toString().padStart(2, '0')}:00`;
-        const nextTime = `${nextHour.toString().padStart(2, '0')}:00`;
+        const currentTime = `${currentHour.toString()}:00`;
+        const nextTime = `${nextHour.toString()}:00`;
 
         // 更新弹窗内容
         document.getElementById('timeSlotTime').textContent = `${currentTime}-${nextTime}`;

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>配网调度智能预测系统 - 工作量自动统计看板</title>
+    <title>业务态势感知智能体 - 工作量自动统计看板</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -669,50 +669,50 @@
                 <button class="modal-close" onclick="closeModal('timeSlotModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="time-slot-detail">
-                    <!-- 时间段 -->
-                    <div class="detail-section">
-                        <span class="detail-label">当前时间段:</span>
-                        <span class="detail-time" id="timeSlotTime">23:00-24:00</span>
-                    </div>
+                <!-- 当前时间段 -->
+                <div class="form-item">
+                    <label class="form-label">当前时间段:</label>
+                    <span class="form-value" id="timeSlotTime">23:00-24:00</span>
+                </div>
 
-                    <!-- 人员配置 -->
-                    <div class="detail-section">
-                        <div class="detail-row">
-                            <span class="detail-label">当值人员数量:</span>
-                            <div class="detail-value-row">
-                                <span class="detail-value blue" id="timeSlotTotal">7</span>
-                                <button class="confirm-btn">确认</button>
-                            </div>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">班组人员工作量:</span>
-                            <input type="text" class="detail-input" id="timeSlotCapacity" placeholder="">
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">是否超员人员当量:</span>
-                            <input type="text" class="detail-input" placeholder="">
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">需增配人员量:</span>
-                            <input type="text" class="detail-input" placeholder="">
-                        </div>
+                <!-- 当值人员数量 -->
+                <div class="form-item">
+                    <label class="form-label">当值人员数量:</label>
+                    <div class="form-input-row">
+                        <span class="form-value blue" id="timeSlotTotal">7</span>
+                        <button class="form-confirm-btn">确认</button>
                     </div>
+                </div>
 
-                    <!-- 气象配置 -->
-                    <div class="detail-section">
-                        <div class="detail-row">
-                            <span class="detail-label">气象预警等级:</span>
-                            <select class="detail-select" id="weatherWarningLevel">
-                                <option value="">请选择</option>
-                                <option value="无">无</option>
-                                <option value="蓝色">蓝色预警</option>
-                                <option value="黄色">黄色预警</option>
-                                <option value="橙色">橙色预警</option>
-                                <option value="红色">红色预警</option>
-                            </select>
-                        </div>
-                    </div>
+                <!-- 班组人员工作量 -->
+                <div class="form-item">
+                    <label class="form-label">班组人员工作量:</label>
+                    <input type="text" class="form-input" id="timeSlotCapacity" value="5.2">
+                </div>
+
+                <!-- 是否超员人员当量 -->
+                <div class="form-item">
+                    <label class="form-label">是否超员人员当量:</label>
+                    <input type="text" class="form-input" placeholder="">
+                </div>
+
+                <!-- 需增配人员量 -->
+                <div class="form-item">
+                    <label class="form-label">需增配人员量:</label>
+                    <input type="text" class="form-input" placeholder="">
+                </div>
+
+                <!-- 气象预警等级 -->
+                <div class="form-item">
+                    <label class="form-label">气象预警等级:</label>
+                    <select class="form-select" id="weatherWarningLevel">
+                        <option value="">请选择</option>
+                        <option value="无">无</option>
+                        <option value="蓝色">蓝色预警</option>
+                        <option value="黄色">黄色预警</option>
+                        <option value="橙色">橙色预警</option>
+                        <option value="红色">红色预警</option>
+                    </select>
                 </div>
             </div>
         </div>

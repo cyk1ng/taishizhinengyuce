@@ -470,14 +470,14 @@ function initTicketChart(data = null) {
     }
 
     const defaultData = {
-        labels: ['综合令', '逐项令', '许可令'],
-        values: [0, 79, 9]
+        labels: ['综合令', '逐项令', '许可令', '口头令'],
+        values: [15, 45, 20, 8]
     };
 
     const chartData = data || defaultData;
 
     ticketChart = new Chart(ctx, {
-        type: 'doughnut',
+        type: 'pie',
         data: {
             labels: chartData.labels,
             datasets: [{
@@ -485,12 +485,14 @@ function initTicketChart(data = null) {
                 backgroundColor: [
                     'rgba(59, 130, 246, 0.8)',
                     'rgba(245, 158, 11, 0.8)',
-                    'rgba(236, 72, 153, 0.8)'
+                    'rgba(236, 72, 153, 0.8)',
+                    'rgba(16, 185, 129, 0.8)'
                 ],
                 borderColor: [
                     'rgba(59, 130, 246, 1)',
                     'rgba(245, 158, 11, 1)',
-                    'rgba(236, 72, 153, 1)'
+                    'rgba(236, 72, 153, 1)',
+                    'rgba(16, 185, 129, 1)'
                 ],
                 borderWidth: 2
             }]
@@ -498,7 +500,6 @@ function initTicketChart(data = null) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: '55%',
             plugins: {
                 legend: {
                     display: false
@@ -510,48 +511,17 @@ function initTicketChart(data = null) {
                     borderColor: chartColors.tooltipBorder,
                     borderWidth: 1,
                     cornerRadius: 4,
-                    padding: 8
-                },
-                // 中心文本插件
-                centerText: {
-                    display: true,
-                    text: `指令记录: ${chartData.values.reduce((a, b) => a + b, 0)}`
-                }
-            },
-            pluginsConfig: {
-                centerText: {
-                    color: '#e8f1ff',
-                    font: {
-                        size: 14,
-                        weight: 'bold'
-                    },
-                    offset: 0
+                    padding: 8,
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((context.parsed / total) * 100).toFixed(1);
+                            return `${context.label}: ${context.parsed} (${percentage}%)`;
+                        }
+                    }
                 }
             }
-        },
-        plugins: [{
-            id: 'centerText',
-            beforeDraw: function(chart) {
-                if (chart.config.options.plugins.centerText &&
-                    chart.config.options.plugins.centerText.display) {
-                    const ctx = chart.ctx;
-                    const centerConfig = chart.config.options.plugins.centerText;
-                    const pluginsConfig = chart.config.options.pluginsConfig.centerText;
-                    const width = chart.width;
-                    const height = chart.height;
-                    const centerX = width / 2;
-                    const centerY = height / 2;
-
-                    ctx.save();
-                    ctx.fillStyle = pluginsConfig.color;
-                    ctx.font = `${pluginsConfig.font.weight} ${pluginsConfig.font.size}px -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif`;
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(centerConfig.text, centerX, centerY);
-                    ctx.restore();
-                }
-            }
-        }]
+        }
     });
 }
 
@@ -567,8 +537,8 @@ function initNetworkOrderChart(data = null) {
     }
 
     const defaultData = {
-        labels: ['综合令', '逐项令', '许可令'],
-        values: [7, 15, 3]
+        labels: ['综合令', '逐项令', '许可令', '口头令'],
+        values: [22, 18, 12, 5]
     };
 
     const chartData = data || defaultData;
@@ -582,12 +552,14 @@ function initNetworkOrderChart(data = null) {
                 backgroundColor: [
                     'rgba(59, 130, 246, 0.8)',
                     'rgba(245, 158, 11, 0.8)',
-                    'rgba(236, 72, 153, 0.8)'
+                    'rgba(236, 72, 153, 0.8)',
+                    'rgba(16, 185, 129, 0.8)'
                 ],
                 borderColor: [
                     'rgba(59, 130, 246, 1)',
                     'rgba(245, 158, 11, 1)',
-                    'rgba(236, 72, 153, 1)'
+                    'rgba(236, 72, 153, 1)',
+                    'rgba(16, 185, 129, 1)'
                 ],
                 borderWidth: 2
             }]
@@ -607,7 +579,14 @@ function initNetworkOrderChart(data = null) {
                     borderColor: chartColors.tooltipBorder,
                     borderWidth: 1,
                     cornerRadius: 4,
-                    padding: 8
+                    padding: 8,
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((context.parsed / total) * 100).toFixed(1);
+                            return `${context.label}: ${context.parsed} (${percentage}%)`;
+                        }
+                    }
                 },
                 // 中心文本插件
                 centerText: {
@@ -1341,8 +1320,16 @@ function showStaffDetail() {
 /**
  * 显示时间段详情
  */
+/**
+ * 当前编辑的时间段索引
+ */
+let currentTimeSlotIndex = null;
+
 function showTimeSlotDetail(index, chartData) {
     try {
+        // 保存当前编辑的时间段索引
+        currentTimeSlotIndex = index;
+
         // 获取当前时间段和下一时间段
         const currentHour = index;
         const nextHour = (index + 1) % 24;
@@ -1364,12 +1351,46 @@ function showTimeSlotDetail(index, chartData) {
         // 气象预警等级（如果数据中有，则设置，否则保持默认）
         if (chartData.weatherWarningLevel && chartData.weatherWarningLevel[index]) {
             document.getElementById('weatherWarningLevel').value = chartData.weatherWarningLevel[index];
+        } else {
+            document.getElementById('weatherWarningLevel').value = '';
         }
 
         openModal('timeSlotModal');
     } catch (error) {
         console.error('显示时间段详情错误:', error);
         alert('显示时间段详情失败: ' + error.message);
+    }
+}
+
+/**
+ * 保存时间段配置
+ */
+function saveTimeSlotConfig() {
+    try {
+        if (currentTimeSlotIndex === null) {
+            alert('未选择时间段');
+            return;
+        }
+
+        // 获取表单数据
+        const capacity = parseFloat(document.getElementById('timeSlotCapacity').value) || 0;
+        const warningLevel = document.getElementById('weatherWarningLevel').value;
+
+        // 这里可以调用后端API保存数据
+        console.log('保存时间段配置:', {
+            index: currentTimeSlotIndex,
+            capacity: capacity,
+            warningLevel: warningLevel
+        });
+
+        // 关闭弹窗
+        closeModal('timeSlotModal');
+
+        // 显示成功提示
+        alert('配置保存成功！');
+    } catch (error) {
+        console.error('保存配置错误:', error);
+        alert('保存配置失败: ' + error.message);
     }
 }
 

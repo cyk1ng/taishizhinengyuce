@@ -1273,6 +1273,9 @@ function saveUnplannedWorkload() {
  * 显示人员详情
  */
 function showStaffDetail() {
+    // 先渲染人员列表
+    renderStaffList();
+    // 打开弹窗
     openModal('staffModal');
 }
 

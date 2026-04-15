@@ -638,7 +638,7 @@ body {
     font-weight: 600;
     color: var(--text-primary);
     margin-left: auto;
-    margin-right: 5px;
+    margin-right: 20px;
 }
 
 .staff-value.highlight {

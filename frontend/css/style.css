@@ -567,7 +567,7 @@ body {
 }
 
 .control-card .card-body {
-    padding: 10px;
+    padding: 12px;
 }
 
 /* 快速操作按钮 */
@@ -610,14 +610,14 @@ body {
 .staff-info {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
 }
 
 .staff-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 4px 0;
+    padding: 6px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 }
 
@@ -626,19 +626,19 @@ body {
 }
 
 .staff-label {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--text-secondary);
 }
 
 .staff-value {
-    font-size: 12px;
-    font-weight: 500;
+    font-size: 13px;
+    font-weight: 600;
     color: var(--text-primary);
 }
 
 .staff-value.highlight {
     color: var(--accent-cyan);
-    font-size: 14px;
+    font-size: 15px;
 }
 
 .staff-value.success { color: var(--highlight-green); }

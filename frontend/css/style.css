@@ -616,10 +616,9 @@ body {
 
 .staff-row {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
-    gap: 8px;
-    padding: 8px 0;
+    padding: 8px 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.03);
     line-height: 1.5;
 }
@@ -638,6 +637,8 @@ body {
     font-size: 15px;
     font-weight: 600;
     color: var(--text-primary);
+    margin-left: auto;
+    margin-right: 5px;
 }
 
 .staff-value.highlight {

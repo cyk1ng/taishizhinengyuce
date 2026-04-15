@@ -1080,6 +1080,7 @@ body {
 .control-card {
     cursor: pointer;
     transition: transform 0.2s;
+    overflow: visible;
 }
 
 .control-card:hover {

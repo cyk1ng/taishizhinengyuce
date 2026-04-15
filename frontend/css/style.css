@@ -476,18 +476,18 @@ body {
 .card-header {
     display: flex;
     align-items: center;
-    padding: 10px 14px;
+    padding: 8px 12px;
     border-bottom: 1px solid var(--border-color);
     background: rgba(0, 0, 0, 0.15);
 }
 
 .card-header .icon {
-    font-size: 14px;
-    margin-right: 6px;
+    font-size: 12px;
+    margin-right: 5px;
 }
 
 .card-header .title {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text-primary);
     flex: 1;
@@ -568,6 +568,7 @@ body {
 
 .control-card .card-body {
     padding: 12px;
+    min-height: 140px;
 }
 
 /* 快速操作按钮 */
@@ -610,15 +611,16 @@ body {
 .staff-info {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 
 .staff-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 0;
+    padding: 5px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    line-height: 1.4;
 }
 
 .staff-row:last-child {
@@ -626,19 +628,20 @@ body {
 }
 
 .staff-label {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-secondary);
+    flex-shrink: 0;
 }
 
 .staff-value {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text-primary);
 }
 
 .staff-value.highlight {
     color: var(--accent-cyan);
-    font-size: 15px;
+    font-size: 14px;
 }
 
 .staff-value.success { color: var(--highlight-green); }

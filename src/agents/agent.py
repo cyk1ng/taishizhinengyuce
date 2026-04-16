@@ -49,6 +49,10 @@ from tools.prediction import (
     predict_dispatch_volume,
     analyze_prediction_trend
 )
+from tools.time_series_prediction import (
+    predict_with_time_series,
+    evaluate_prediction_performance
+)
 from tools.decision import (
     generate_staffing_decision,
     optimize_shift_schedule,
@@ -69,6 +73,13 @@ from tools.workload_statistics import (
     get_workload_weights_config,
     analyze_staff_requirement,
     get_workload_by_module
+)
+# 导入人员需求预测工具模块
+from tools.staff_prediction import (
+    predict_staffing_need,
+    generate_staffing_recommendations,
+    evaluate_staff_efficiency,
+    calculate_optimal_staffing
 )
 
 
@@ -159,6 +170,8 @@ def build_agent(ctx=None):
         # 预测工具
         predict_dispatch_volume,
         analyze_prediction_trend,
+        predict_with_time_series,  # 新增：基于Prophet/LSTM/XGBoost的时序预测
+        evaluate_prediction_performance,  # 新增：预测性能评估
         
         # 决策工具
         generate_staffing_decision,
@@ -177,7 +190,12 @@ def build_agent(ctx=None):
         get_realtime_workload_dashboard,
         get_workload_weights_config,
         analyze_staff_requirement,
-        get_workload_by_module
+        get_workload_by_module,
+        # 人员需求预测工具
+        predict_staffing_need,
+        generate_staffing_recommendations,
+        evaluate_staff_efficiency,
+        calculate_optimal_staffing
     ]
     
     # 创建Agent

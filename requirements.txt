@@ -130,6 +130,7 @@ pygobject==3.48.2
 pyiceberg==0.11.1
 pyjwt==2.10.1
 pylint==3.1.0
+pymysql==1.1.2
 pyparsing==3.3.2
 pypdf==6.4.1
 pyroaring==1.0.3

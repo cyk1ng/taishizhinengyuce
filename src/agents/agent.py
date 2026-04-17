@@ -85,6 +85,10 @@ from tools.staff_prediction import (
 from tools.plan_workload import (
     calculate_plan_workload
 )
+# 导入非计划工作量统计工具模块
+from tools.non_plan_workload import (
+    calculate_non_plan_workload
+)
 
 
 # 配置文件路径
@@ -201,7 +205,9 @@ def build_agent(ctx=None):
         evaluate_staff_efficiency,
         calculate_optimal_staffing,
         # 计划工作量统计工具
-        calculate_plan_workload
+        calculate_plan_workload,
+        # 非计划工作量统计工具
+        calculate_non_plan_workload
     ]
     
     # 创建Agent
@@ -231,7 +237,9 @@ AGENT_METADATA = {
         "排班方案优化",
         "实时工作量统计",
         "工作当量计算",
-        "人力资源建议"
+        "人力资源建议",
+        "计划工作量统计",
+        "非计划工作量统计"
     ],
     "data_sources": [
         "历史调度记录",

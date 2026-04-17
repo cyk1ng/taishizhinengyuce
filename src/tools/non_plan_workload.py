@@ -317,8 +317,8 @@ def calculate_non_plan_workload(
     4. 以上三项相加为实时分析的非计划工作量
     
     参数：
-    - target_date: 目标日期 (YYYY-MM-DD)，默认今天
-    - days_back: 故障日志向前追溯天数，默认3天
+        - target_date: 目标日期 (YYYY-MM-DD)，默认今天
+        - days_back: 故障日志向前追溯天数，默认3天
     
     返回：非计划工作量统计结果JSON字符串
     """
@@ -362,6 +362,14 @@ def calculate_non_plan_workload(
                 "fault_time": str(record["fault_time"]),
                 "weight": record["weight"]
             })
+            # 记录到高发事件检测器
+            from tools.weather_manager import HighIncidentDetector
+            HighIncidentDetector.record_incident("fault", {
+                "fault_id": record["fault_id"],
+                "task_category": record["task_category"],
+                "task_name": record["task_name"],
+                "equipment_name": record["equipment_name"]
+            })
         
         # 2.2 处理异常缺陷
         defect_count = 0
@@ -394,6 +402,15 @@ def calculate_non_plan_workload(
                 "load_rate": record["load_rate"],
                 "record_time": str(record["record_time"]),
                 "weight": record["weight"]
+            })
+            # 记录到高发事件检测器
+            from tools.weather_manager import HighIncidentDetector
+            HighIncidentDetector.record_incident("overload", {
+                "overload_id": record["overload_id"],
+                "task_category": record["task_category"],
+                "task_name": record["task_name"],
+                "equipment_name": record["equipment_name"],
+                "load_rate": record["load_rate"]
             })
         
         # 2.4 汇总统计
@@ -440,4 +457,256 @@ def calculate_non_plan_workload(
             "success": False,
             "error": str(e),
             "message": "计算非计划工作量失败"
+        }, ensure_ascii=False)
+
+
+@tool
+def predict_non_plan_workload_with_weather(
+    target_date: str,
+    location: str = "云南昆明",
+    use_typical_weather: bool = False,
+    runtime: ToolRuntime = None
+) -> str:
+    """
+    预测非计划工作量（带天气信息）
+    
+    功能：
+    1. 获取目标日期的天气信息（或使用季节典型天气）
+    2. 统计当前非计划工作量
+    3. 检测最近高发事件
+    4. 基于天气、历史模式和高发事件预测未来工作量
+    
+    参数：
+        - target_date: 目标日期 (YYYY-MM-DD)
+        - location: 地点，默认"云南昆明"
+        - use_typical_weather: 是否使用季节典型天气，默认False（使用实际天气）
+    
+    返回：非计划工作量预测结果JSON字符串
+    """
+    ctx = runtime.context if runtime else new_context(method="predict_non_plan_workload_with_weather")
+    
+    try:
+        from tools.weather_manager import (
+            SeasonCharacteristics,
+            HistoricalWeatherData,
+            WeatherClassifier,
+            HighIncidentDetector
+        )
+        
+        # 1. 获取天气信息
+        if use_typical_weather:
+            # 使用季节典型天气（预测时自动填写）
+            month = datetime.strptime(target_date, "%Y-%m-%d").month
+            typical_weather = SeasonCharacteristics.get_typical_weather_for_prediction(month)
+            
+            weather_data = {
+                "date": target_date,
+                "month": month,
+                "weather_info": {
+                    "temperature": typical_weather["temperature"],
+                    "precipitation_level": typical_weather["precipitation_level"],
+                    "wind_level": typical_weather["wind_level"],
+                    "extreme_weather": typical_weather["extreme_weather"]
+                },
+                "season_name": typical_weather["season_name"],
+                "workload_impact": typical_weather["workload_impact"]
+            }
+            
+            # 保存到历史
+            HistoricalWeatherData.save_weather(target_date, weather_data["weather_info"])
+        else:
+            # 通过搜索获取实际天气
+            from coze_coding_dev_sdk import SearchClient
+            query = f"{target_date} {location} 天气预报 温度 降雨 风力"
+            client = SearchClient(ctx=ctx)
+            response = client.web_search(query=query, count=5, need_summary=True)
+            
+            # 提取天气信息
+            all_text = response.summary if (hasattr(response, 'summary') and response.summary) else ""
+            if hasattr(response, 'web_items') and response.web_items:
+                snippets = [item.snippet for item in response.web_items if item.snippet]
+                all_text += " " + " ".join(snippets)
+            
+            # 简单提取温度信息
+            import re
+            temp_matches = re.findall(r'(-?\d+).*?℃', all_text)
+            if temp_matches:
+                temps = [int(t) for t in temp_matches]
+                temp_min = min(temps)
+                temp_max = max(temps)
+                temp_class = WeatherClassifier.classify_temperature(temp_min, temp_max)
+                temp_info = {"temp_range": temp_class["temp_range"]}
+            else:
+                month = datetime.strptime(target_date, "%Y-%m-%d").month
+                typical_weather = SeasonCharacteristics.get_typical_weather_for_prediction(month)
+                temp_info = {"temp_range": typical_weather["temperature"]}
+            
+            # 分类降水量和风力（默认值）
+            precip_info = {"level": "未知"}
+            wind_info = {"level": "未知"}
+            
+            # 分类极端天气
+            extreme_class = WeatherClassifier.classify_extreme_weather(all_text)
+            extreme_info = {
+                "has_extreme": extreme_class["has_extreme"],
+                "types": extreme_class["types"]
+            }
+            
+            weather_data = {
+                "date": target_date,
+                "location": location,
+                "weather_info": {
+                    "temperature": temp_info["temp_range"],
+                    "precipitation_level": precip_info["level"],
+                    "wind_level": wind_info["level"],
+                    "extreme_weather": extreme_info["types"]
+                }
+            }
+            
+            # 保存到历史
+            HistoricalWeatherData.save_weather(target_date, weather_data["weather_info"])
+        
+        # 2. 获取当前非计划工作量（作为基线）
+        fault_logs = NonPlanWorkloadDatabase.collect_fault_logs(target_date, days_back=3)
+        defect_records = NonPlanWorkloadDatabase.collect_defect_records()
+        overload_records = NonPlanWorkloadDatabase.collect_overload_records()
+        
+        base_count = len(fault_logs) + len(defect_records) + len(overload_records)
+        base_weight = 0.0
+        
+        for record in fault_logs:
+            base_weight += record.get("weight", 0.0)
+            # 记录到高发事件检测器
+            HighIncidentDetector.record_incident("fault", {
+                "fault_id": record["fault_id"],
+                "task_category": record["task_category"],
+                "task_name": record["task_name"],
+                "equipment_name": record["equipment_name"]
+            })
+        
+        for record in defect_records:
+            base_weight += record.get("weight", 0.0)
+        
+        for record in overload_records:
+            base_weight += record.get("weight", 0.0)
+            # 记录到高发事件检测器
+            HighIncidentDetector.record_incident("overload", {
+                "overload_id": record["overload_id"],
+                "task_category": record["task_category"],
+                "task_name": record["task_name"],
+                "equipment_name": record["equipment_name"],
+                "load_rate": record["load_rate"]
+            })
+        
+        base_weight = round(base_weight, 2)
+        
+        current_data = {
+            "summary": {
+                "total_count": base_count,
+                "total_weight": base_weight
+            }
+        }
+        
+        # 3. 检测高发事件
+        prediction_impact = HighIncidentDetector.get_prediction_impact()
+        
+        # 4. 获取季节特点
+        month = datetime.strptime(target_date, "%Y-%m-%d").month
+        season = SeasonCharacteristics.get_season_by_month(month)
+        
+        # 5. 计算天气影响因子
+        weather_impact_factor = 1.0  # 默认无影响
+        if weather_data:
+            weather_info = weather_data.get("weather_info", {})
+            extreme = weather_info.get("extreme_weather", [])
+            
+            # 极端天气影响
+            if extreme:
+                weather_impact_factor *= 2.0  # 极端天气翻倍
+            
+            # 降水影响
+            precip_level = weather_info.get("precipitation_level", "小")
+            if precip_level == "大":
+                weather_impact_factor *= 1.5
+            elif precip_level == "中":
+                weather_impact_factor *= 1.2
+            
+            # 风力影响
+            wind_level = weather_info.get("wind_level", "小")
+            if wind_level == "大":
+                weather_impact_factor *= 1.3
+            elif wind_level == "中":
+                weather_impact_factor *= 1.1
+            
+            # 季节影响
+            if season:
+                season_impact = season.get("workload_impact", "low")
+                if season_impact == "high":
+                    weather_impact_factor *= 1.4
+                elif season_impact == "medium":
+                    weather_impact_factor *= 1.2
+        
+        # 6. 高发事件影响因子
+        incident_impact_factor = 1.0
+        if prediction_impact.get("overall_impact") == "high":
+            incident_impact_factor = 1.5
+        elif prediction_impact.get("overall_impact") == "medium":
+            incident_impact_factor = 1.2
+        
+        # 7. 综合预测
+        predicted_count = int(base_count * weather_impact_factor * incident_impact_factor)
+        predicted_weight = round(base_weight * weather_impact_factor * incident_impact_factor, 2)
+        
+        # 8. 生成预测结果
+        result = {
+            "target_date": target_date,
+            "location": location,
+            "prediction": {
+                "base_count": base_count,
+                "base_weight": base_weight,
+                "predicted_count": predicted_count,
+                "predicted_weight": predicted_weight,
+                "weather_impact_factor": round(weather_impact_factor, 2),
+                "incident_impact_factor": round(incident_impact_factor, 2),
+                "total_impact_factor": round(weather_impact_factor * incident_impact_factor, 2)
+            },
+            "weather": weather_data,
+            "current_workload": current_data,
+            "incidents": prediction_impact,
+            "season": season,
+            "recommendations": []
+        }
+        
+        # 生成建议
+        if weather_impact_factor > 1.3:
+            result["recommendations"].append(f"天气影响较大（因子{weather_impact_factor}），建议增加值班人员")
+        
+        if incident_impact_factor > 1.2:
+            result["recommendations"].append(f"近期高发事件影响（因子{incident_impact_factor}），需重点关注")
+        
+        if season and season.get("workload_impact") == "high":
+            result["recommendations"].append(f"属于{season['name']}，{season['description']}，需加强设备巡检")
+        
+        # 保存天气-工作量关联（用于训练）
+        if weather_data and current_data:
+            HistoricalWeatherData.save_weather_workload_association(
+                target_date,
+                weather_data,
+                current_data.get("summary", {})
+            )
+        
+        return json.dumps({
+            "success": True,
+            "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "data": result
+        }, ensure_ascii=False, indent=2)
+        
+    except Exception as e:
+        logger.error(f"预测非计划工作量失败: {e}")
+        import traceback
+        logger.error(f"详细错误: {traceback.format_exc()}")
+        return json.dumps({
+            "success": False,
+            "error": str(e),
+            "message": "预测非计划工作量失败"
         }, ensure_ascii=False)

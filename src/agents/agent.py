@@ -89,7 +89,18 @@ from tools.plan_workload import (
 )
 # 导入非计划工作量统计工具模块
 from tools.non_plan_workload import (
-    calculate_non_plan_workload
+    calculate_non_plan_workload,
+    predict_non_plan_workload_with_weather
+)
+# 导入天气管理工具模块
+from tools.weather_manager import (
+    get_weather_by_search,
+    get_typical_weather_by_season,
+    detect_high_incidents_for_prediction,
+    save_weather_workload_association,
+    manual_adjust_weather,  # 新增：手动修改天气数据
+    get_weather_adjustments,  # 新增：查询天气修改记录
+    collect_historical_workload  # 新增：收集历史业务量数据
 )
 
 
@@ -211,7 +222,16 @@ def build_agent(ctx=None):
         manual_adjust_plan_workload,
         get_manual_adjustments,
         # 非计划工作量统计工具
-        calculate_non_plan_workload
+        calculate_non_plan_workload,
+        predict_non_plan_workload_with_weather,  # 新增：带天气信息的非计划工作量预测
+        # 天气管理工具
+        get_weather_by_search,  # 新增：通过搜索获取天气信息
+        get_typical_weather_by_season,  # 新增：获取季节典型天气
+        detect_high_incidents_for_prediction,  # 新增：检测高发事件
+        save_weather_workload_association,  # 新增：保存天气-工作量关联数据
+        manual_adjust_weather,  # 新增：手动修改天气数据
+        get_weather_adjustments,  # 新增：查询天气修改记录
+        collect_historical_workload  # 新增：收集历史业务量数据
     ]
     
     # 创建Agent
@@ -243,7 +263,14 @@ AGENT_METADATA = {
         "工作当量计算",
         "人力资源建议",
         "计划工作量统计",
-        "非计划工作量统计"
+        "非计划工作量统计",
+        "天气信息管理",
+        "天气分类（温度/降水/风力/极端天气）",
+        "季节特点分析",
+        "高发事件智能识别",
+        "天气-工作量关联分析",
+        "天气手动修改",
+        "历史业务量收集（按高峰期/非高峰期分类）"
     ],
     "data_sources": [
         "历史调度记录",

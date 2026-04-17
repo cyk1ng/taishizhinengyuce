@@ -81,6 +81,10 @@ from tools.staff_prediction import (
     evaluate_staff_efficiency,
     calculate_optimal_staffing
 )
+# 导入计划工作量统计工具模块
+from tools.plan_workload import (
+    calculate_plan_workload
+)
 
 
 # 配置文件路径
@@ -195,7 +199,9 @@ def build_agent(ctx=None):
         predict_staffing_need,
         generate_staffing_recommendations,
         evaluate_staff_efficiency,
-        calculate_optimal_staffing
+        calculate_optimal_staffing,
+        # 计划工作量统计工具
+        calculate_plan_workload
     ]
     
     # 创建Agent

@@ -36,6 +36,8 @@
     "analyze_staff_requirement",
     "get_workload_by_module",
     "calculate_plan_workload",
+    "manual_adjust_plan_workload",
+    "get_manual_adjustments",
     "calculate_non_plan_workload"
   ]
 }

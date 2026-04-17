@@ -83,7 +83,9 @@ from tools.staff_prediction import (
 )
 # 导入计划工作量统计工具模块
 from tools.plan_workload import (
-    calculate_plan_workload
+    calculate_plan_workload,
+    manual_adjust_plan_workload,
+    get_manual_adjustments
 )
 # 导入非计划工作量统计工具模块
 from tools.non_plan_workload import (
@@ -206,6 +208,8 @@ def build_agent(ctx=None):
         calculate_optimal_staffing,
         # 计划工作量统计工具
         calculate_plan_workload,
+        manual_adjust_plan_workload,
+        get_manual_adjustments,
         # 非计划工作量统计工具
         calculate_non_plan_workload
     ]

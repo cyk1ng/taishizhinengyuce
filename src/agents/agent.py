@@ -81,6 +81,18 @@ from tools.staff_prediction import (
     evaluate_staff_efficiency,
     calculate_optimal_staffing
 )
+# 导入态势感知工具模块
+from tools.situation_awareness import (
+    assess_situation_awareness,
+    generate_situation_report,
+    get_situation_dashboard
+)
+# 导入风险预警工具模块
+from tools.risk_alert import (
+    assess_comprehensive_risk,
+    generate_risk_alert_report,
+    check_daily_risks
+)
 # 导入计划工作量统计工具模块
 from tools.plan_workload import (
     calculate_plan_workload,
@@ -231,7 +243,15 @@ def build_agent(ctx=None):
         save_weather_workload_association,  # 新增：保存天气-工作量关联数据
         manual_adjust_weather,  # 新增：手动修改天气数据
         get_weather_adjustments,  # 新增：查询天气修改记录
-        collect_historical_workload  # 新增：收集历史业务量数据
+        collect_historical_workload,  # 新增：收集历史业务量数据
+        # 风险预警工具
+        assess_comprehensive_risk,  # 新增：综合风险评估
+        generate_risk_alert_report,  # 新增：生成风险预警报告
+        check_daily_risks,  # 新增：每日风险检查
+        # 态势感知工具
+        assess_situation_awareness,  # 新增：态势感知评估
+        generate_situation_report,  # 新增：生成态势分析报告
+        get_situation_dashboard  # 新增：获取态势看板数据
     ]
     
     # 创建Agent
@@ -270,7 +290,16 @@ AGENT_METADATA = {
         "高发事件智能识别",
         "天气-工作量关联分析",
         "天气手动修改",
-        "历史业务量收集（按高峰期/非高峰期分类）"
+        "历史业务量收集（按高峰期/非高峰期分类）",
+        "综合风险评估",
+        "多维度风险识别",
+        "风险预警报告生成",
+        "每日风险检查",
+        "态势感知评估",
+        "运行态势分析",
+        "态势趋势分析",
+        "态势报告生成",
+        "态势看板数据"
     ],
     "data_sources": [
         "历史调度记录",

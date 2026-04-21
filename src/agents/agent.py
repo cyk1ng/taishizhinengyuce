@@ -93,16 +93,13 @@ from tools.risk_alert import (
     generate_risk_alert_report,
     check_daily_risks
 )
-# 导入计划工作量统计工具模块
+# 导入计划工作量统计工具模块（更新：包含计划工作量和非计划工作量）
 from tools.plan_workload import (
     calculate_plan_workload,
+    calculate_non_plan_workload,
+    get_workload_dashboard,
     manual_adjust_plan_workload,
     get_manual_adjustments
-)
-# 导入非计划工作量统计工具模块
-from tools.non_plan_workload import (
-    calculate_non_plan_workload,
-    predict_non_plan_workload_with_weather
 )
 # 导入天气管理工具模块
 from tools.weather_manager import (
@@ -229,13 +226,12 @@ def build_agent(ctx=None):
         generate_staffing_recommendations,
         evaluate_staff_efficiency,
         calculate_optimal_staffing,
-        # 计划工作量统计工具
+        # 计划工作量统计工具（更新：包含计划工作量和非计划工作量）
         calculate_plan_workload,
+        calculate_non_plan_workload,
+        get_workload_dashboard,  # 新增：获取工作量看板数据（计划+非计划）
         manual_adjust_plan_workload,
         get_manual_adjustments,
-        # 非计划工作量统计工具
-        calculate_non_plan_workload,
-        predict_non_plan_workload_with_weather,  # 新增：带天气信息的非计划工作量预测
         # 天气管理工具
         get_weather_by_search,  # 新增：通过搜索获取天气信息
         get_typical_weather_by_season,  # 新增：获取季节典型天气

@@ -1,49 +1,73 @@
 """
-计划工作量统计模块 - 支持手动修改和历史数据自动填写
+计划工作量统计模块 - 更新版
 
 功能：
-1. 计划检修工作量统计（支持手动修改）
-2. 转供电工作量统计（支持手动修改）
-3. 设备投退工作量统计（支持手动修改）
-4. 周计划工作量统计（支持手动修改）
+1. 计划检修工作量统计（支持开展中、已终结分类）
+2. 转供电工作量统计（支持开展中、已终结分类）
+3. 设备投退工作量统计（支持开展中、已终结分类）
+4. 周计划工作量统计（支持开展中、已终结分类）
 
-业务规则（新增）：
-1. 计划工作数量均可手动更改
-2. 基于历史数据自动填写，人工核对后可手动修改
-3. 数据反馈：手动修改后返回智能体训练
+业务规则（最新）：
+1. 所有计划工作数量均可手动更改
+2. 计划工作量分为：开展中、已终结
+3. 非计划工作量分为：故障日志、异常缺陷、重过载
 
 时间段定义：
 - 早班：08:00~14:00
 - 中班：14:00~21:00
 - 夜班：21:00~次日08:00
 
-业务规则（更新）：
-1. 计划检修/设备投退：
-   - 若预测当天三值工作量：
-     - 批准工作结束时间为21:00前的总数纳入早班、中班时间段内考虑
-     - 批准工作结束时间为21:00后的纳入夜班考虑
+计划工作量业务规则：
+1. 计划检修：
+   - 「待执行-批准停电开始时间为当天」+「执行中-批准工作结束时间为当天（21:00后的也包括）」= 白天工作量（早班+中班）
+   - 「批准工作结束时间为21:00后」= 夜班工作量
+   - 支持开展中、已终结分类
 
-2. 转供电：
-   - 若预测当天三值工作量：
-     - 计划转出开始时间为21:00前的总数纳入早班、中班时间段内考虑
-     - 批准转出开始时间为21:00至次日08:30的纳入夜班考虑
+2. 设备投退：
+   - 「待执行-批准工作开始时间为当天」+「执行中-批准工作结束时间为当天（21:00后的也包括）」= 白天工作量（早班+中班）
+   - 「批准工作结束时间为21:00后」= 夜班工作量
+   - 支持开展中、已终结分类
 
-3. 周计划：
-   - 当天批准时间段0:00-23:59状态为执行中的为周计划数量
-   - 若预测当天三值工作量：
-     - 将周计划总数纳入早班、中班时间段内考虑
-     - 夜班周计划工作量暂时忽略不计
+3. 转供电：
+   - 「待执行-批准转出开始时间为当天」+「执行中-转出开始时间为当天（21:00后的不包括）」= 白天工作量（早班+中班）
+   - 「批准转出开始时间为21:00至次日08:30」= 夜班工作量
+   - 支持开展中、已终结分类
+
+4. 周计划：
+   - 需自动读取批准工作开始时间为当天的所有周计划（包括跨天工作的周计划）
+   - 将周计划总数纳入早班、中班时间段内考虑
+   - 夜班周计划工作量暂时以跨天工作的周计划总数为准
+   - 支持开展中、已终结分类
 """
 
 import json
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
-from langchain.tools import tool, ToolRuntime
+from langchain.tools import tool
 from coze_coding_utils.runtime_ctx.context import new_context
 
 # 配置日志
 logger = logging.getLogger(__name__)
+
+
+# ============================================================
+# 常量定义
+# ============================================================
+
+# 状态常量
+STATUS_IN_PROGRESS = ["pending", "executing", "in_progress", "待执行", "执行中"]
+STATUS_COMPLETED = ["completed", "finished", "terminated", "terminated", "已终结", "已完成"]
+STATUS_NOT_HANDED_OVER = ["not_handed_over", "unhanded", "未交班"]
+STATUS_HANDED_OVER = ["handed_over", "handed", "已交班"]
+
+# 时间段定义
+SHIFT_MORNING_START = 8   # 早班开始 08:00
+SHIFT_MORNING_END = 14    # 早班结束 14:00
+SHIFT_AFTERNOON_START = 14 # 中班开始 14:00
+SHIFT_AFTERNOON_END = 21   # 中班结束 21:00
+SHIFT_NIGHT_START = 21     # 夜班开始 21:00
+SHIFT_NIGHT_END = 32       # 夜班结束 次日08:00 (24+8)
 
 
 # ============================================================
@@ -66,30 +90,6 @@ class ManualWorkloadData:
         """保存手动修改的数据"""
         cls._manual_adjustments[target_date] = data
         logger.info(f"已保存 {target_date} 的手动修改数据")
-    
-    @classmethod
-    def apply_manual_adjustments(cls, allocation_result: Dict) -> Dict:
-        """应用手动修改"""
-        target_date = allocation_result.get("target_date")
-        if not target_date:
-            return allocation_result
-        
-        manual_data = cls.load_manual_data(target_date)
-        if not manual_data:
-            return allocation_result
-        
-        # 应用手动修改
-        logger.info(f"应用 {target_date} 的手动修改")
-        allocation_result["manual_adjustments_applied"] = True
-        allocation_result["manual_adjustments"] = manual_data
-        
-        # 更新班次分配
-        for shift in ["morning", "afternoon", "night"]:
-            if shift in manual_data:
-                allocation_result["summary"][shift]["total_count"] = manual_data[shift].get("total_count", 0)
-                allocation_result["summary"][shift]["manual_override"] = True
-        
-        return allocation_result
 
 
 # ============================================================
@@ -115,10 +115,10 @@ class PlanWorkloadDatabase:
         """
         采集计划检修工作量
         
-        业务规则（更新）：
-        - 若预测当天三值工作量：
-          - 批准工作结束时间为21:00前的总数纳入早班、中班时间段内考虑
-          - 批准工作结束时间为21:00后的纳入夜班考虑
+        业务规则（最新）：
+        - 「待执行-批准停电开始时间为当天」+「执行中-批准工作结束时间为当天（21:00后的也包括）」= 白天工作量（早班+中班）
+        - 「批准工作结束时间为21:00后」= 夜班工作量
+        - 支持开展中、已终结分类
         
         参数：
             target_date: 目标日期 (YYYY-MM-DD)
@@ -157,14 +157,20 @@ class PlanWorkloadDatabase:
                         WHEN OPERATION_TYPE = 'power_off' THEN '停电' 
                         WHEN OPERATION_TYPE = 'power_on' THEN '复电' 
                     END as task_name,
+                    -- 判断状态分类
+                    CASE 
+                        WHEN STATUS IN ('pending', 'executing', 'in_progress', '待执行', '执行中') THEN 'in_progress'
+                        WHEN STATUS IN ('completed', 'finished', 'terminated', '已终结', '已完成') THEN 'completed'
+                        ELSE 'unknown'
+                    END as status_category,
                     -- 判断是否跨夜班（21:00后结束）
                     CASE 
                         WHEN HOUR(APPROVED_END_TIME) >= 21 THEN 1
                         ELSE 0
                     END as is_night_shift
                 FROM maintenance_records
-                WHERE DATE(APPROVED_START_TIME) = :target_date
-                  OR DATE(APPROVED_END_TIME) = :target_date
+                WHERE (DATE(APPROVED_START_TIME) = :target_date 
+                      OR DATE(APPROVED_END_TIME) = :target_date)
                 ORDER BY APPROVED_END_TIME
             """)
             
@@ -188,10 +194,10 @@ class PlanWorkloadDatabase:
         """
         采集设备投退工作量
         
-        业务规则（更新）：
-        - 若预测当天三值工作量：
-          - 批准工作结束时间为21:00前的总数纳入早班、中班时间段内考虑
-          - 批准工作结束时间为21:00后的纳入夜班考虑
+        业务规则（最新）：
+        - 「待执行-批准工作开始时间为当天」+「执行中-批准工作结束时间为当天（21:00后的也包括）」= 白天工作量（早班+中班）
+        - 「批准工作结束时间为21:00后」= 夜班工作量
+        - 支持开展中、已终结分类
         
         参数：
             target_date: 目标日期 (YYYY-MM-DD)
@@ -220,14 +226,20 @@ class PlanWorkloadDatabase:
                     OPERATOR_NAME as operator_name,
                     'A6' as task_category,
                     '设备投退' as task_name,
+                    -- 判断状态分类
+                    CASE 
+                        WHEN STATUS IN ('pending', 'executing', 'in_progress', '待执行', '执行中') THEN 'in_progress'
+                        WHEN STATUS IN ('completed', 'finished', 'terminated', '已终结', '已完成') THEN 'completed'
+                        ELSE 'unknown'
+                    END as status_category,
                     -- 判断是否跨夜班（21:00后结束）
                     CASE 
                         WHEN HOUR(APPROVED_END_TIME) >= 21 THEN 1
                         ELSE 0
                     END as is_night_shift
                 FROM equipment_operations
-                WHERE DATE(APPROVED_START_TIME) = :target_date
-                  OR DATE(APPROVED_END_TIME) = :target_date
+                WHERE (DATE(APPROVED_START_TIME) = :target_date 
+                      OR DATE(APPROVED_END_TIME) = :target_date)
                 ORDER BY APPROVED_END_TIME
             """)
             
@@ -251,10 +263,10 @@ class PlanWorkloadDatabase:
         """
         采集转供电工作量
         
-        业务规则（更新）：
-        - 若预测当天三值工作量：
-          - 计划转出开始时间为21:00前的总数纳入早班、中班时间段内考虑
-          - 批准转出开始时间为21:00至次日08:30的纳入夜班考虑
+        业务规则（最新）：
+        - 「待执行-批准转出开始时间为当天」+「执行中-转出开始时间为当天（21:00后的不包括）」= 白天工作量（早班+中班）
+        - 「批准转出开始时间为21:00至次日08:30」= 夜班工作量
+        - 支持开展中、已终结分类
         
         参数：
             target_date: 目标日期 (YYYY-MM-DD)
@@ -283,6 +295,12 @@ class PlanWorkloadDatabase:
                     OPERATOR_NAME as operator_name,
                     'A3' as task_category,
                     '转供电' as task_name,
+                    -- 判断状态分类
+                    CASE 
+                        WHEN STATUS IN ('pending', 'executing', 'in_progress', '待执行', '执行中') THEN 'in_progress'
+                        WHEN STATUS IN ('completed', 'finished', 'terminated', '已终结', '已完成') THEN 'completed'
+                        ELSE 'unknown'
+                    END as status_category,
                     -- 判断是否跨夜班（21:00至次日08:30）
                     CASE 
                         WHEN HOUR(TRANSFER_OUT_TIME) >= 21 OR HOUR(TRANSFER_OUT_TIME) < 8 THEN 1
@@ -313,12 +331,11 @@ class PlanWorkloadDatabase:
         """
         采集周计划工作量
         
-        业务规则（更新）：
+        业务规则（最新）：
         1. 需自动读取批准工作开始时间为当天的所有周计划（包括跨天工作的周计划）
-        2. 当天批准时间段0:00-23:59状态为执行中的为周计划数量
-        3. 若预测当天三值工作量：
-           - 将周计划总数纳入早班、中班时间段内考虑
-           - 夜班周计划工作量暂时忽略不计
+        2. 将周计划总数纳入早班、中班时间段内考虑
+        3. 夜班周计划工作量暂时以跨天工作的周计划总数为准
+        4. 支持开展中、已终结分类
         
         参数：
             target_date: 目标日期 (YYYY-MM-DD)
@@ -335,7 +352,7 @@ class PlanWorkloadDatabase:
         try:
             from sqlalchemy import text
             
-            # 查询当天批准时间段0:00-23:59状态为执行中的周计划
+            # 查询批准工作开始时间为当天的所有周计划
             sql = text("""
                 SELECT 
                     PLAN_ID as record_id,
@@ -358,6 +375,17 @@ class PlanWorkloadDatabase:
                         WHEN PLAN_TYPE = 'commissioning' THEN '周计划(只投产)'
                         ELSE '周计划'
                     END as task_name,
+                    -- 判断状态分类
+                    CASE 
+                        WHEN STATUS IN ('pending', 'executing', 'in_progress', '待执行', '执行中') THEN 'in_progress'
+                        WHEN STATUS IN ('completed', 'finished', 'terminated', '已终结', '已完成') THEN 'completed'
+                        ELSE 'unknown'
+                    END as status_category,
+                    -- 判断是否跨天工作
+                    CASE 
+                        WHEN DATE(APPROVED_START_TIME) != DATE(APPROVED_END_TIME) THEN 1
+                        ELSE 0
+                    END as is_cross_day,
                     -- 计算任务数量
                     CASE 
                         WHEN PLAN_TYPE = 'live_operation' AND IS_LIVE_COOP = 1 THEN 2  -- 带电配合投产
@@ -366,8 +394,7 @@ class PlanWorkloadDatabase:
                         ELSE 1
                     END as task_count
                 FROM weekly_plans
-                WHERE STATUS = 'executing'
-                  AND DATE(APPROVED_START_TIME) = :target_date
+                WHERE DATE(APPROVED_START_TIME) = :target_date
                 ORDER BY APPROVED_START_TIME
             """)
             
@@ -388,28 +415,237 @@ class PlanWorkloadDatabase:
 
 
 # ============================================================
-# 工作量分配类（更新）
+# 非计划工作量数据库操作类
+# ============================================================
+
+class NonPlanWorkloadDatabase:
+    """非计划工作量数据库操作类"""
+    
+    @staticmethod
+    def get_session():
+        """获取数据库会话"""
+        try:
+            from storage.database.db import get_session, is_database_connected
+            if is_database_connected():
+                return get_session()
+        except Exception as e:
+            logger.error(f"数据库连接失败: {e}")
+        return None
+    
+    @staticmethod
+    def collect_fault_workload(target_date: str) -> List[Dict]:
+        """
+        采集故障日志工作量
+        
+        业务规则（最新）：
+        - 前三天未交班的故障单数
+        
+        参数：
+            target_date: 目标日期 (YYYY-MM-DD)
+        
+        返回：故障日志记录列表
+        """
+        session = NonPlanWorkloadDatabase.get_session()
+        if not session:
+            logger.warning("数据库未连接，返回空列表")
+            return []
+        
+        records = []
+        
+        try:
+            from sqlalchemy import text
+            
+            # 计算前三天的日期范围
+            target_dt = datetime.strptime(target_date, "%Y-%m-%d")
+            three_days_ago = target_dt - timedelta(days=3)
+            
+            # 查询前三天未交班的故障单
+            sql = text("""
+                SELECT 
+                    FAULT_ID as record_id,
+                    FAULT_NO as fault_no,
+                    FAULT_TYPE as fault_type,
+                    EQUIPMENT_NAME as equipment_name,
+                    FAULT_TIME as fault_time,
+                    EXPECTED_RESTORE_TIME as expected_restore_time,
+                    STATUS as status,
+                    HANDOVER_STATUS as handover_status,
+                    OPERATOR_NAME as operator_name,
+                    CASE 
+                        WHEN FAULT_TYPE = 'success' THEN '跳闸重合成功'
+                        WHEN FAULT_TYPE = 'fail_known' THEN '跳闸重合不成功(确定故障)'
+                        WHEN FAULT_TYPE = 'fail_unknown' THEN '跳闸重合不成功(不确定故障)'
+                        WHEN FAULT_TYPE = 'bus_ground' THEN '母线接地'
+                        ELSE '故障'
+                    END as task_name,
+                    -- 判断是否未交班
+                    CASE 
+                        WHEN HANDOVER_STATUS IN ('not_handed_over', 'unhanded', '未交班') THEN 1
+                        ELSE 0
+                    END as is_not_handed_over
+                FROM fault_logs
+                WHERE (FAULT_TIME >= :start_date AND FAULT_TIME <= :end_date)
+                  AND HANDOVER_STATUS IN ('not_handed_over', 'unhanded', '未交班')
+                ORDER BY FAULT_TIME
+            """)
+            
+            result = session.execute(sql, {
+                "start_date": three_days_ago.strftime("%Y-%m-%d"),
+                "end_date": target_date
+            })
+            for row in result:
+                data = dict(row._mapping)
+                records.append(data)
+            
+            logger.info(f"采集故障日志工作量 {len(records)} 条")
+            
+        except Exception as e:
+            logger.error(f"采集故障日志工作量失败: {e}")
+        finally:
+            if session:
+                session.close()
+        
+        return records
+    
+    @staticmethod
+    def collect_defect_workload(target_date: str) -> List[Dict]:
+        """
+        采集异常缺陷工作量
+        
+        业务规则（最新）：
+        - 当值记录未交班的所有缺陷单数
+        
+        参数：
+            target_date: 目标日期 (YYYY-MM-DD)
+        
+        返回：异常缺陷记录列表
+        """
+        session = NonPlanWorkloadDatabase.get_session()
+        if not session:
+            logger.warning("数据库未连接，返回空列表")
+            return []
+        
+        records = []
+        
+        try:
+            from sqlalchemy import text
+            
+            # 查询当值记录未交班的缺陷单
+            sql = text("""
+                SELECT 
+                    DEFECT_ID as record_id,
+                    DEFECT_NO as defect_no,
+                    DEFECT_TYPE as defect_type,
+                    EQUIPMENT_NAME as equipment_name,
+                    FAULT_TIME as fault_time,
+                    EXPECTED_RESTORE_TIME as expected_restore_time,
+                    STATUS as status,
+                    HANDOVER_STATUS as handover_status,
+                    OPERATOR_NAME as operator_name,
+                    '异常缺陷' as task_name,
+                    -- 判断是否未交班
+                    CASE 
+                        WHEN HANDOVER_STATUS IN ('not_handed_over', 'unhanded', '未交班') THEN 1
+                        ELSE 0
+                    END as is_not_handed_over
+                FROM defect_records
+                WHERE DATE(FAULT_TIME) = :target_date
+                  AND HANDOVER_STATUS IN ('not_handed_over', 'unhanded', '未交班')
+                ORDER BY FAULT_TIME
+            """)
+            
+            result = session.execute(sql, {"target_date": target_date})
+            for row in result:
+                data = dict(row._mapping)
+                records.append(data)
+            
+            logger.info(f"采集异常缺陷工作量 {len(records)} 条")
+            
+        except Exception as e:
+            logger.error(f"采集异常缺陷工作量失败: {e}")
+        finally:
+            if session:
+                session.close()
+        
+        return records
+    
+    @staticmethod
+    def collect_overload_workload(target_date: str) -> List[Dict]:
+        """
+        采集重过载工作量
+        
+        业务规则（最新）：
+        - 当值记录未解决的所有重过载数
+        
+        参数：
+            target_date: 目标日期 (YYYY-MM-DD)
+        
+        返回：重过载记录列表
+        """
+        session = NonPlanWorkloadDatabase.get_session()
+        if not session:
+            logger.warning("数据库未连接，返回空列表")
+            return []
+        
+        records = []
+        
+        try:
+            from sqlalchemy import text
+            
+            # 查询当值记录未解决的重过载
+            sql = text("""
+                SELECT 
+                    OVERLOAD_ID as record_id,
+                    OVERLOAD_NO as overload_no,
+                    OVERLOAD_TYPE as overload_type,
+                    EQUIPMENT_NAME as equipment_name,
+                    RECORD_TIME as record_time,
+                    EXPECTED_RESTORE_TIME as expected_restore_time,
+                    STATUS as status,
+                    OPERATOR_NAME as operator_name,
+                    '重过载' as task_name,
+                    -- 判断是否未解决
+                    CASE 
+                        WHEN STATUS IN ('unresolved', 'pending', '未解决', '待处理') THEN 1
+                        ELSE 0
+                    END as is_unresolved
+                FROM overload_records
+                WHERE DATE(RECORD_TIME) = :target_date
+                  AND STATUS IN ('unresolved', 'pending', '未解决', '待处理')
+                ORDER BY RECORD_TIME
+            """)
+            
+            result = session.execute(sql, {"target_date": target_date})
+            for row in result:
+                data = dict(row._mapping)
+                records.append(data)
+            
+            logger.info(f"采集重过载工作量 {len(records)} 条")
+            
+        except Exception as e:
+            logger.error(f"采集重过载工作量失败: {e}")
+        finally:
+            if session:
+                session.close()
+        
+        return records
+
+
+# ============================================================
+# 工作量分配类
 # ============================================================
 
 class WorkloadAllocator:
     """工作量按时间段分配"""
     
-    # 时间段定义
-    SHIFT_MORNING_START = 8   # 早班开始 08:00
-    SHIFT_MORNING_END = 14    # 早班结束 14:00
-    SHIFT_AFTERNOON_START = 14 # 中班开始 14:00
-    SHIFT_AFTERNOON_END = 21   # 中班结束 21:00
-    SHIFT_NIGHT_START = 21     # 夜班开始 21:00
-    SHIFT_NIGHT_END = 32       # 夜班结束 次日08:00 (24+8)
-    
     @staticmethod
     def determine_shift(hour: int) -> str:
         """判断所属班次"""
-        if hour >= WorkloadAllocator.SHIFT_MORNING_START and hour < WorkloadAllocator.SHIFT_MORNING_END:
+        if hour >= SHIFT_MORNING_START and hour < SHIFT_MORNING_END:
             return "morning"
-        elif hour >= WorkloadAllocator.SHIFT_AFTERNOON_START and hour < WorkloadAllocator.SHIFT_AFTERNOON_END:
+        elif hour >= SHIFT_AFTERNOON_START and hour < SHIFT_AFTERNOON_END:
             return "afternoon"
-        elif hour >= WorkloadAllocator.SHIFT_NIGHT_START or hour < 8:
+        elif hour >= SHIFT_NIGHT_START or hour < 8:
             return "night"
         else:
             return "night"  # 默认夜班
@@ -417,14 +653,13 @@ class WorkloadAllocator:
     @staticmethod
     def allocate_maintenance_task(record: Dict) -> Dict:
         """
-        分配计划检修任务工作量到各班次（更新规则）
+        分配计划检修任务工作量到各班次
         
-        业务规则（更新）：
-        - 若预测当天三值工作量：
-          - 批准工作结束时间为21:00前的总数纳入早班、中班时间段内考虑
-          - 批准工作结束时间为21:00后的纳入夜班考虑
+        业务规则（最新）：
+        - 「待执行-批准停电开始时间为当天」+「执行中-批准工作结束时间为当天（21:00后的也包括）」= 白天工作量（早班+中班）
+        - 「批准工作结束时间为21:00后」= 夜班工作量
         
-        注意：只看批准结束时间，不看开始时间
+        注意：同时支持开展中、已终结分类
         """
         result = {
             "record_id": record["record_id"],
@@ -433,15 +668,21 @@ class WorkloadAllocator:
             "approved_start_time": record["approved_start_time"],
             "approved_end_time": record["approved_end_time"],
             "status": record["status"],
+            "status_category": record.get("status_category", "unknown"),
             "shift_allocation": {
                 "morning": 0,
                 "afternoon": 0,
                 "night": 0
             },
-            "total_count": 0
+            "total_count": 0,
+            "in_progress_count": 0,
+            "completed_count": 0
         }
         
         try:
+            # 判断状态分类
+            status_category = record.get("status_category", "unknown")
+            
             # 根据批准结束时间分配
             end_time = record["approved_end_time"]
             if end_time:
@@ -449,14 +690,24 @@ class WorkloadAllocator:
                 
                 # 新规则：21:00前纳入早班、中班；21:00后纳入夜班
                 if hour < 21:
-                    # 21:00前，分配到早班或中班（根据实际结束时间）
                     shift = WorkloadAllocator.determine_shift(hour)
                     result["shift_allocation"][shift] = 1
                     result["total_count"] = 1
+                    
+                    # 统计状态分类
+                    if status_category == "in_progress":
+                        result["in_progress_count"] = 1
+                    elif status_category == "completed":
+                        result["completed_count"] = 1
                 else:
-                    # 21:00后，纳入夜班
                     result["shift_allocation"]["night"] = 1
                     result["total_count"] = 1
+                    
+                    # 统计状态分类
+                    if status_category == "in_progress":
+                        result["in_progress_count"] = 1
+                    elif status_category == "completed":
+                        result["completed_count"] = 1
                     
         except Exception as e:
             logger.error(f"分配检修任务失败: {e}")
@@ -466,14 +717,13 @@ class WorkloadAllocator:
     @staticmethod
     def allocate_equipment_task(record: Dict) -> Dict:
         """
-        分配设备投退任务工作量到各班次（更新规则）
+        分配设备投退任务工作量到各班次
         
-        业务规则（更新）：
-        - 若预测当天三值工作量：
-          - 批准工作结束时间为21:00前的总数纳入早班、中班时间段内考虑
-          - 批准工作结束时间为21:00后的纳入夜班考虑
+        业务规则（最新）：
+        - 「待执行-批准工作开始时间为当天」+「执行中-批准工作结束时间为当天（21:00后的也包括）」= 白天工作量（早班+中班）
+        - 「批准工作结束时间为21:00后」= 夜班工作量
         
-        注意：只看批准结束时间，不看开始时间
+        注意：同时支持开展中、已终结分类
         """
         result = {
             "record_id": record["record_id"],
@@ -482,15 +732,20 @@ class WorkloadAllocator:
             "approved_start_time": record["approved_start_time"],
             "approved_end_time": record["approved_end_time"],
             "status": record["status"],
+            "status_category": record.get("status_category", "unknown"),
             "shift_allocation": {
                 "morning": 0,
                 "afternoon": 0,
                 "night": 0
             },
-            "total_count": 0
+            "total_count": 0,
+            "in_progress_count": 0,
+            "completed_count": 0
         }
         
         try:
+            status_category = record.get("status_category", "unknown")
+            
             # 根据批准结束时间分配
             end_time = record["approved_end_time"]
             if end_time:
@@ -501,9 +756,21 @@ class WorkloadAllocator:
                     shift = WorkloadAllocator.determine_shift(hour)
                     result["shift_allocation"][shift] = 1
                     result["total_count"] = 1
+                    
+                    # 统计状态分类
+                    if status_category == "in_progress":
+                        result["in_progress_count"] = 1
+                    elif status_category == "completed":
+                        result["completed_count"] = 1
                 else:
                     result["shift_allocation"]["night"] = 1
                     result["total_count"] = 1
+                    
+                    # 统计状态分类
+                    if status_category == "in_progress":
+                        result["in_progress_count"] = 1
+                    elif status_category == "completed":
+                        result["completed_count"] = 1
                     
         except Exception as e:
             logger.error(f"分配设备投退任务失败: {e}")
@@ -513,14 +780,13 @@ class WorkloadAllocator:
     @staticmethod
     def allocate_transfer_task(record: Dict) -> Dict:
         """
-        分配转供电任务工作量到各班次（更新规则）
+        分配转供电任务工作量到各班次
         
-        业务规则（更新）：
-        - 若预测当天三值工作量：
-          - 计划转出开始时间为21:00前的总数纳入早班、中班时间段内考虑
-          - 批准转出开始时间为21:00至次日08:30的纳入夜班考虑
+        业务规则（最新）：
+        - 「待执行-批准转出开始时间为当天」+「执行中-转出开始时间为当天（21:00后的不包括）」= 白天工作量（早班+中班）
+        - 「批准转出开始时间为21:00至次日08:30」= 夜班工作量
         
-        注意：只看转出开始时间
+        注意：同时支持开展中、已终结分类
         """
         result = {
             "record_id": record["record_id"],
@@ -529,15 +795,20 @@ class WorkloadAllocator:
             "transfer_out_time": record["transfer_out_time"],
             "transfer_back_time": record["transfer_back_time"],
             "status": record["status"],
+            "status_category": record.get("status_category", "unknown"),
             "shift_allocation": {
                 "morning": 0,
                 "afternoon": 0,
                 "night": 0
             },
-            "total_count": 0
+            "total_count": 0,
+            "in_progress_count": 0,
+            "completed_count": 0
         }
         
         try:
+            status_category = record.get("status_category", "unknown")
+            
             # 统一使用转出开始时间分配
             out_time = record["transfer_out_time"]
             if out_time:
@@ -548,10 +819,22 @@ class WorkloadAllocator:
                     shift = WorkloadAllocator.determine_shift(hour)
                     result["shift_allocation"][shift] = 1
                     result["total_count"] = 1
+                    
+                    # 统计状态分类
+                    if status_category == "in_progress":
+                        result["in_progress_count"] = 1
+                    elif status_category == "completed":
+                        result["completed_count"] = 1
                 else:
                     # 21:00至次日08:30纳入夜班
                     result["shift_allocation"]["night"] = 1
                     result["total_count"] = 1
+                    
+                    # 统计状态分类
+                    if status_category == "in_progress":
+                        result["in_progress_count"] = 1
+                    elif status_category == "completed":
+                        result["completed_count"] = 1
                     
         except Exception as e:
             logger.error(f"分配转供电任务失败: {e}")
@@ -561,15 +844,13 @@ class WorkloadAllocator:
     @staticmethod
     def allocate_weekly_plan_task(record: Dict, pre_analyze: bool = False) -> Dict:
         """
-        分配周计划任务工作量到各班次（更新规则）
+        分配周计划任务工作量到各班次
         
-        业务规则（更新）：
-        - 若预测当天三值工作量（pre_analyze=True）：
-          - 将周计划总数纳入早班、中班时间段内考虑
-          - 夜班周计划工作量暂时忽略不计
-        - 正常模式（pre_analyze=False）：
-          - 根据批准开始时间分配到对应班次
-          - 夜班周计划工作量暂时忽略不计
+        业务规则（最新）：
+        - 需自动读取批准工作开始时间为当天的所有周计划（包括跨天工作的周计划）
+        - 将周计划总数纳入早班、中班时间段内考虑
+        - 夜班周计划工作量暂时以跨天工作的周计划总数为准
+        - 支持开展中、已终结分类
         """
         result = {
             "record_id": record["record_id"],
@@ -578,37 +859,54 @@ class WorkloadAllocator:
             "approved_start_time": record["approved_start_time"],
             "approved_end_time": record["approved_end_time"],
             "task_count": record.get("task_count", 1),
+            "status": record["status"],
+            "status_category": record.get("status_category", "unknown"),
+            "is_cross_day": record.get("is_cross_day", 0),
             "shift_allocation": {
                 "morning": 0,
                 "afternoon": 0,
                 "night": 0
             },
-            "total_count": 0
+            "total_count": 0,
+            "in_progress_count": 0,
+            "completed_count": 0
         }
         
         try:
             count = record.get("task_count", 1)
+            status_category = record.get("status_category", "unknown")
+            is_cross_day = record.get("is_cross_day", 0)
             
             if pre_analyze:
-                # 提前分析：周计划总数纳入早班、中班，夜班忽略
-                # 简单分配：早班和中班平均分配
+                # 提前分析：周计划总数纳入早班、中班，夜班暂时忽略
                 result["shift_allocation"]["morning"] = count // 2
                 result["shift_allocation"]["afternoon"] = count - (count // 2)
                 result["shift_allocation"]["night"] = 0  # 夜班忽略
                 result["total_count"] = count
+                
+                # 统计状态分类
+                if status_category == "in_progress":
+                    result["in_progress_count"] = count
+                elif status_category == "completed":
+                    result["completed_count"] = count
             else:
-                # 正常分析：根据批准开始时间分配，夜班忽略
-                start_time = record["approved_start_time"]
-                if start_time:
-                    hour = start_time.hour
-                    # 只分配到早班或中班，夜班忽略
-                    if 8 <= hour < 14:
-                        result["shift_allocation"]["morning"] = count
-                    elif 14 <= hour < 21:
-                        result["shift_allocation"]["afternoon"] = count
-                    # 夜班忽略
-                    
-                    result["total_count"] = count
+                # 正常分析：将周计划总数纳入早班、中班
+                result["shift_allocation"]["morning"] = count // 2
+                result["shift_allocation"]["afternoon"] = count - (count // 2)
+                
+                # 如果是跨天工作，夜班纳入跨天工作总数
+                if is_cross_day:
+                    result["shift_allocation"]["night"] = count
+                else:
+                    result["shift_allocation"]["night"] = 0
+                
+                result["total_count"] = count
+                
+                # 统计状态分类
+                if status_category == "in_progress":
+                    result["in_progress_count"] = count
+                elif status_category == "completed":
+                    result["completed_count"] = count
                     
         except Exception as e:
             logger.error(f"分配周计划任务失败: {e}")
@@ -623,30 +921,37 @@ class WorkloadAllocator:
 @tool
 def calculate_plan_workload(
     target_date: str = "",
-    pre_analyze: bool = False,
-    runtime: ToolRuntime = None
+    pre_analyze: bool = False
 ) -> str:
     """
-    计算计划工作量（按班次分配，支持手动修改）
+    计算计划工作量（按班次分配，支持开展中、已终结分类）
     
     功能：
     1. 采集计划检修、转供电、设备投退、周计划数据
     2. 按业务规则分配到早班、中班、夜班
-    3. 支持提前分析模式（pre_analyze=True）
-    4. 支持手动修改后的数据加载
+    3. 支持开展中、已终结分类
+    4. 支持提前分析模式（pre_analyze=True）
     
-    业务规则（更新）：
-    1. 计划检修/设备投退：
-       - 批准工作结束时间为21:00前的总数纳入早班、中班
-       - 批准工作结束时间为21:00后的纳入夜班
+    业务规则（最新）：
+    1. 计划检修：
+       - 「待执行-批准停电开始时间为当天」+「执行中-批准工作结束时间为当天（21:00后的也包括）」= 白天工作量（早班+中班）
+       - 「批准工作结束时间为21:00后」= 夜班工作量
+       - 支持开展中、已终结分类
     
-    2. 转供电：
-       - 计划转出开始时间为21:00前的总数纳入早班、中班
-       - 批准转出开始时间为21:00至次日08:30的纳入夜班
+    2. 设备投退：
+       - 「待执行-批准工作开始时间为当天」+「执行中-批准工作结束时间为当天（21:00后的也包括）」= 白天工作量（早班+中班）
+       - 「批准工作结束时间为21:00后」= 夜班工作量
+       - 支持开展中、已终结分类
     
-    3. 周计划：
+    3. 转供电：
+       - 「待执行-批准转出开始时间为当天」+「执行中-转出开始时间为当天（21:00后的不包括）」= 白天工作量（早班+中班）
+       - 「批准转出开始时间为21:00至次日08:30」= 夜班工作量
+       - 支持开展中、已终结分类
+    
+    4. 周计划：
        - 将周计划总数纳入早班、中班
-       - 夜班周计划工作量暂时忽略不计
+       - 夜班周计划工作量暂时以跨天工作的周计划总数为准
+       - 支持开展中、已终结分类
     
     参数：
     - target_date: 目标日期 (YYYY-MM-DD)，默认今天
@@ -654,8 +959,6 @@ def calculate_plan_workload(
     
     返回：计划工作量统计结果JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="calculate_plan_workload")
-    
     try:
         if not target_date:
             target_date = datetime.now().strftime("%Y-%m-%d")
@@ -670,28 +973,75 @@ def calculate_plan_workload(
         allocation_results = {
             "target_date": target_date,
             "pre_analyze": pre_analyze,
-            "manual_adjustments_applied": False,
-            "maintenance": [],
-            "equipment": [],
-            "transfer": [],
-            "weekly_plan": [],
-            "summary": {
-                "morning": {"total_count": 0, "tasks": [], "manual_override": False},
-                "afternoon": {"total_count": 0, "tasks": [], "manual_override": False},
-                "night": {"total_count": 0, "tasks": [], "manual_override": False}
+            "maintenance": {
+                "records": [],
+                "summary": {
+                    "total": 0,
+                    "in_progress": 0,
+                    "completed": 0,
+                    "morning": 0,
+                    "afternoon": 0,
+                    "night": 0
+                }
+            },
+            "equipment": {
+                "records": [],
+                "summary": {
+                    "total": 0,
+                    "in_progress": 0,
+                    "completed": 0,
+                    "morning": 0,
+                    "afternoon": 0,
+                    "night": 0
+                }
+            },
+            "transfer": {
+                "records": [],
+                "summary": {
+                    "total": 0,
+                    "in_progress": 0,
+                    "completed": 0,
+                    "morning": 0,
+                    "afternoon": 0,
+                    "night": 0
+                }
+            },
+            "weekly_plan": {
+                "records": [],
+                "summary": {
+                    "total": 0,
+                    "in_progress": 0,
+                    "completed": 0,
+                    "morning": 0,
+                    "afternoon": 0,
+                    "night": 0
+                }
+            },
+            "total_summary": {
+                "morning": {"total_count": 0, "tasks": []},
+                "afternoon": {"total_count": 0, "tasks": []},
+                "night": {"total_count": 0, "tasks": []}
             }
         }
         
         # 2.1 分配检修任务
         for record in maintenance_records:
             allocated = WorkloadAllocator.allocate_maintenance_task(record)
-            allocation_results["maintenance"].append(allocated)
+            allocation_results["maintenance"]["records"].append(allocated)
             
-            # 汇总
+            # 更新检修汇总
+            allocation_results["maintenance"]["summary"]["total"] += allocated["total_count"]
+            allocation_results["maintenance"]["summary"]["in_progress"] += allocated["in_progress_count"]
+            allocation_results["maintenance"]["summary"]["completed"] += allocated["completed_count"]
+            allocation_results["maintenance"]["summary"]["morning"] += allocated["shift_allocation"]["morning"]
+            allocation_results["maintenance"]["summary"]["afternoon"] += allocated["shift_allocation"]["afternoon"]
+            allocation_results["maintenance"]["summary"]["night"] += allocated["shift_allocation"]["night"]
+            
+            # 更新总计
             for shift, count in allocated["shift_allocation"].items():
                 if count > 0:
-                    allocation_results["summary"][shift]["total_count"] += count
-                    allocation_results["summary"][shift]["tasks"].append({
+                    allocation_results["total_summary"][shift]["total_count"] += count
+                    allocation_results["total_summary"][shift]["tasks"].append({
                         "category": allocated["task_category"],
                         "name": allocated["task_name"],
                         "count": count,
@@ -701,13 +1051,21 @@ def calculate_plan_workload(
         # 2.2 分配设备投退任务
         for record in equipment_records:
             allocated = WorkloadAllocator.allocate_equipment_task(record)
-            allocation_results["equipment"].append(allocated)
+            allocation_results["equipment"]["records"].append(allocated)
             
-            # 汇总
+            # 更新设备投退汇总
+            allocation_results["equipment"]["summary"]["total"] += allocated["total_count"]
+            allocation_results["equipment"]["summary"]["in_progress"] += allocated["in_progress_count"]
+            allocation_results["equipment"]["summary"]["completed"] += allocated["completed_count"]
+            allocation_results["equipment"]["summary"]["morning"] += allocated["shift_allocation"]["morning"]
+            allocation_results["equipment"]["summary"]["afternoon"] += allocated["shift_allocation"]["afternoon"]
+            allocation_results["equipment"]["summary"]["night"] += allocated["shift_allocation"]["night"]
+            
+            # 更新总计
             for shift, count in allocated["shift_allocation"].items():
                 if count > 0:
-                    allocation_results["summary"][shift]["total_count"] += count
-                    allocation_results["summary"][shift]["tasks"].append({
+                    allocation_results["total_summary"][shift]["total_count"] += count
+                    allocation_results["total_summary"][shift]["tasks"].append({
                         "category": allocated["task_category"],
                         "name": allocated["task_name"],
                         "count": count,
@@ -717,13 +1075,21 @@ def calculate_plan_workload(
         # 2.3 分配转供电任务
         for record in transfer_records:
             allocated = WorkloadAllocator.allocate_transfer_task(record)
-            allocation_results["transfer"].append(allocated)
+            allocation_results["transfer"]["records"].append(allocated)
             
-            # 汇总
+            # 更新转供电汇总
+            allocation_results["transfer"]["summary"]["total"] += allocated["total_count"]
+            allocation_results["transfer"]["summary"]["in_progress"] += allocated["in_progress_count"]
+            allocation_results["transfer"]["summary"]["completed"] += allocated["completed_count"]
+            allocation_results["transfer"]["summary"]["morning"] += allocated["shift_allocation"]["morning"]
+            allocation_results["transfer"]["summary"]["afternoon"] += allocated["shift_allocation"]["afternoon"]
+            allocation_results["transfer"]["summary"]["night"] += allocated["shift_allocation"]["night"]
+            
+            # 更新总计
             for shift, count in allocated["shift_allocation"].items():
                 if count > 0:
-                    allocation_results["summary"][shift]["total_count"] += count
-                    allocation_results["summary"][shift]["tasks"].append({
+                    allocation_results["total_summary"][shift]["total_count"] += count
+                    allocation_results["total_summary"][shift]["tasks"].append({
                         "category": allocated["task_category"],
                         "name": allocated["task_name"],
                         "count": count,
@@ -733,36 +1099,35 @@ def calculate_plan_workload(
         # 2.4 分配周计划任务
         for record in weekly_plan_records:
             allocated = WorkloadAllocator.allocate_weekly_plan_task(record, pre_analyze=pre_analyze)
-            allocation_results["weekly_plan"].append(allocated)
+            allocation_results["weekly_plan"]["records"].append(allocated)
             
-            # 汇总
+            # 更新周计划汇总
+            allocation_results["weekly_plan"]["summary"]["total"] += allocated["total_count"]
+            allocation_results["weekly_plan"]["summary"]["in_progress"] += allocated["in_progress_count"]
+            allocation_results["weekly_plan"]["summary"]["completed"] += allocated["completed_count"]
+            allocation_results["weekly_plan"]["summary"]["morning"] += allocated["shift_allocation"]["morning"]
+            allocation_results["weekly_plan"]["summary"]["afternoon"] += allocated["shift_allocation"]["afternoon"]
+            allocation_results["weekly_plan"]["summary"]["night"] += allocated["shift_allocation"]["night"]
+            
+            # 更新总计
             for shift, count in allocated["shift_allocation"].items():
                 if count > 0:
-                    allocation_results["summary"][shift]["total_count"] += count
-                    allocation_results["summary"][shift]["tasks"].append({
+                    allocation_results["total_summary"][shift]["total_count"] += count
+                    allocation_results["total_summary"][shift]["tasks"].append({
                         "category": allocated["task_category"],
                         "name": allocated["task_name"],
                         "count": count,
                         "record_id": allocated["record_id"]
                     })
         
-        # 3. 计算总计
+        # 3. 计算总计数
         total_count = (
-            allocation_results["summary"]["morning"]["total_count"] +
-            allocation_results["summary"]["afternoon"]["total_count"] +
-            allocation_results["summary"]["night"]["total_count"]
+            allocation_results["total_summary"]["morning"]["total_count"] +
+            allocation_results["total_summary"]["afternoon"]["total_count"] +
+            allocation_results["total_summary"]["night"]["total_count"]
         )
         
-        allocation_results["summary"]["total_count"] = total_count
-        allocation_results["summary"]["record_counts"] = {
-            "maintenance": len(maintenance_records),
-            "equipment": len(equipment_records),
-            "transfer": len(transfer_records),
-            "weekly_plan": len(weekly_plan_records)
-        }
-        
-        # 4. 应用手动修改（如果有）
-        allocation_results = ManualWorkloadData.apply_manual_adjustments(allocation_results)
+        allocation_results["total_summary"]["total_count"] = total_count
         
         return json.dumps({
             "success": True,
@@ -780,13 +1145,310 @@ def calculate_plan_workload(
 
 
 @tool
+def calculate_non_plan_workload(
+    target_date: str = ""
+) -> str:
+    """
+    计算非计划工作量（支持故障日志、异常缺陷、重过载）
+    
+    功能：
+    1. 采集故障日志（前三天未交班的故障单数）
+    2. 采集异常缺陷（当值记录未交班的缺陷单数）
+    3. 采集重过载（当值记录未解决的重过载数）
+    
+    业务规则（最新）：
+    1. 故障日志：前三天未交班的故障单数
+    2. 异常缺陷：当值记录未交班的缺陷单数
+    3. 重过载：当值记录未解决的重过载数
+    
+    参数：
+    - target_date: 目标日期 (YYYY-MM-DD)，默认今天
+    
+    返回：非计划工作量统计结果JSON字符串
+    """
+    try:
+        if not target_date:
+            target_date = datetime.now().strftime("%Y-%m-%d")
+        
+        # 1. 采集各类非计划任务
+        fault_records = NonPlanWorkloadDatabase.collect_fault_workload(target_date)
+        defect_records = NonPlanWorkloadDatabase.collect_defect_workload(target_date)
+        overload_records = NonPlanWorkloadDatabase.collect_overload_workload(target_date)
+        
+        # 2. 统计结果
+        allocation_results = {
+            "target_date": target_date,
+            "fault_logs": {
+                "records": fault_records,
+                "count": len(fault_records)
+            },
+            "defect_records": {
+                "records": defect_records,
+                "count": len(defect_records)
+            },
+            "overload_records": {
+                "records": overload_records,
+                "count": len(overload_records)
+            },
+            "total_count": len(fault_records) + len(defect_records) + len(overload_records)
+        }
+        
+        return json.dumps({
+            "success": True,
+            "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "data": allocation_results
+        }, ensure_ascii=False, indent=2)
+        
+    except Exception as e:
+        logger.error(f"计算非计划工作量失败: {e}")
+        return json.dumps({
+            "success": False,
+            "error": str(e),
+            "message": "计算非计划工作量失败"
+        }, ensure_ascii=False)
+
+
+@tool
+def get_workload_dashboard(
+    target_date: str = "",
+    pre_analyze: bool = False
+) -> str:
+    """
+    获取工作量看板数据（计划工作量 + 非计划工作量）
+    
+    功能：
+    1. 计划工作量统计（计划检修、转供电、设备投退、周计划）
+    2. 非计划工作量统计（故障日志、异常缺陷、重过载）
+    3. 支持开展中、已终结分类
+    4. 按早班、中班、夜班分配
+    
+    参数：
+    - target_date: 目标日期 (YYYY-MM-DD)，默认今天
+    - pre_analyze: 是否提前分析
+    
+    返回：工作量看板数据JSON字符串
+    """
+    try:
+        if not target_date:
+            target_date = datetime.now().strftime("%Y-%m-%d")
+        
+        # 1. 采集计划工作量数据
+        maintenance_records = PlanWorkloadDatabase.collect_maintenance_workload(target_date)
+        equipment_records = PlanWorkloadDatabase.collect_equipment_workload(target_date)
+        transfer_records = PlanWorkloadDatabase.collect_transfer_workload(target_date)
+        weekly_plan_records = PlanWorkloadDatabase.collect_weekly_plan_workload(target_date)
+        
+        # 2. 采集非计划工作量数据
+        fault_records = NonPlanWorkloadDatabase.collect_fault_workload(target_date)
+        defect_records = NonPlanWorkloadDatabase.collect_defect_workload(target_date)
+        overload_records = NonPlanWorkloadDatabase.collect_overload_workload(target_date)
+        
+        # 3. 分配计划工作量到各班次
+        plan_allocation_results = {
+            "maintenance": {
+                "records": [],
+                "summary": {
+                    "total": 0,
+                    "in_progress": 0,
+                    "completed": 0,
+                    "morning": 0,
+                    "afternoon": 0,
+                    "night": 0
+                }
+            },
+            "equipment": {
+                "records": [],
+                "summary": {
+                    "total": 0,
+                    "in_progress": 0,
+                    "completed": 0,
+                    "morning": 0,
+                    "afternoon": 0,
+                    "night": 0
+                }
+            },
+            "transfer": {
+                "records": [],
+                "summary": {
+                    "total": 0,
+                    "in_progress": 0,
+                    "completed": 0,
+                    "morning": 0,
+                    "afternoon": 0,
+                    "night": 0
+                }
+            },
+            "weekly_plan": {
+                "records": [],
+                "summary": {
+                    "total": 0,
+                    "in_progress": 0,
+                    "completed": 0,
+                    "morning": 0,
+                    "afternoon": 0,
+                    "night": 0
+                }
+            },
+            "total_summary": {
+                "morning": {"total_count": 0, "tasks": []},
+                "afternoon": {"total_count": 0, "tasks": []},
+                "night": {"total_count": 0, "tasks": []},
+                "total_count": 0
+            }
+        }
+        
+        # 分配检修任务
+        for record in maintenance_records:
+            allocated = WorkloadAllocator.allocate_maintenance_task(record)
+            plan_allocation_results["maintenance"]["records"].append(allocated)
+            
+            # 更新汇总
+            plan_allocation_results["maintenance"]["summary"]["total"] += allocated["total_count"]
+            plan_allocation_results["maintenance"]["summary"]["in_progress"] += allocated["in_progress_count"]
+            plan_allocation_results["maintenance"]["summary"]["completed"] += allocated["completed_count"]
+            plan_allocation_results["maintenance"]["summary"]["morning"] += allocated["shift_allocation"]["morning"]
+            plan_allocation_results["maintenance"]["summary"]["afternoon"] += allocated["shift_allocation"]["afternoon"]
+            plan_allocation_results["maintenance"]["summary"]["night"] += allocated["shift_allocation"]["night"]
+            
+            # 更新总计
+            for shift, count in allocated["shift_allocation"].items():
+                if count > 0:
+                    plan_allocation_results["total_summary"][shift]["total_count"] += count
+                    plan_allocation_results["total_summary"][shift]["tasks"].append({
+                        "category": allocated["task_category"],
+                        "name": allocated["task_name"],
+                        "count": count,
+                        "record_id": allocated["record_id"]
+                    })
+        
+        # 分配设备投退任务
+        for record in equipment_records:
+            allocated = WorkloadAllocator.allocate_equipment_task(record)
+            plan_allocation_results["equipment"]["records"].append(allocated)
+            
+            # 更新汇总
+            plan_allocation_results["equipment"]["summary"]["total"] += allocated["total_count"]
+            plan_allocation_results["equipment"]["summary"]["in_progress"] += allocated["in_progress_count"]
+            plan_allocation_results["equipment"]["summary"]["completed"] += allocated["completed_count"]
+            plan_allocation_results["equipment"]["summary"]["morning"] += allocated["shift_allocation"]["morning"]
+            plan_allocation_results["equipment"]["summary"]["afternoon"] += allocated["shift_allocation"]["afternoon"]
+            plan_allocation_results["equipment"]["summary"]["night"] += allocated["shift_allocation"]["night"]
+            
+            # 更新总计
+            for shift, count in allocated["shift_allocation"].items():
+                if count > 0:
+                    plan_allocation_results["total_summary"][shift]["total_count"] += count
+                    plan_allocation_results["total_summary"][shift]["tasks"].append({
+                        "category": allocated["task_category"],
+                        "name": allocated["task_name"],
+                        "count": count,
+                        "record_id": allocated["record_id"]
+                    })
+        
+        # 分配转供电任务
+        for record in transfer_records:
+            allocated = WorkloadAllocator.allocate_transfer_task(record)
+            plan_allocation_results["transfer"]["records"].append(allocated)
+            
+            # 更新汇总
+            plan_allocation_results["transfer"]["summary"]["total"] += allocated["total_count"]
+            plan_allocation_results["transfer"]["summary"]["in_progress"] += allocated["in_progress_count"]
+            plan_allocation_results["transfer"]["summary"]["completed"] += allocated["completed_count"]
+            plan_allocation_results["transfer"]["summary"]["morning"] += allocated["shift_allocation"]["morning"]
+            plan_allocation_results["transfer"]["summary"]["afternoon"] += allocated["shift_allocation"]["afternoon"]
+            plan_allocation_results["transfer"]["summary"]["night"] += allocated["shift_allocation"]["night"]
+            
+            # 更新总计
+            for shift, count in allocated["shift_allocation"].items():
+                if count > 0:
+                    plan_allocation_results["total_summary"][shift]["total_count"] += count
+                    plan_allocation_results["total_summary"][shift]["tasks"].append({
+                        "category": allocated["task_category"],
+                        "name": allocated["task_name"],
+                        "count": count,
+                        "record_id": allocated["record_id"]
+                    })
+        
+        # 分配周计划任务
+        for record in weekly_plan_records:
+            allocated = WorkloadAllocator.allocate_weekly_plan_task(record, pre_analyze=pre_analyze)
+            plan_allocation_results["weekly_plan"]["records"].append(allocated)
+            
+            # 更新汇总
+            plan_allocation_results["weekly_plan"]["summary"]["total"] += allocated["total_count"]
+            plan_allocation_results["weekly_plan"]["summary"]["in_progress"] += allocated["in_progress_count"]
+            plan_allocation_results["weekly_plan"]["summary"]["completed"] += allocated["completed_count"]
+            plan_allocation_results["weekly_plan"]["summary"]["morning"] += allocated["shift_allocation"]["morning"]
+            plan_allocation_results["weekly_plan"]["summary"]["afternoon"] += allocated["shift_allocation"]["afternoon"]
+            plan_allocation_results["weekly_plan"]["summary"]["night"] += allocated["shift_allocation"]["night"]
+            
+            # 更新总计
+            for shift, count in allocated["shift_allocation"].items():
+                if count > 0:
+                    plan_allocation_results["total_summary"][shift]["total_count"] += count
+                    plan_allocation_results["total_summary"][shift]["tasks"].append({
+                        "category": allocated["task_category"],
+                        "name": allocated["task_name"],
+                        "count": count,
+                        "record_id": allocated["record_id"]
+                    })
+        
+        # 计算总计数
+        total_count = (
+            plan_allocation_results["total_summary"]["morning"]["total_count"] +
+            plan_allocation_results["total_summary"]["afternoon"]["total_count"] +
+            plan_allocation_results["total_summary"]["night"]["total_count"]
+        )
+        
+        plan_allocation_results["total_summary"]["total_count"] = total_count
+        
+        # 4. 统计非计划工作量
+        non_plan_allocation_results = {
+            "fault_logs": {
+                "records": fault_records,
+                "count": len(fault_records)
+            },
+            "defect_records": {
+                "records": defect_records,
+                "count": len(defect_records)
+            },
+            "overload_records": {
+                "records": overload_records,
+                "count": len(overload_records)
+            },
+            "total_count": len(fault_records) + len(defect_records) + len(overload_records)
+        }
+        
+        # 5. 合并结果
+        dashboard_data = {
+            "target_date": target_date,
+            "pre_analyze": pre_analyze,
+            "plan_workload": plan_allocation_results,
+            "non_plan_workload": non_plan_allocation_results,
+            "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
+        return json.dumps({
+            "success": True,
+            "data": dashboard_data
+        }, ensure_ascii=False, indent=2)
+        
+    except Exception as e:
+        logger.error(f"获取工作量看板数据失败: {e}")
+        return json.dumps({
+            "success": False,
+            "error": str(e),
+            "message": "获取工作量看板数据失败"
+        }, ensure_ascii=False)
+
+
+@tool
 def manual_adjust_plan_workload(
     target_date: str,
     morning_count: int,
     afternoon_count: int,
     night_count: int,
-    feedback_data: Dict = None,
-    runtime: ToolRuntime = None
+    feedback_data: Dict = None
 ) -> str:
     """
     手动修改计划工作量，并反馈数据用于智能体训练
@@ -805,8 +1467,6 @@ def manual_adjust_plan_workload(
     
     返回：操作结果JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="manual_adjust_plan_workload")
-    
     try:
         # 准备手动修改数据
         manual_data = {
@@ -850,7 +1510,7 @@ def manual_adjust_plan_workload(
 
 
 @tool
-def get_manual_adjustments(target_date: str, runtime: ToolRuntime = None) -> str:
+def get_manual_adjustments(target_date: str) -> str:
     """
     获取指定日期的手动修改数据
     
@@ -859,24 +1519,26 @@ def get_manual_adjustments(target_date: str, runtime: ToolRuntime = None) -> str
     
     返回：手动修改数据JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="get_manual_adjustments")
-    
     try:
         manual_data = ManualWorkloadData.load_manual_data(target_date)
         
         if manual_data:
             return json.dumps({
                 "success": True,
-                "target_date": target_date,
-                "has_manual_adjustments": True,
-                "data": manual_data
+                "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "data": {
+                    "target_date": target_date,
+                    "manual_data": manual_data
+                }
             }, ensure_ascii=False, indent=2)
         else:
             return json.dumps({
                 "success": True,
-                "target_date": target_date,
-                "has_manual_adjustments": False,
-                "message": "该日期无手动修改数据"
+                "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "data": {
+                    "target_date": target_date,
+                    "message": "该日期无手动修改数据"
+                }
             }, ensure_ascii=False, indent=2)
         
     except Exception as e:

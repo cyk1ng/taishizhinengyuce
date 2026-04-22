@@ -1,5 +1,5 @@
 """
-计划工作量统计模块 - 更新版
+计划工作量统计模块 - 更新版（基于最新需求）
 
 功能：
 1. 计划检修工作量统计（支持开展中、已终结分类）
@@ -7,36 +7,52 @@
 3. 设备投退工作量统计（支持开展中、已终结分类）
 4. 周计划工作量统计（支持开展中、已终结分类）
 
+数据来源（最新需求）：
+1. 计划检修、转供电、设备投退：根据往年历史数据自动填写，人工核对后手动修改
+2. 周计划：自动读取当天的总数（状态为执行中的）
+
 业务规则（最新）：
 1. 所有计划工作数量均可手动更改
 2. 计划工作量分为：开展中、已终结
-3. 非计划工作量分为：故障日志、异常缺陷、重过载
+3. 基于历史数据自动填写，人工核对后可手动修改
+4. 数据反馈：手动修改后返回智能体训练
 
 时间段定义：
 - 早班：08:00~14:00
 - 中班：14:00~21:00
 - 夜班：21:00~次日08:00
 
-计划工作量业务规则：
-1. 计划检修：
-   - 「待执行-批准停电开始时间为当天」+「执行中-批准工作结束时间为当天（21:00后的也包括）」= 白天工作量（早班+中班）
-   - 「批准工作结束时间为21:00后」= 夜班工作量
+计划工作量业务规则（最新）：
+1. 计划检修（以批准停电开始时间为准查询）：
+   - 数据来源：电网管理平台-综合停电管理-配网停电申请-查询
+   - 查询条件：以批准停电开始时间为准
+   - 若预测当天三值工作量：
+     - 批准工作结束时间为21:00前的总数纳入早班、中班
+     - 批准工作结束时间为21:00后的纳入夜班
    - 支持开展中、已终结分类
 
-2. 设备投退：
-   - 「待执行-批准工作开始时间为当天」+「执行中-批准工作结束时间为当天（21:00后的也包括）」= 白天工作量（早班+中班）
-   - 「批准工作结束时间为21:00后」= 夜班工作量
+2. 设备投退（以批准停电开始时间为准查询）：
+   - 数据来源：电网管理平台-综合停电管理-配网停电申请-查询
+   - 查询条件：以批准停电开始时间为准
+   - 若预测当天三值工作量：
+     - 批准工作结束时间为21:00前的总数纳入早班、中班
+     - 批准工作结束时间为21:00后的纳入夜班
    - 支持开展中、已终结分类
 
-3. 转供电：
-   - 「待执行-批准转出开始时间为当天」+「执行中-转出开始时间为当天（21:00后的不包括）」= 白天工作量（早班+中班）
-   - 「批准转出开始时间为21:00至次日08:30」= 夜班工作量
+3. 转供电（以计划转出开始时间为准查询）：
+   - 数据来源：电网管理平台-运行方式管理-配网方式转供电管理-查询
+   - 查询条件：以计划转出开始时间为准
+   - 若预测当天三值工作量：
+     - 计划转出开始时间为21:00前的总数纳入早班、中班
+     - 批准转出开始时间为21:00至次日08:30的纳入夜班
    - 支持开展中、已终结分类
 
 4. 周计划：
-   - 需自动读取批准工作开始时间为当天的所有周计划（包括跨天工作的周计划）
-   - 将周计划总数纳入早班、中班时间段内考虑
-   - 夜班周计划工作量暂时以跨天工作的周计划总数为准
+   - 数据来源：配网OMS系统-周计划管理流程-筛选工作时间
+   - 查询条件：当天批准时间段0:00-23:59状态为执行中的为周计划数量
+   - 若预测当天三值工作量：
+     - 将周计划总数纳入早班、中班时间段内考虑
+     - 夜班周计划工作量暂时忽略不计
    - 支持开展中、已终结分类
 """
 
@@ -116,8 +132,11 @@ class PlanWorkloadDatabase:
         采集计划检修工作量
         
         业务规则（最新）：
-        - 「待执行-批准停电开始时间为当天」+「执行中-批准工作结束时间为当天（21:00后的也包括）」= 白天工作量（早班+中班）
-        - 「批准工作结束时间为21:00后」= 夜班工作量
+        - 数据来源：电网管理平台-综合停电管理-配网停电申请-查询
+        - 查询条件：以批准停电开始时间为准
+        - 若预测当天三值工作量：
+          - 批准工作结束时间为21:00前的总数纳入早班、中班
+          - 批准工作结束时间为21:00后的纳入夜班
         - 支持开展中、已终结分类
         
         参数：
@@ -135,7 +154,7 @@ class PlanWorkloadDatabase:
         try:
             from sqlalchemy import text
             
-            # 查询计划检修记录
+            # 查询计划检修记录（以批准停电开始时间为准查询）
             sql = text("""
                 SELECT 
                     RECORD_ID as record_id,
@@ -169,9 +188,8 @@ class PlanWorkloadDatabase:
                         ELSE 0
                     END as is_night_shift
                 FROM maintenance_records
-                WHERE (DATE(APPROVED_START_TIME) = :target_date 
-                      OR DATE(APPROVED_END_TIME) = :target_date)
-                ORDER BY APPROVED_END_TIME
+                WHERE DATE(APPROVED_START_TIME) = :target_date
+                ORDER BY APPROVED_START_TIME
             """)
             
             result = session.execute(sql, {"target_date": target_date})
@@ -179,7 +197,7 @@ class PlanWorkloadDatabase:
                 data = dict(row._mapping)
                 records.append(data)
             
-            logger.info(f"采集计划检修工作量 {len(records)} 条")
+            logger.info(f"采集计划检修工作量 {len(records)} 条（以批准开始时间为准查询）")
             
         except Exception as e:
             logger.error(f"采集计划检修工作量失败: {e}")
@@ -195,8 +213,11 @@ class PlanWorkloadDatabase:
         采集设备投退工作量
         
         业务规则（最新）：
-        - 「待执行-批准工作开始时间为当天」+「执行中-批准工作结束时间为当天（21:00后的也包括）」= 白天工作量（早班+中班）
-        - 「批准工作结束时间为21:00后」= 夜班工作量
+        - 数据来源：电网管理平台-综合停电管理-配网停电申请-查询
+        - 查询条件：以批准停电开始时间为准
+        - 若预测当天三值工作量：
+          - 批准工作结束时间为21:00前的总数纳入早班、中班
+          - 批准工作结束时间为21:00后的纳入夜班
         - 支持开展中、已终结分类
         
         参数：
@@ -214,6 +235,7 @@ class PlanWorkloadDatabase:
         try:
             from sqlalchemy import text
             
+            # 查询设备投退记录（以批准开始时间为准查询）
             sql = text("""
                 SELECT 
                     OPERATION_ID as record_id,
@@ -238,9 +260,8 @@ class PlanWorkloadDatabase:
                         ELSE 0
                     END as is_night_shift
                 FROM equipment_operations
-                WHERE (DATE(APPROVED_START_TIME) = :target_date 
-                      OR DATE(APPROVED_END_TIME) = :target_date)
-                ORDER BY APPROVED_END_TIME
+                WHERE DATE(APPROVED_START_TIME) = :target_date
+                ORDER BY APPROVED_START_TIME
             """)
             
             result = session.execute(sql, {"target_date": target_date})
@@ -248,7 +269,7 @@ class PlanWorkloadDatabase:
                 data = dict(row._mapping)
                 records.append(data)
             
-            logger.info(f"采集设备投退工作量 {len(records)} 条")
+            logger.info(f"采集设备投退工作量 {len(records)} 条（以批准开始时间为准查询）")
             
         except Exception as e:
             logger.error(f"采集设备投退工作量失败: {e}")
@@ -264,8 +285,11 @@ class PlanWorkloadDatabase:
         采集转供电工作量
         
         业务规则（最新）：
-        - 「待执行-批准转出开始时间为当天」+「执行中-转出开始时间为当天（21:00后的不包括）」= 白天工作量（早班+中班）
-        - 「批准转出开始时间为21:00至次日08:30」= 夜班工作量
+        - 数据来源：电网管理平台-运行方式管理-配网方式转供电管理-查询
+        - 查询条件：以计划转出开始时间为准
+        - 若预测当天三值工作量：
+          - 计划转出开始时间为21:00前的总数纳入早班、中班
+          - 批准转出开始时间为21:00至次日08:30的纳入夜班
         - 支持开展中、已终结分类
         
         参数：
@@ -283,6 +307,7 @@ class PlanWorkloadDatabase:
         try:
             from sqlalchemy import text
             
+            # 查询转供电记录（以计划转出开始时间为准查询）
             sql = text("""
                 SELECT 
                     ORDER_ID as record_id,
@@ -316,7 +341,7 @@ class PlanWorkloadDatabase:
                 data = dict(row._mapping)
                 records.append(data)
             
-            logger.info(f"采集转供电工作量 {len(records)} 条")
+            logger.info(f"采集转供电工作量 {len(records)} 条（以计划转出开始时间为准查询）")
             
         except Exception as e:
             logger.error(f"采集转供电工作量失败: {e}")
@@ -332,10 +357,12 @@ class PlanWorkloadDatabase:
         采集周计划工作量
         
         业务规则（最新）：
-        1. 需自动读取批准工作开始时间为当天的所有周计划（包括跨天工作的周计划）
-        2. 将周计划总数纳入早班、中班时间段内考虑
-        3. 夜班周计划工作量暂时以跨天工作的周计划总数为准
-        4. 支持开展中、已终结分类
+        - 数据来源：配网OMS系统-周计划管理流程-筛选工作时间
+        - 查询条件：当天批准时间段0:00-23:59状态为执行中的为周计划数量
+        - 若预测当天三值工作量：
+           - 将周计划总数纳入早班、中班时间段内考虑
+           - 夜班周计划工作量暂时忽略不计
+        - 支持开展中、已终结分类
         
         参数：
             target_date: 目标日期 (YYYY-MM-DD)
@@ -352,58 +379,47 @@ class PlanWorkloadDatabase:
         try:
             from sqlalchemy import text
             
-            # 查询批准工作开始时间为当天的所有周计划
+            # 查询当天批准时间段0:00-23:59状态为执行中的周计划数量
+            # 查询条件：批准开始时间在目标日期的00:00-23:59之间，且状态为执行中
             sql = text("""
                 SELECT 
-                    PLAN_ID as record_id,
-                    PLAN_NO as plan_no,
-                    PLAN_TYPE as plan_type,
-                    PLAN_NAME as plan_name,
-                    EQUIPMENT_NAME as equipment_name,
-                    APPROVED_START_TIME as approved_start_time,
-                    APPROVED_END_TIME as approved_end_time,
-                    STATUS as status,
-                    OPERATOR_NAME as operator_name,
-                    IS_LIVE_COOP as is_live_coop,
-                    CASE 
-                        WHEN PLAN_TYPE = 'live_operation' THEN 'A4'
-                        WHEN PLAN_TYPE = 'commissioning' THEN 'A5'
-                        ELSE 'A4'
-                    END as task_category,
-                    CASE 
-                        WHEN PLAN_TYPE = 'live_operation' THEN '周计划(只带电)'
-                        WHEN PLAN_TYPE = 'commissioning' THEN '周计划(只投产)'
-                        ELSE '周计划'
-                    END as task_name,
-                    -- 判断状态分类
-                    CASE 
-                        WHEN STATUS IN ('pending', 'executing', 'in_progress', '待执行', '执行中') THEN 'in_progress'
-                        WHEN STATUS IN ('completed', 'finished', 'terminated', '已终结', '已完成') THEN 'completed'
-                        ELSE 'unknown'
-                    END as status_category,
-                    -- 判断是否跨天工作
-                    CASE 
-                        WHEN DATE(APPROVED_START_TIME) != DATE(APPROVED_END_TIME) THEN 1
-                        ELSE 0
-                    END as is_cross_day,
-                    -- 计算任务数量
-                    CASE 
-                        WHEN PLAN_TYPE = 'live_operation' AND IS_LIVE_COOP = 1 THEN 2  -- 带电配合投产
-                        WHEN PLAN_TYPE = 'live_operation' THEN 1  -- 只带电
-                        WHEN PLAN_TYPE = 'commissioning' AND IS_LIVE_COOP = 1 THEN 2  -- 投产配合带电
-                        ELSE 1
-                    END as task_count
+                    COUNT(*) as task_count,
+                    -- 统计开展中数量（状态为执行中）
+                    SUM(CASE 
+                        WHEN STATUS IN ('executing', 'in_progress', '执行中') THEN 1 
+                        ELSE 0 
+                    END) as in_progress_count,
+                    -- 统计已终结数量
+                    SUM(CASE 
+                        WHEN STATUS IN ('completed', 'finished', 'terminated', '已终结', '已完成') THEN 1 
+                        ELSE 0 
+                    END) as completed_count,
+                    -- 统计跨天工作数量
+                    SUM(CASE 
+                        WHEN DATE(APPROVED_START_TIME) != DATE(APPROVED_END_TIME) THEN 1 
+                        ELSE 0 
+                    END) as cross_day_count
                 FROM weekly_plans
                 WHERE DATE(APPROVED_START_TIME) = :target_date
-                ORDER BY APPROVED_START_TIME
+                    AND STATUS IN ('executing', 'in_progress', '执行中')
             """)
             
             result = session.execute(sql, {"target_date": target_date})
-            for row in result:
-                data = dict(row._mapping)
-                records.append(data)
+            row = result.fetchone()
             
-            logger.info(f"采集周计划工作量 {len(records)} 条")
+            if row:
+                # 返回统计结果
+                records = [{
+                    "task_count": row.task_count or 0,
+                    "in_progress_count": row.in_progress_count or 0,
+                    "completed_count": row.completed_count or 0,
+                    "cross_day_count": row.cross_day_count or 0,
+                    "task_category": "A4",
+                    "task_name": "周计划",
+                    "target_date": target_date
+                }]
+            
+            logger.info(f"采集周计划工作量统计: 总数={records[0]['task_count'] if records else 0}, 开展中={records[0]['in_progress_count'] if records else 0}, 已终结={records[0]['completed_count'] if records else 0}")
             
         except Exception as e:
             logger.error(f"采集周计划工作量失败: {e}")

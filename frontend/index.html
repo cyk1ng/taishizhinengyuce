@@ -20,6 +20,7 @@
     
     <!-- Custom Styles -->
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/workload-modal.css">
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
@@ -66,76 +67,32 @@
     <!-- 核心数据概览卡片 -->
     <section class="stats-overview">
         <div class="stats-grid">
-            <div class="stat-card">
+            <!-- 计划工作量 -->
+            <div class="stat-card" onclick="showPlanWorkloadModal(event)" style="cursor: pointer;">
                 <div class="stat-title">
                     <span>📋</span>
-                    <span>检修业务单总量</span>
+                    <span>计划工作量</span>
+                    <span class="edit-badge">📊</span>
                 </div>
-                <div class="stat-value green" id="stat-maintenance">16<span class="unit">单</span></div>
+                <div class="stat-value green" id="stat-plan-total">0<span class="unit">单</span></div>
                 <div class="stat-detail">
-                    <span><span class="label">开展中:</span> <span id="stat-maintenance-ongoing">13</span></span>
-                    <span><span class="label">已终结:</span> <span id="stat-maintenance-done">3</span></span>
+                    <span><span class="label">开展中:</span> <span id="stat-plan-in-progress">0</span></span>
+                    <span><span class="label">已终结:</span> <span id="stat-plan-completed">0</span></span>
                 </div>
             </div>
             
-            <div class="stat-card">
-                <div class="stat-title">
-                    <span>📅</span>
-                    <span>周计划开展量</span>
-                    <span class="edit-badge" onclick="editPlannedWorkload(event)">✏️</span>
-                </div>
-                <div class="stat-value yellow" id="stat-weekly-plan">24<span class="unit">单</span></div>
-                <div class="stat-detail">
-                    <span><span class="label">开展中:</span> <span id="stat-weekly-ongoing">13</span></span>
-                    <span><span class="label">已终结:</span> <span id="stat-weekly-done">11</span></span>
-                </div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-title">
-                    <span>🔄</span>
-                    <span>方式单业务总量</span>
-                </div>
-                <div class="stat-value green" id="stat-mode-order">20<span class="unit">单</span></div>
-                <div class="stat-detail">
-                    <span><span class="label">转出任务:</span> <span id="stat-mode-transfer">10</span></span>
-                    <span><span class="label">恢复任务:</span> <span id="stat-mode-recover">10</span></span>
-                </div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-title">
-                    <span>🔌</span>
-                    <span>新投业务总量</span>
-                </div>
-                <div class="stat-value blue" id="stat-new-invest">5<span class="unit">单</span></div>
-                <div class="stat-detail">
-                    <span><span class="label">开展中:</span> <span id="stat-new-ongoing">3</span></span>
-                    <span><span class="label">已终结:</span> <span id="stat-new-done">2</span></span>
-                </div>
-            </div>
-            
-            <div class="stat-card">
+            <!-- 非计划工作量 -->
+            <div class="stat-card" onclick="showNonPlanWorkloadModal(event)" style="cursor: pointer;">
                 <div class="stat-title">
                     <span>⚡</span>
-                    <span>跳闸总量</span>
-                    <span class="edit-badge" onclick="editUnplannedWorkload(event)">✏️</span>
+                    <span>非计划工作量</span>
+                    <span class="edit-badge">📊</span>
                 </div>
-                <div class="stat-value red" id="stat-trip">11<span class="unit">起</span></div>
+                <div class="stat-value red" id="stat-non-plan-total">0<span class="unit">起</span></div>
                 <div class="stat-detail">
-                    <span><span class="label">重合成功:</span> <span id="stat-trip-success">6</span></span>
-                    <span><span class="label">重合失败:</span> <span id="stat-trip-fail">5</span></span>
-                </div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-title">
-                    <span>⚠️</span>
-                    <span>重过载业务数量</span>
-                </div>
-                <div class="stat-value yellow" id="stat-overload">2<span class="unit">起</span></div>
-                <div class="stat-detail">
-                    <span><span class="label">需关注:</span> 2</span>
+                    <span><span class="label">故障日志:</span> <span id="stat-non-plan-fault">0</span></span>
+                    <span><span class="label">异常缺陷:</span> <span id="stat-non-plan-defect">0</span></span>
+                    <span><span class="label">重过载:</span> <span id="stat-non-plan-overload">0</span></span>
                 </div>
             </div>
 
@@ -508,58 +465,204 @@
         </div>
     </div>
 
-    <!-- 计划工作量编辑弹窗 -->
-    <div id="plannedModal" class="modal-overlay hidden">
-        <div class="modal-content">
+    <!-- 计划工作量详情弹窗 -->
+    <div id="planWorkloadModal" class="modal-overlay hidden">
+        <div class="modal-content large">
             <div class="modal-header">
-                <h3>📋 编辑计划工作量</h3>
-                <button class="modal-close" onclick="closeModal('plannedModal')">&times;</button>
+                <h3>📋 计划工作量详情</h3>
+                <button class="modal-close" onclick="closeModal('planWorkloadModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label>周计划开展总量 (单)</label>
-                    <input type="number" id="plannedTotal" class="form-input" value="24" min="0">
+                <!-- 四个业务类型卡片 -->
+                <div class="plan-workload-grid">
+                    <!-- 计划检修 -->
+                    <div class="plan-workload-card">
+                        <div class="plan-card-header">
+                            <span class="plan-icon">🔧</span>
+                            <span class="plan-title">计划检修</span>
+                        </div>
+                        <div class="plan-card-body">
+                            <div class="plan-stat">
+                                <span class="plan-label">开展中</span>
+                                <span class="plan-value green" id="plan-maintenance-in-progress">0</span>
+                            </div>
+                            <div class="plan-stat">
+                                <span class="plan-label">已终结</span>
+                                <span class="plan-value blue" id="plan-maintenance-completed">0</span>
+                            </div>
+                            <div class="plan-divider"></div>
+                            <div class="plan-stat total">
+                                <span class="plan-label">总计</span>
+                                <span class="plan-value" id="plan-maintenance-total">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 转供电 -->
+                    <div class="plan-workload-card">
+                        <div class="plan-card-header">
+                            <span class="plan-icon">🔄</span>
+                            <span class="plan-title">转供电</span>
+                        </div>
+                        <div class="plan-card-body">
+                            <div class="plan-stat">
+                                <span class="plan-label">开展中</span>
+                                <span class="plan-value green" id="plan-transfer-in-progress">0</span>
+                            </div>
+                            <div class="plan-stat">
+                                <span class="plan-label">已终结</span>
+                                <span class="plan-value blue" id="plan-transfer-completed">0</span>
+                            </div>
+                            <div class="plan-divider"></div>
+                            <div class="plan-stat total">
+                                <span class="plan-label">总计</span>
+                                <span class="plan-value" id="plan-transfer-total">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 设备投退 -->
+                    <div class="plan-workload-card">
+                        <div class="plan-card-header">
+                            <span class="plan-icon">🔌</span>
+                            <span class="plan-title">设备投退</span>
+                        </div>
+                        <div class="plan-card-body">
+                            <div class="plan-stat">
+                                <span class="plan-label">开展中</span>
+                                <span class="plan-value green" id="plan-equipment-in-progress">0</span>
+                            </div>
+                            <div class="plan-stat">
+                                <span class="plan-label">已终结</span>
+                                <span class="plan-value blue" id="plan-equipment-completed">0</span>
+                            </div>
+                            <div class="plan-divider"></div>
+                            <div class="plan-stat total">
+                                <span class="plan-label">总计</span>
+                                <span class="plan-value" id="plan-equipment-total">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 周计划 -->
+                    <div class="plan-workload-card">
+                        <div class="plan-card-header">
+                            <span class="plan-icon">📅</span>
+                            <span class="plan-title">周计划</span>
+                        </div>
+                        <div class="plan-card-body">
+                            <div class="plan-stat">
+                                <span class="plan-label">开展中</span>
+                                <span class="plan-value green" id="plan-weekly-in-progress">0</span>
+                            </div>
+                            <div class="plan-stat">
+                                <span class="plan-label">已终结</span>
+                                <span class="plan-value blue" id="plan-weekly-completed">0</span>
+                            </div>
+                            <div class="plan-divider"></div>
+                            <div class="plan-stat total">
+                                <span class="plan-label">总计</span>
+                                <span class="plan-value" id="plan-weekly-total">0</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>开展中 (单)</label>
-                    <input type="number" id="plannedOngoing" class="form-input" value="13" min="0">
+
+                <!-- 班次分配情况 -->
+                <div class="shift-allocation-section">
+                    <h4 class="section-title">📊 班次分配情况</h4>
+                    <div class="shift-allocation-grid">
+                        <div class="shift-card">
+                            <span class="shift-label">早班 (08:00-14:00)</span>
+                            <span class="shift-value" id="shift-morning-count">0</span>
+                        </div>
+                        <div class="shift-card">
+                            <span class="shift-label">中班 (14:00-21:00)</span>
+                            <span class="shift-value" id="shift-afternoon-count">0</span>
+                        </div>
+                        <div class="shift-card">
+                            <span class="shift-label">夜班 (21:00-08:00)</span>
+                            <span class="shift-value" id="shift-night-count">0</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>已终结 (单)</label>
-                    <input type="number" id="plannedDone" class="form-input" value="11" min="0">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('plannedModal')">取消</button>
-                <button class="btn btn-primary" onclick="savePlannedWorkload()">保存</button>
             </div>
         </div>
     </div>
 
-    <!-- 非计划工作量编辑弹窗 -->
-    <div id="unplannedModal" class="modal-overlay hidden">
-        <div class="modal-content">
+    <!-- 非计划工作量详情弹窗 -->
+    <div id="nonPlanWorkloadModal" class="modal-overlay hidden">
+        <div class="modal-content large">
             <div class="modal-header">
-                <h3>⚡ 编辑非计划工作量</h3>
-                <button class="modal-close" onclick="closeModal('unplannedModal')">&times;</button>
+                <h3>⚡ 非计划工作量详情</h3>
+                <button class="modal-close" onclick="closeModal('nonPlanWorkloadModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label>跳闸总量 (起)</label>
-                    <input type="number" id="unplannedTotal" class="form-input" value="11" min="0">
+                <!-- 三个业务类型卡片 -->
+                <div class="non-plan-workload-grid">
+                    <!-- 故障日志 -->
+                    <div class="non-plan-workload-card">
+                        <div class="non-plan-card-header">
+                            <span class="non-plan-icon">⚡</span>
+                            <span class="non-plan-title">故障日志</span>
+                        </div>
+                        <div class="non-plan-card-body">
+                            <div class="non-plan-stat">
+                                <span class="non-plan-label">数量</span>
+                                <span class="non-plan-value red" id="non-plan-fault-count">0</span>
+                            </div>
+                            <div class="non-plan-desc">
+                                <span class="non-plan-desc-label">说明：</span>
+                                <span class="non-plan-desc-value">前三天未交班的故障单数</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 异常缺陷 -->
+                    <div class="non-plan-workload-card">
+                        <div class="non-plan-card-header">
+                            <span class="non-plan-icon">⚠️</span>
+                            <span class="non-plan-title">异常缺陷</span>
+                        </div>
+                        <div class="non-plan-card-body">
+                            <div class="non-plan-stat">
+                                <span class="non-plan-label">数量</span>
+                                <span class="non-plan-value yellow" id="non-plan-defect-count">0</span>
+                            </div>
+                            <div class="non-plan-desc">
+                                <span class="non-plan-desc-label">说明：</span>
+                                <span class="non-plan-desc-value">当值记录未交班的缺陷单数</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 重过载 -->
+                    <div class="non-plan-workload-card">
+                        <div class="non-plan-card-header">
+                            <span class="non-plan-icon">🔥</span>
+                            <span class="non-plan-title">重过载</span>
+                        </div>
+                        <div class="non-plan-card-body">
+                            <div class="non-plan-stat">
+                                <span class="non-plan-label">数量</span>
+                                <span class="non-plan-value orange" id="non-plan-overload-count">0</span>
+                            </div>
+                            <div class="non-plan-desc">
+                                <span class="non-plan-desc-label">说明：</span>
+                                <span class="non-plan-desc-value">当值记录未解决的重过载数</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>重合成功 (起)</label>
-                    <input type="number" id="unplannedSuccess" class="form-input" value="6" min="0">
+
+                <!-- 总计 -->
+                <div class="non-plan-total-section">
+                    <h4 class="section-title">📊 总计</h4>
+                    <div class="non-plan-total-card">
+                        <span class="non-plan-total-label">非计划工作量总计</span>
+                        <span class="non-plan-total-value" id="non-plan-total-count">0</span>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>重合失败 (起)</label>
-                    <input type="number" id="unplannedFail" class="form-input" value="5" min="0">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('unplannedModal')">取消</button>
-                <button class="btn btn-primary" onclick="saveUnplannedWorkload()">保存</button>
             </div>
         </div>
     </div>

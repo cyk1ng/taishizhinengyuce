@@ -585,6 +585,178 @@ document.addEventListener('DOMContentLoaded', function() {
     // setTimeout(() => {
     //     loadRealTimeData();
     // }, 1000);
+    
+    // 更新工作量统计数据
+    updateWorkloadStats();
 
     console.log('⚡ 配网调度业务量智能预测系统已加载（使用假数据展示）');
 });
+
+/**
+ * 显示计划工作量弹窗
+ */
+function showPlanWorkloadModal(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // 获取当前日期的工作量数据
+    const today = new Date().toISOString().split('T')[0];
+    
+    // 调用后端API获取数据
+    // 这里暂时使用假数据
+    const planData = {
+        maintenance: {
+            in_progress: 8,
+            completed: 3,
+            total: 11
+        },
+        transfer: {
+            in_progress: 5,
+            completed: 2,
+            total: 7
+        },
+        equipment: {
+            in_progress: 4,
+            completed: 1,
+            total: 5
+        },
+        weekly_plan: {
+            in_progress: 12,
+            completed: 6,
+            total: 18
+        },
+        shift_allocation: {
+            morning: 15,
+            afternoon: 20,
+            night: 6
+        }
+    };
+    
+    // 更新弹窗数据
+    updatePlanWorkloadModal(planData);
+    
+    // 显示弹窗
+    const modal = document.getElementById('planWorkloadModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+}
+
+/**
+ * 更新计划工作量弹窗数据
+ */
+function updatePlanWorkloadModal(data) {
+    // 更新计划检修
+    document.getElementById('plan-maintenance-in-progress').textContent = data.maintenance.in_progress;
+    document.getElementById('plan-maintenance-completed').textContent = data.maintenance.completed;
+    document.getElementById('plan-maintenance-total').textContent = data.maintenance.total;
+    
+    // 更新转供电
+    document.getElementById('plan-transfer-in-progress').textContent = data.transfer.in_progress;
+    document.getElementById('plan-transfer-completed').textContent = data.transfer.completed;
+    document.getElementById('plan-transfer-total').textContent = data.transfer.total;
+    
+    // 更新设备投退
+    document.getElementById('plan-equipment-in-progress').textContent = data.equipment.in_progress;
+    document.getElementById('plan-equipment-completed').textContent = data.equipment.completed;
+    document.getElementById('plan-equipment-total').textContent = data.equipment.total;
+    
+    // 更新周计划
+    document.getElementById('plan-weekly-in-progress').textContent = data.weekly_plan.in_progress;
+    document.getElementById('plan-weekly-completed').textContent = data.weekly_plan.completed;
+    document.getElementById('plan-weekly-total').textContent = data.weekly_plan.total;
+    
+    // 更新班次分配
+    document.getElementById('shift-morning-count').textContent = data.shift_allocation.morning;
+    document.getElementById('shift-afternoon-count').textContent = data.shift_allocation.afternoon;
+    document.getElementById('shift-night-count').textContent = data.shift_allocation.night;
+}
+
+/**
+ * 显示非计划工作量弹窗
+ */
+function showNonPlanWorkloadModal(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // 获取当前日期的工作量数据
+    const today = new Date().toISOString().split('T')[0];
+    
+    // 调用后端API获取数据
+    // 这里暂时使用假数据
+    const nonPlanData = {
+        fault: {
+            count: 8
+        },
+        defect: {
+            count: 5
+        },
+        overload: {
+            count: 2
+        },
+        total: 15
+    };
+    
+    // 更新弹窗数据
+    updateNonPlanWorkloadModal(nonPlanData);
+    
+    // 显示弹窗
+    const modal = document.getElementById('nonPlanWorkloadModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+}
+
+/**
+ * 更新非计划工作量弹窗数据
+ */
+function updateNonPlanWorkloadModal(data) {
+    // 更新故障日志
+    document.getElementById('non-plan-fault-count').textContent = data.fault.count;
+    
+    // 更新异常缺陷
+    document.getElementById('non-plan-defect-count').textContent = data.defect.count;
+    
+    // 更新重过载
+    document.getElementById('non-plan-overload-count').textContent = data.overload.count;
+    
+    // 更新总计
+    document.getElementById('non-plan-total-count').textContent = data.total;
+}
+
+/**
+ * 关闭弹窗
+ */
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+/**
+ * 更新工作量统计数据
+ */
+function updateWorkloadStats() {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // 计划工作量
+    const planTotal = 41;
+    const planInProgress = 29;
+    const planCompleted = 12;
+    
+    document.getElementById('stat-plan-total').innerHTML = `${planTotal}<span class="unit">单</span>`;
+    document.getElementById('stat-plan-in-progress').textContent = planInProgress;
+    document.getElementById('stat-plan-completed').textContent = planCompleted;
+    
+    // 非计划工作量
+    const faultCount = 8;
+    const defectCount = 5;
+    const overloadCount = 2;
+    const nonPlanTotal = faultCount + defectCount + overloadCount;
+    
+    document.getElementById('stat-non-plan-total').innerHTML = `${nonPlanTotal}<span class="unit">起</span>`;
+    document.getElementById('stat-non-plan-fault').textContent = faultCount;
+    document.getElementById('stat-non-plan-defect').textContent = defectCount;
+    document.getElementById('stat-non-plan-overload').textContent = overloadCount;
+}

@@ -1,0 +1,278 @@
+/* ========================================
+   计划工作量和非计划工作量弹窗样式
+   ======================================== */
+
+/* 计划工作量弹窗 */
+.plan-workload-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.plan-workload-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.plan-workload-card:hover {
+    border-color: var(--accent-blue);
+    box-shadow: var(--glow-blue);
+}
+
+.plan-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.plan-icon {
+    font-size: 20px;
+}
+
+.plan-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.plan-card-body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.plan-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.plan-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.plan-value {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.plan-value.green {
+    color: var(--highlight-green);
+}
+
+.plan-value.blue {
+    color: var(--highlight-blue);
+}
+
+.plan-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 4px 0;
+}
+
+.plan-stat.total {
+    padding-top: 8px;
+    border-top: 1px dashed var(--border-color);
+}
+
+.plan-stat.total .plan-value {
+    color: var(--text-primary);
+}
+
+/* 班次分配部分 */
+.shift-allocation-section {
+    margin-top: 24px;
+}
+
+.section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.shift-allocation-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.shift-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.shift-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.shift-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--accent-cyan);
+}
+
+/* 非计划工作量弹窗 */
+.non-plan-workload-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.non-plan-workload-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.non-plan-workload-card:hover {
+    border-color: var(--accent-orange);
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.2);
+}
+
+.non-plan-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.non-plan-icon {
+    font-size: 20px;
+}
+
+.non-plan-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.non-plan-card-body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.non-plan-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.non-plan-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.non-plan-value {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.non-plan-value.red {
+    color: var(--highlight-red);
+}
+
+.non-plan-value.yellow {
+    color: var(--highlight-yellow);
+}
+
+.non-plan-value.orange {
+    color: var(--accent-orange);
+}
+
+.non-plan-desc {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    background: var(--bg-input);
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.non-plan-desc-label {
+    color: var(--accent-blue);
+    font-weight: 600;
+}
+
+.non-plan-desc-value {
+    color: var(--text-muted);
+}
+
+/* 非计划工作量总计部分 */
+.non-plan-total-section {
+    margin-top: 24px;
+}
+
+.non-plan-total-card {
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+    border: 2px solid var(--accent-orange);
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.non-plan-total-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.non-plan-total-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--accent-orange);
+    text-shadow: 0 0 10px rgba(249, 115, 22, 0.3);
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+    .plan-workload-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .non-plan-workload-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .plan-workload-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .non-plan-workload-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .shift-allocation-grid {
+        grid-template-columns: 1fr;
+    }
+}

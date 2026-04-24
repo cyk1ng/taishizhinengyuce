@@ -132,7 +132,9 @@ def _create_engine_with_retry():
             last_error = e
             elapsed = time.time() - start_time
             logger.warning(f"Database connection failed, retrying... (elapsed: {elapsed:.1f}s)")
-            time.sleep(min(1, MAX_RETRY_TIME - elapsed))
+            remaining_time = MAX_RETRY_TIME - elapsed
+            if remaining_time > 0:
+                time.sleep(min(1, remaining_time))
     
     logger.error(f"Database connection failed after {MAX_RETRY_TIME}s: {last_error}")
     raise last_error  # pyright: ignore [reportGeneralTypeIssues]

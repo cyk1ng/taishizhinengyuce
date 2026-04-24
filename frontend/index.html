@@ -56,9 +56,9 @@
                     <span>📊</span>
                     <span>柔性值班计算</span>
                 </button>
-                <div class="header-info">
-                    <span>🕐</span>
-                    <span class="value" id="currentTime">--:--:--</span>
+                <div class="time-display">
+                    <span class="time-icon">🕐</span>
+                    <span class="time-value" id="currentTime">--:--:--</span>
                 </div>
             </div>
         </div>
@@ -68,56 +68,54 @@
     <section class="stats-overview">
         <div class="stats-grid">
             <!-- 计划工作量 -->
-            <div class="stat-card" onclick="showPlanWorkloadModal(event)" style="cursor: pointer;">
-                <div class="stat-title">
-                    <span>📋</span>
-                    <span>计划工作量</span>
-                    <span class="edit-badge">📊</span>
+            <div class="stat-card plan-card" onclick="showPlanWorkloadModal(event)" style="cursor: pointer;">
+                <div class="stat-header">
+                    <div class="stat-title">
+                        <span class="title-icon">📋</span>
+                        <span class="title-text">计划工作量</span>
+                    </div>
+                    <span class="stat-badge">可编辑</span>
                 </div>
-                <div class="stat-value green" id="stat-plan-total">0<span class="unit">单</span></div>
-                <div class="stat-detail">
-                    <span><span class="label">开展中:</span> <span id="stat-plan-in-progress">0</span></span>
-                    <span><span class="label">已终结:</span> <span id="stat-plan-completed">0</span></span>
-                </div>
-            </div>
-            
-            <!-- 非计划工作量 -->
-            <div class="stat-card" onclick="showNonPlanWorkloadModal(event)" style="cursor: pointer;">
-                <div class="stat-title">
-                    <span>⚡</span>
-                    <span>非计划工作量</span>
-                    <span class="edit-badge">📊</span>
-                </div>
-                <div class="stat-value red" id="stat-non-plan-total">0<span class="unit">起</span></div>
-                <div class="stat-detail">
-                    <span><span class="label">故障日志:</span> <span id="stat-non-plan-fault">0</span></span>
-                    <span><span class="label">异常缺陷:</span> <span id="stat-non-plan-defect">0</span></span>
-                    <span><span class="label">重过载:</span> <span id="stat-non-plan-overload">0</span></span>
+                <div class="stat-content">
+                    <div class="stat-value green" id="stat-plan-total">0<span class="unit">单</span></div>
+                    <div class="stat-detail">
+                        <div class="detail-item">
+                            <span class="detail-label">开展中</span>
+                            <span class="detail-value" id="stat-plan-in-progress">0</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">已终结</span>
+                            <span class="detail-value" id="stat-plan-completed">0</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- 天气显示卡片 -->
-            <div class="weather-display-card" onclick="editWeather()">
-                <div class="weather-header">
-                    <span class="weather-title">🌤️ 天气状况</span>
-                    <span class="weather-edit-icon">✏️</span>
-                </div>
-                <div class="weather-main">
-                    <span class="weather-icon">🌡️</span>
-                    <span class="weather-temp" id="weatherTempDisplay">25~35<span class="unit">℃</span></span>
-                </div>
-                <div class="weather-details">
-                    <div class="weather-detail-item">
-                        <span class="weather-detail-icon">💧</span>
-                        <span class="weather-detail-value" id="weatherPrecipDisplay">降水量: 小</span>
+            <!-- 非计划工作量 -->
+            <div class="stat-card non-plan-card" onclick="showNonPlanWorkloadModal(event)" style="cursor: pointer;">
+                <div class="stat-header">
+                    <div class="stat-title">
+                        <span class="title-icon">⚡</span>
+                        <span class="title-text">非计划工作量</span>
                     </div>
-                    <div class="weather-detail-item">
-                        <span class="weather-detail-icon">💨</span>
-                        <span class="weather-detail-value" id="weatherWindDisplay">风力: 小</span>
-                    </div>
+                    <span class="stat-badge">可编辑</span>
                 </div>
-                <div class="weather-extreme" id="weatherExtremeDisplay">
-                    ⚠️ 暴雨
+                <div class="stat-content">
+                    <div class="stat-value red" id="stat-non-plan-total">0<span class="unit">起</span></div>
+                    <div class="stat-detail">
+                        <div class="detail-item">
+                            <span class="detail-label">故障日志</span>
+                            <span class="detail-value" id="stat-non-plan-fault">0</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">异常缺陷</span>
+                            <span class="detail-value" id="stat-non-plan-defect">0</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">重过载</span>
+                            <span class="detail-value" id="stat-non-plan-overload">0</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

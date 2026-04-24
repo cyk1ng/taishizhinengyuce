@@ -227,81 +227,50 @@ body {
     font-weight: 600;
 }
 
-/* 天气信息显示条 */
+/* 天气信息显示条 - 自然风格（无框） */
 .weather-info-bar {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 6px 14px;
-    background: linear-gradient(135deg, rgba(6, 182, 212, 0.08), rgba(59, 130, 246, 0.05));
-    border: 1px solid rgba(6, 182, 212, 0.2);
-    border-radius: 8px;
+    gap: 10px;
+    padding: 0;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s ease;
     position: relative;
-    overflow: hidden;
 }
 
-.weather-info-bar::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue));
-    opacity: 0.5;
+.weather-info-bar:hover .weather-value {
+    color: var(--accent-cyan);
 }
 
-.weather-info-bar:hover {
-    background: linear-gradient(135deg, rgba(6, 182, 212, 0.12), rgba(59, 130, 246, 0.08));
-    border-color: var(--accent-cyan);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.15);
-}
-
-.weather-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    min-width: 45px;
+.weather-info-bar:hover .weather-edit-icon {
+    opacity: 1;
 }
 
 .weather-icon {
-    font-size: 20px;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-}
-
-.weather-label {
-    font-size: 9px;
-    color: var(--text-muted);
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-size: 18px;
+    filter: none;
 }
 
 .weather-value {
-    font-size: 11px;
-    color: var(--text-primary);
-    font-weight: 600;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 400;
     font-family: 'Segoe UI', monospace;
+    transition: color 0.2s;
 }
 
 .weather-divider {
     width: 1px;
-    height: 24px;
-    background: linear-gradient(180deg, transparent, rgba(6, 182, 212, 0.3), transparent);
+    height: 14px;
+    background: rgba(255, 255, 255, 0.15);
+    display: flex;
 }
 
 .weather-edit-icon {
-    font-size: 10px;
-    opacity: 0.5;
-    transition: opacity 0.3s;
-}
-
-.weather-info-bar:hover .weather-edit-icon {
-    opacity: 0.8;
+    font-size: 11px;
+    opacity: 0.2;
+    transition: opacity 0.2s;
+    color: var(--text-muted);
 }
 
 /* ========================================

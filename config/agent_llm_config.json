@@ -1,6 +1,6 @@
 {
   "config": {
-    "model": "doubao-seed-1-8-251228",
+    "model": "qwen2.5:7b",
     "temperature": 0.3,
     "top_p": 0.9,
     "max_completion_tokens": 8000,

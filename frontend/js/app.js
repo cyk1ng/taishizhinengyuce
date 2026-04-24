@@ -533,32 +533,121 @@ async function updateWeatherData() {
             const wind = data.wind || '小';
             const extreme = data.extreme || '';
 
-            // 更新天气显示卡片
-            const weatherTempDisplayEl = document.getElementById('weatherTempDisplay');
-            const weatherPrecipDisplayEl = document.getElementById('weatherPrecipDisplay');
-            const weatherWindDisplayEl = document.getElementById('weatherWindDisplay');
-            const weatherExtremeDisplayEl = document.getElementById('weatherExtremeDisplay');
+            // 更新天气信息条
+            const weatherTempEl = document.getElementById('weather-temp');
+            const weatherPrecipEl = document.getElementById('weather-precipitation');
+            const weatherWindEl = document.getElementById('weather-wind');
+            const weatherConditionIconEl = document.getElementById('weather-condition-icon');
 
-            if (weatherTempDisplayEl) {
-                weatherTempDisplayEl.innerHTML = `${tempMin}~${tempMax}<span class="unit">℃</span>`;
+            if (weatherTempEl) {
+                weatherTempEl.textContent = `${tempMin}~${tempMax}℃`;
             }
-            if (weatherPrecipDisplayEl) {
-                weatherPrecipDisplayEl.textContent = `降水量: ${precipitation}`;
+            if (weatherPrecipEl) {
+                weatherPrecipEl.textContent = precipitation;
             }
-            if (weatherWindDisplayEl) {
-                weatherWindDisplayEl.textContent = `风力: ${wind}`;
+            if (weatherWindEl) {
+                weatherWindEl.textContent = wind;
             }
-            if (weatherExtremeDisplayEl) {
-                if (extreme) {
-                    weatherExtremeDisplayEl.textContent = `⚠️ ${extreme}`;
-                    weatherExtremeDisplayEl.classList.add('show');
-                } else {
-                    weatherExtremeDisplayEl.classList.remove('show');
+            if (weatherConditionIconEl) {
+                // 根据天气情况选择图标
+                let icon = '☀️';
+                if (precipitation === '大') {
+                    icon = '🌧️';
+                } else if (precipitation === '中') {
+                    icon = '🌦️';
+                } else if (extreme && extreme.includes('雷')) {
+                    icon = '⛈️';
+                } else if (extreme && extreme.includes('雪')) {
+                    icon = '❄️';
+                } else if (extreme && extreme.includes('寒潮')) {
+                    icon = '🥶';
+                } else if (extreme && extreme.includes('暴')) {
+                    icon = '🌪️';
+                } else if (wind === '大') {
+                    icon = '💨';
                 }
+                weatherConditionIconEl.textContent = icon;
             }
         }
     } catch (error) {
         console.log('Weather data not available');
+        // 使用默认值
+        const weatherTempEl = document.getElementById('weather-temp');
+        const weatherPrecipEl = document.getElementById('weather-precipitation');
+        const weatherWindEl = document.getElementById('weather-wind');
+        if (weatherTempEl) weatherTempEl.textContent = '--~--℃';
+        if (weatherPrecipEl) weatherPrecipEl.textContent = '--';
+        if (weatherWindEl) weatherWindEl.textContent = '--';
+    }
+}
+
+/**
+ * 显示天气详情弹窗
+ */
+function showWeatherModal() {
+    // 创建弹窗
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-content weather-modal-content">
+            <div class="modal-header">
+                <h2>天气详情</h2>
+                <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="weather-detail-grid">
+                    <div class="weather-detail-item">
+                        <span class="weather-detail-icon">🌡️</span>
+                        <div class="weather-detail-info">
+                            <span class="weather-detail-label">温度范围</span>
+                            <span class="weather-detail-value" id="modal-weather-temp">--~--℃</span>
+                        </div>
+                    </div>
+                    <div class="weather-detail-item">
+                        <span class="weather-detail-icon">💧</span>
+                        <div class="weather-detail-info">
+                            <span class="weather-detail-label">降水量级别</span>
+                            <span class="weather-detail-value" id="modal-weather-precip">--</span>
+                        </div>
+                    </div>
+                    <div class="weather-detail-item">
+                        <span class="weather-detail-icon">🌬️</span>
+                        <div class="weather-detail-info">
+                            <span class="weather-detail-label">风力级别</span>
+                            <span class="weather-detail-value" id="modal-weather-wind">--</span>
+                        </div>
+                    </div>
+                    <div class="weather-detail-item">
+                        <span class="weather-detail-icon">⚠️</span>
+                        <div class="weather-detail-info">
+                            <span class="weather-detail-label">极端天气</span>
+                            <span class="weather-detail-value" id="modal-weather-extreme">--</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="weather-action-buttons">
+                    <button class="modal-btn primary" onclick="openWeatherAdjustModal()">手动修改天气</button>
+                    <button class="modal-btn secondary" onclick="this.closest('.modal-overlay').remove()">关闭</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // 填充数据
+    try {
+        const response = await fetch('/api/weather');
+        const result = await response.json();
+        if (result.success && result.data) {
+            const data = result.data;
+            document.getElementById('modal-weather-temp').textContent = `${data.tempMin || 25}~${data.tempMax || 35}℃`;
+            document.getElementById('modal-weather-precip').textContent = data.precipitation || '--';
+            document.getElementById('modal-weather-wind').textContent = data.wind || '--';
+            document.getElementById('modal-weather-extreme').textContent = data.extreme || '无';
+        }
+    } catch (error) {
+        console.log('Failed to load weather data');
     }
 }
 

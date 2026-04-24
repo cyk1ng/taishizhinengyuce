@@ -267,12 +267,131 @@
     .plan-workload-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .non-plan-workload-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .shift-allocation-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+/* ========================================
+   天气详情弹窗样式
+   ======================================== */
+
+.weather-modal-content {
+    max-width: 600px;
+}
+
+.weather-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.weather-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.weather-detail-item:hover {
+    border-color: var(--accent-cyan);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.15);
+}
+
+.weather-detail-icon {
+    font-size: 32px;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(59, 130, 246, 0.1));
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.weather-detail-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+.weather-detail-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.weather-detail-value {
+    font-size: 18px;
+    color: var(--text-primary);
+    font-weight: 600;
+    font-family: 'Segoe UI', monospace;
+}
+
+.weather-action-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.modal-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.modal-btn.primary {
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+    color: white;
+}
+
+.modal-btn.primary:hover {
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    transform: translateY(-1px);
+}
+
+.modal-btn.secondary {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.modal-btn.secondary:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--accent-blue);
+}
+
+@media (max-width: 768px) {
+    .weather-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .weather-action-buttons {
+        flex-direction: column;
+    }
+
+    .modal-btn {
+        width: 100%;
     }
 }

@@ -56,6 +56,29 @@
                     <span>📊</span>
                     <span>柔性值班计算</span>
                 </button>
+
+                <!-- 天气信息显示 -->
+                <div class="weather-info-bar" onclick="showWeatherModal()">
+                    <div class="weather-item">
+                        <span class="weather-icon" id="weather-condition-icon">☀️</span>
+                    </div>
+                    <div class="weather-divider"></div>
+                    <div class="weather-item">
+                        <span class="weather-label">温度</span>
+                        <span class="weather-value" id="weather-temp">--~--℃</span>
+                    </div>
+                    <div class="weather-item">
+                        <span class="weather-label">降水</span>
+                        <span class="weather-value" id="weather-precipitation">--</span>
+                    </div>
+                    <div class="weather-item">
+                        <span class="weather-label">风力</span>
+                        <span class="weather-value" id="weather-wind">--</span>
+                    </div>
+                    <span class="weather-edit-icon">✏️</span>
+                </div>
+
+                <!-- 时间显示 -->
                 <div class="time-display">
                     <span class="time-icon">🕐</span>
                     <span class="time-value" id="currentTime">--:--:--</span>

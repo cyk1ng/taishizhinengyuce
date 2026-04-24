@@ -590,7 +590,12 @@ async function updateWeatherData() {
 /**
  * 显示天气详情弹窗
  */
-function showWeatherModal() {
+function showWeatherModal(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
     // 创建弹窗
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';

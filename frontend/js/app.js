@@ -801,6 +801,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // 更新工作量统计数据
     updateWorkloadStats();
 
+    // 为天气卡片添加事件监听器
+    const weatherCard = document.getElementById('weather-card');
+    if (weatherCard) {
+        weatherCard.addEventListener('click', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            showWeatherModal(event);
+        });
+    }
+
     console.log('⚡ 配网调度业务量智能预测系统已加载（使用假数据展示）');
 });
 

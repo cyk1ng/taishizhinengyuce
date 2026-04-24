@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试天气卡片</title>
+    <style>
+        body {
+            background-color: #0a1628;
+            color: #e0e0e0;
+            font-family: 'PingFang SC', sans-serif;
+            padding: 20px;
+        }
+
+        .weather-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-left: 3px solid #00bcd4;
+            border-radius: 8px;
+            padding: 16px 20px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 200px;
+            display: inline-block;
+        }
+
+        .weather-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 188, 212, 0.2);
+            border-left-color: #00e5ff;
+        }
+
+        .weather-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .weather-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        .weather-condition-icon {
+            font-size: 36px;
+            margin-bottom: 8px;
+        }
+
+        .weather-details {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .weather-detail-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+        }
+
+        .weather-label {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .weather-value {
+            color: #e0e0e0;
+            font-weight: 500;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: #1a2b45;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <h1>天气卡片测试</h1>
+
+    <div class="weather-card" id="weather-card">
+        <div class="weather-header">
+            <span class="weather-title">🌤️ 天气状况</span>
+            <span style="font-size: 10px; color: rgba(255,255,255,0.4);">[可编辑]</span>
+        </div>
+        <div class="weather-condition-icon">☀️</div>
+        <div class="weather-details">
+            <div class="weather-detail-item">
+                <span class="weather-label">温度：</span>
+                <span class="weather-value" id="weather-temp">25~35℃</span>
+            </div>
+            <div class="weather-detail-item">
+                <span class="weather-label">降水量：</span>
+                <span class="weather-value" id="weather-precipitation">大</span>
+            </div>
+            <div class="weather-detail-item">
+                <span class="weather-label">风力：</span>
+                <span class="weather-value" id="weather-wind">中风</span>
+            </div>
+            <div class="weather-detail-item">
+                <span class="weather-label">极端天气：</span>
+                <span class="weather-value" id="weather-extreme">暴雨</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showWeatherModal(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            console.log('showWeatherModal 被调用');
+            alert('天气弹窗将被打开！');
+
+            // 创建弹窗
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 class="modal-title">天气详情</h2>
+                        <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">✕</button>
+                    </div>
+                    <div>
+                        <p><strong>温度：</strong>${document.getElementById('weather-temp').textContent}</p>
+                        <p><strong>降水量：</strong>${document.getElementById('weather-precipitation').textContent}</p>
+                        <p><strong>风力：</strong>${document.getElementById('weather-wind').textContent}</p>
+                        <p><strong>极端天气：</strong>${document.getElementById('weather-extreme').textContent}</p>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+        }
+
+        // 绑定点击事件
+        document.getElementById('weather-card').addEventListener('click', showWeatherModal);
+
+        console.log('测试页面加载完成');
+        console.log('showWeatherModal 函数是否存在：', typeof showWeatherModal);
+    </script>
+</body>
+</html>

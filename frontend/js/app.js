@@ -595,45 +595,91 @@ function showWeatherModal() {
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.innerHTML = `
-        <div class="modal-content weather-modal-content">
+        <div class="modal-content weather-modal-content" id="weather-modal">
             <div class="modal-header">
-                <h2>天气详情</h2>
+                <h2 id="weather-modal-title">天气详情</h2>
                 <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">✕</button>
             </div>
-            <div class="modal-body">
-                <div class="weather-detail-grid">
-                    <div class="weather-detail-item">
-                        <span class="weather-detail-icon">🌡️</span>
-                        <div class="weather-detail-info">
-                            <span class="weather-detail-label">温度范围</span>
-                            <span class="weather-detail-value" id="modal-weather-temp">--~--℃</span>
+            <div class="modal-body" id="weather-modal-body">
+                <!-- 查看模式 -->
+                <div id="weather-view-mode">
+                    <div class="weather-detail-grid">
+                        <div class="weather-detail-item">
+                            <span class="weather-detail-icon">🌡️</span>
+                            <div class="weather-detail-info">
+                                <span class="weather-detail-label">温度范围</span>
+                                <span class="weather-detail-value" id="modal-weather-temp">--~--℃</span>
+                            </div>
+                        </div>
+                        <div class="weather-detail-item">
+                            <span class="weather-detail-icon">💧</span>
+                            <div class="weather-detail-info">
+                                <span class="weather-detail-label">降水量级别</span>
+                                <span class="weather-detail-value" id="modal-weather-precip">--</span>
+                            </div>
+                        </div>
+                        <div class="weather-detail-item">
+                            <span class="weather-detail-icon">🌬️</span>
+                            <div class="weather-detail-info">
+                                <span class="weather-detail-label">风力级别</span>
+                                <span class="weather-detail-value" id="modal-weather-wind">--</span>
+                            </div>
+                        </div>
+                        <div class="weather-detail-item">
+                            <span class="weather-detail-icon">⚠️</span>
+                            <div class="weather-detail-info">
+                                <span class="weather-detail-label">极端天气</span>
+                                <span class="weather-detail-value" id="modal-weather-extreme">--</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="weather-detail-item">
-                        <span class="weather-detail-icon">💧</span>
-                        <div class="weather-detail-info">
-                            <span class="weather-detail-label">降水量级别</span>
-                            <span class="weather-detail-value" id="modal-weather-precip">--</span>
-                        </div>
-                    </div>
-                    <div class="weather-detail-item">
-                        <span class="weather-detail-icon">🌬️</span>
-                        <div class="weather-detail-info">
-                            <span class="weather-detail-label">风力级别</span>
-                            <span class="weather-detail-value" id="modal-weather-wind">--</span>
-                        </div>
-                    </div>
-                    <div class="weather-detail-item">
-                        <span class="weather-detail-icon">⚠️</span>
-                        <div class="weather-detail-info">
-                            <span class="weather-detail-label">极端天气</span>
-                            <span class="weather-detail-value" id="modal-weather-extreme">--</span>
-                        </div>
+                    <div class="weather-action-buttons">
+                        <button class="modal-btn primary" id="weather-edit-btn">修改天气</button>
+                        <button class="modal-btn secondary" id="weather-close-view-btn">关闭</button>
                     </div>
                 </div>
-                <div class="weather-action-buttons">
-                    <button class="modal-btn primary" onclick="openWeatherAdjustModal()">手动修改天气</button>
-                    <button class="modal-btn secondary" onclick="this.closest('.modal-overlay').remove()">关闭</button>
+
+                <!-- 编辑模式 -->
+                <div id="weather-edit-mode" style="display: none;">
+                    <div class="weather-edit-form">
+                        <div class="form-group">
+                            <label for="edit-weather-temp">温度范围：</label>
+                            <input type="text" id="edit-weather-temp" placeholder="例如：25~35℃">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-weather-precip">降水量级别：</label>
+                            <select id="edit-weather-precip">
+                                <option value="小">小（≤9.9mm）</option>
+                                <option value="中">中（10-24.9mm）</option>
+                                <option value="大">大（≥25mm）</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-weather-wind">风力级别：</label>
+                            <select id="edit-weather-wind">
+                                <option value="小">小（≤6级）</option>
+                                <option value="中">中（7-10级）</option>
+                                <option value="大">大（≥11级）</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-weather-extreme">极端天气：</label>
+                            <select id="edit-weather-extreme">
+                                <option value="">无</option>
+                                <option value="暴雨">暴雨</option>
+                                <option value="雷雨">雷雨</option>
+                                <option value="大雪">大雪</option>
+                                <option value="暴雪">暴雪</option>
+                                <option value="寒潮">寒潮</option>
+                                <option value="冰雹">冰雹</option>
+                                <option value="沙尘暴">沙尘暴</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="weather-action-buttons">
+                        <button class="modal-btn primary" id="weather-save-btn">保存</button>
+                        <button class="modal-btn secondary" id="weather-cancel-btn">取消</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -641,20 +687,86 @@ function showWeatherModal() {
 
     document.body.appendChild(modal);
 
-    // 填充数据
-    try {
-        const response = await fetch('/api/weather');
-        const result = await response.json();
-        if (result.success && result.data) {
-            const data = result.data;
-            document.getElementById('modal-weather-temp').textContent = `${data.tempMin || 25}~${data.tempMax || 35}℃`;
-            document.getElementById('modal-weather-precip').textContent = data.precipitation || '--';
-            document.getElementById('modal-weather-wind').textContent = data.wind || '--';
-            document.getElementById('modal-weather-extreme').textContent = data.extreme || '无';
-        }
-    } catch (error) {
-        console.log('Failed to load weather data');
-    }
+    // 获取当前天气数据
+    const currentTemp = document.getElementById('weather-temp')?.textContent || '--~--℃';
+    const currentPrecip = document.getElementById('weather-precipitation')?.textContent || '--';
+    const currentWind = document.getElementById('weather-wind')?.textContent || '--';
+    const currentExtreme = document.getElementById('weather-extreme')?.textContent || '--';
+
+    // 填充查看模式数据
+    document.getElementById('modal-weather-temp').textContent = currentTemp;
+    document.getElementById('modal-weather-precip').textContent = currentPrecip;
+    document.getElementById('modal-weather-wind').textContent = currentWind;
+    document.getElementById('modal-weather-extreme').textContent = currentExtreme;
+
+    // 填充编辑模式数据
+    document.getElementById('edit-weather-temp').value = currentTemp;
+    document.getElementById('edit-weather-precip').value = currentPrecip === '--' ? '小' : currentPrecip;
+    document.getElementById('edit-weather-wind').value = currentWind === '--' ? '小' : currentWind;
+    document.getElementById('edit-weather-extreme').value = currentExtreme === '--' || currentExtreme === '无' ? '' : currentExtreme;
+
+    // 绑定事件
+    const viewMode = document.getElementById('weather-view-mode');
+    const editMode = document.getElementById('weather-edit-mode');
+    const modalTitle = document.getElementById('weather-modal-title');
+
+    // 修改按钮 - 切换到编辑模式
+    document.getElementById('weather-edit-btn').addEventListener('click', () => {
+        viewMode.style.display = 'none';
+        editMode.style.display = 'block';
+        modalTitle.textContent = '修改天气';
+    });
+
+    // 关闭按钮（查看模式）
+    document.getElementById('weather-close-view-btn').addEventListener('click', () => {
+        modal.remove();
+    });
+
+    // 保存按钮
+    document.getElementById('weather-save-btn').addEventListener('click', () => {
+        const newTemp = document.getElementById('edit-weather-temp').value;
+        const newPrecip = document.getElementById('edit-weather-precip').value;
+        const newWind = document.getElementById('edit-weather-wind').value;
+        const newExtreme = document.getElementById('edit-weather-extreme').value;
+
+        // 更新页面显示
+        const weatherTempEl = document.getElementById('weather-temp');
+        const weatherPrecipEl = document.getElementById('weather-precipitation');
+        const weatherWindEl = document.getElementById('weather-wind');
+        const weatherExtremeEl = document.getElementById('weather-extreme');
+
+        if (weatherTempEl) weatherTempEl.textContent = newTemp;
+        if (weatherPrecipEl) weatherPrecipEl.textContent = newPrecip;
+        if (weatherWindEl) weatherWindEl.textContent = newWind;
+        if (weatherExtremeEl) weatherExtremeEl.textContent = newExtreme || '无';
+
+        // 更新查看模式数据
+        document.getElementById('modal-weather-temp').textContent = newTemp;
+        document.getElementById('modal-weather-precip').textContent = newPrecip;
+        document.getElementById('modal-weather-wind').textContent = newWind;
+        document.getElementById('modal-weather-extreme').textContent = newExtreme || '无';
+
+        // 切换回查看模式
+        editMode.style.display = 'none';
+        viewMode.style.display = 'block';
+        modalTitle.textContent = '天气详情';
+
+        alert('天气信息已更新！');
+    });
+
+    // 取消按钮
+    document.getElementById('weather-cancel-btn').addEventListener('click', () => {
+        // 重置编辑表单
+        document.getElementById('edit-weather-temp').value = currentTemp;
+        document.getElementById('edit-weather-precip').value = currentPrecip === '--' ? '小' : currentPrecip;
+        document.getElementById('edit-weather-wind').value = currentWind === '--' ? '小' : currentWind;
+        document.getElementById('edit-weather-extreme').value = currentExtreme === '--' || currentExtreme === '无' ? '' : currentExtreme;
+
+        // 切换回查看模式
+        editMode.style.display = 'none';
+        viewMode.style.display = 'block';
+        modalTitle.textContent = '天气详情';
+    });
 }
 
 // 页面加载完成后初始化

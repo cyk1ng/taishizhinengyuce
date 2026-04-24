@@ -57,16 +57,6 @@
                     <span>柔性值班计算</span>
                 </button>
 
-                <!-- 天气信息显示（自然风格，无框） -->
-                <div class="weather-info-bar" onclick="showWeatherModal()">
-                    <span class="weather-icon" id="weather-condition-icon">☀️</span>
-                    <span class="weather-value" id="weather-temp">--~--℃</span>
-                    <span class="weather-divider"></span>
-                    <span class="weather-value" id="weather-precipitation">--</span>
-                    <span class="weather-divider"></span>
-                    <span class="weather-value" id="weather-wind">--</span>
-                    <span class="weather-edit-icon">✏️</span>
-                </div>
 
                 <!-- 时间显示 -->
                 <div class="time-display">
@@ -127,6 +117,40 @@
                         <div class="detail-item">
                             <span class="detail-label">重过载</span>
                             <span class="detail-value" id="stat-non-plan-overload">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 天气状况 -->
+            <div class="stat-card weather-card" onclick="showWeatherModal(event)" style="cursor: pointer;">
+                <div class="stat-header">
+                    <div class="stat-title">
+                        <span class="title-icon">🌤️</span>
+                        <span class="title-text">天气状况</span>
+                    </div>
+                    <span class="stat-badge">可编辑</span>
+                </div>
+                <div class="stat-content">
+                    <div class="weather-info" id="weather-info">
+                        <div class="weather-condition-icon" id="weather-condition-icon">☀️</div>
+                        <div class="weather-details">
+                            <div class="weather-detail-item">
+                                <span class="weather-label">温度：</span>
+                                <span class="weather-value" id="weather-temp">--~--℃</span>
+                            </div>
+                            <div class="weather-detail-item">
+                                <span class="weather-label">降水量：</span>
+                                <span class="weather-value" id="weather-precipitation">--</span>
+                            </div>
+                            <div class="weather-detail-item">
+                                <span class="weather-label">风力：</span>
+                                <span class="weather-value" id="weather-wind">--</span>
+                            </div>
+                            <div class="weather-detail-item">
+                                <span class="weather-label">极端天气：</span>
+                                <span class="weather-value" id="weather-extreme">--</span>
+                            </div>
                         </div>
                     </div>
                 </div>

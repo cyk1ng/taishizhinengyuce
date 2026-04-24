@@ -533,10 +533,11 @@ async function updateWeatherData() {
             const wind = data.wind || '小';
             const extreme = data.extreme || '';
 
-            // 更新天气信息条
+            // 更新天气卡片
             const weatherTempEl = document.getElementById('weather-temp');
             const weatherPrecipEl = document.getElementById('weather-precipitation');
             const weatherWindEl = document.getElementById('weather-wind');
+            const weatherExtremeEl = document.getElementById('weather-extreme');
             const weatherConditionIconEl = document.getElementById('weather-condition-icon');
 
             if (weatherTempEl) {
@@ -547,6 +548,9 @@ async function updateWeatherData() {
             }
             if (weatherWindEl) {
                 weatherWindEl.textContent = wind;
+            }
+            if (weatherExtremeEl) {
+                weatherExtremeEl.textContent = extreme || '无';
             }
             if (weatherConditionIconEl) {
                 // 根据天气情况选择图标
@@ -575,9 +579,11 @@ async function updateWeatherData() {
         const weatherTempEl = document.getElementById('weather-temp');
         const weatherPrecipEl = document.getElementById('weather-precipitation');
         const weatherWindEl = document.getElementById('weather-wind');
+        const weatherExtremeEl = document.getElementById('weather-extreme');
         if (weatherTempEl) weatherTempEl.textContent = '--~--℃';
         if (weatherPrecipEl) weatherPrecipEl.textContent = '--';
         if (weatherWindEl) weatherWindEl.textContent = '--';
+        if (weatherExtremeEl) weatherExtremeEl.textContent = '--';
     }
 }
 

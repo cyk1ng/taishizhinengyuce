@@ -324,7 +324,7 @@ AGENT_METADATA = {
             "langchain",
             "langgraph",
             "coze-coding-dev-sdk",
-            "psycopg2-binary"
+            "psycopg-binary"
         ],
         "environment_variables": [
             "COZE_WORKLOAD_IDENTITY_API_KEY",

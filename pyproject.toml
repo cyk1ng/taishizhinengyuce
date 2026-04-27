@@ -93,7 +93,6 @@ dependencies = [
     "psycopg==3.3.0",
     "psycopg-binary==3.3.0",
     "psycopg-pool==3.3.0",
-    "psycopg2-binary==2.9.9",
     "pycparser==3.0",
     "pydantic==2.12.3",
     "pydantic-core==2.41.4",

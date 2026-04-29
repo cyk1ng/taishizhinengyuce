@@ -654,17 +654,17 @@ function showWeatherModal(event) {
                         <div class="form-group">
                             <label for="edit-weather-precip">降水量级别：</label>
                             <select id="edit-weather-precip">
-                                <option value="小">小（≤9.9mm）</option>
+                                <option value="小">小（&lt;=9.9mm）</option>
                                 <option value="中">中（10-24.9mm）</option>
-                                <option value="大">大（≥25mm）</option>
+                                <option value="大">大（&gt;=25mm）</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label for="edit-weather-wind">风力级别：</label>
                             <select id="edit-weather-wind">
-                                <option value="小">小（≤6级）</option>
+                                <option value="小">小（&lt;=6级）</option>
                                 <option value="中">中（7-10级）</option>
-                                <option value="大">大（≥11级）</option>
+                                <option value="大">大（&gt;=11级）</option>
                             </select>
                         </div>
                         <div class="form-group">

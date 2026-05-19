@@ -83,12 +83,10 @@ async function sendMessage() {
  * 处理流式消息
  */
 function handleStreamMessage(data, messageId) {
-    console.log('Received stream data:', data);
-    
     // 根据消息类型处理
     if (data.type === 'token' || data.content) {
         // 文本内容
-        const content = data.content || data.token || '';
+        const content = data.content || data.token || data.text || data.message || '';
         appendToMessage(messageId, content);
     } else if (data.type === 'tool_call') {
         // 工具调用
@@ -110,7 +108,62 @@ function handleStreamMessage(data, messageId) {
         console.log('Stream complete');
     } else if (data.type === 'error') {
         // 错误
-        updateMessage(messageId, `❌ ${data.message}`);
+        updateMessage(messageId, `❌ ${data.message || data.error_msg || 'Unknown error'}`);
+    } else if (data.type === 'workflow_end') {
+        // 工作流结束事件 - 提取 output 内容
+        if (data.output) {
+            // 如果 output 是字符串，直接显示
+            if (typeof data.output === 'string') {
+                appendToMessage(messageId, data.output);
+            } 
+            // 如果 output 有 content 字段
+            else if (data.output.content) {
+                appendToMessage(messageId, data.output.content);
+            }
+            // 如果 output 有 text 字段
+            else if (data.output.text) {
+                appendToMessage(messageId, data.output.text);
+            }
+            // 如果 output 是对象且有响应内容
+            else if (typeof data.output === 'object') {
+                const outputStr = JSON.stringify(data.output, null, 2);
+                // 如果 output 不为空对象，显示它
+                if (outputStr !== '{}') {
+                    appendToMessage(messageId, outputStr);
+                }
+            }
+        }
+    } else if (data.type === 'node_end') {
+        // 节点结束事件
+        if (data.output) {
+            if (typeof data.output === 'string') {
+                appendToMessage(messageId, data.output);
+            } else if (data.output.content) {
+                appendToMessage(messageId, data.output.content);
+            } else if (data.output.text) {
+                appendToMessage(messageId, data.output.text);
+            } else if (data.output.response) {
+                appendToMessage(messageId, data.output.response);
+            }
+        }
+    } else if (data.type === 'workflow_start') {
+        // 工作流开始
+        console.log('Workflow started');
+    } else if (data.type === 'node_start') {
+        // 节点开始
+        console.log('Node started:', data.node_name);
+    } else if (data.type === 'ping') {
+        // 心跳，无需处理
+    } else {
+        // 如果没有任何已知字段，尝试直接显示整个数据
+        const content = data.content || data.token || data.text || data.message || data.output || '';
+        if (content && (typeof content !== 'object' || Object.keys(content).length > 0)) {
+            if (typeof content === 'string') {
+                appendToMessage(messageId, content);
+            } else {
+                appendToMessage(messageId, JSON.stringify(content, null, 2));
+            }
+        }
     }
 }
 

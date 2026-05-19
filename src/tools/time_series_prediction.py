@@ -30,12 +30,13 @@ from xgboost import XGBRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 # 可选导入：PyTorch (用于LSTM)
+TORCH_AVAILABLE = False
+nn = None
 try:
     import torch
     import torch.nn as nn
     TORCH_AVAILABLE = True
 except ImportError:
-    TORCH_AVAILABLE = False
     print("警告: PyTorch 未安装，LSTM预测功能将不可用。如需使用LSTM，请运行: pip install torch")
 
 
@@ -132,7 +133,7 @@ class ProphetPredictor:
         }
 
 
-class LSTMPredictor(nn.Module):
+class LSTMPredictor:
     """
     LSTM时序预测器
 
@@ -141,7 +142,7 @@ class LSTMPredictor(nn.Module):
     - 处理非线性模式
     - 适合复杂时间序列
     """
-
+    
     def __init__(self, input_size: int = 5, hidden_size: int = 64, num_layers: int = 2):
         if not TORCH_AVAILABLE:
             raise ImportError(
@@ -149,16 +150,17 @@ class LSTMPredictor(nn.Module):
                 "请安装 PyTorch: pip install torch\n"
                 "或者只使用 Prophet 和 XGBoost 模型进行预测。"
             )
-
-        super(LSTMPredictor, self).__init__()
+        
+        self.nn = nn  # 引用模块级 nn
         self.hidden_size = hidden_size
         self.num_layers = num_layers
 
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=0.2)
-        self.fc = nn.Linear(hidden_size, 1)
-        self.dropout = nn.Dropout(0.2)
+        self.lstm = self.nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=0.2)
+        self.fc = self.nn.Linear(hidden_size, 1)
+        self.dropout = self.nn.Dropout(0.2)
 
     def forward(self, x):
+        import torch
         h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
         c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
 

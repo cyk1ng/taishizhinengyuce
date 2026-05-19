@@ -17,7 +17,7 @@ import os
 import json
 from typing import Annotated
 from pathlib import Path
-from langchain.agents import create_agent
+from langgraph.prebuilt import create_react_agent
 from langchain_openai import ChatOpenAI
 from langgraph.graph import MessagesState
 from langgraph.graph.message import add_messages
@@ -132,6 +132,7 @@ def _windowed_messages(old, new):
 class AgentState(MessagesState):
     """Agent状态定义"""
     messages: Annotated[list[AnyMessage], _windowed_messages]
+    remaining_steps: int = 100  # 默认递归限制
 
 
 def build_agent(ctx=None):
@@ -251,10 +252,10 @@ def build_agent(ctx=None):
     ]
     
     # 创建Agent
-    agent = create_agent(
+    agent = create_react_agent(
         model=llm,
-        system_prompt=cfg.get("sp"),
         tools=tools,
+        prompt=cfg.get("sp"),
         checkpointer=get_memory_saver(),
         state_schema=AgentState,
     )

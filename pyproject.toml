@@ -43,12 +43,8 @@ dependencies = [
     "opencv-python-headless>=4.10.0",
 ]
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/", "assets/", "frontend/", "config/"]
-
 [tool.uv]
 dev-dependencies = []
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+[project.urls]
+Home = "https://github.com"

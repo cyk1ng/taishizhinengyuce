@@ -15,13 +15,14 @@
 
 import os
 import json
+import re
 from typing import Annotated
 from pathlib import Path
 from langgraph.prebuilt import create_react_agent
 from langchain_openai import ChatOpenAI
 from langgraph.graph import MessagesState
 from langgraph.graph.message import add_messages
-from langchain_core.messages import AnyMessage
+from langchain_core.messages import AnyMessage, AIMessage, ToolMessage
 from coze_coding_utils.runtime_ctx.context import default_headers
 from storage.memory.memory_saver import get_memory_saver
 
@@ -133,6 +134,66 @@ class AgentState(MessagesState):
     """Agent状态定义"""
     messages: Annotated[list[AnyMessage], _windowed_messages]
     remaining_steps: int = 100  # 默认递归限制
+
+
+def _tool_call_parser(state: dict) -> dict:
+    """
+    解析 Ollama 模型返回的文本格式工具调用（如 <tool_call>...</tool_call>）
+    转换为标准 AIMessage.tool_calls 格式，使框架能自动执行工具
+    """
+    messages = state.get("messages", [])
+    if not messages:
+        return state
+
+    last_msg = messages[-1]
+    if not isinstance(last_msg, AIMessage):
+        return state
+
+    content = last_msg.content
+    if not content or not isinstance(content, str):
+        return state
+
+    # 检查是否包含 <tool_call> 标签
+    if '<tool_call>' not in content:
+        return state
+
+    # 解析所有 <tool_call>...</tool_call> 块
+    pattern = r'<tool_call>\s*({.*?})\s*</tool_call>'
+    matches = re.findall(pattern, content, re.DOTALL)
+
+    if not matches:
+        return state
+
+    # 将文本工具调用转换为结构化 tool_calls
+    tool_calls = []
+    for i, match in enumerate(matches):
+        try:
+            call_data = json.loads(match.strip())
+            tool_name = call_data.get("name", "")
+            arguments = call_data.get("arguments", {})
+            tool_calls.append({
+                "name": tool_name,
+                "args": arguments,
+                "id": f"call_{i}_{tool_name}",
+                "type": "tool_call"
+            })
+        except json.JSONDecodeError:
+            continue
+
+    if not tool_calls:
+        return state
+
+    # 创建新的 AIMessage 并添加 tool_calls
+    new_msg = AIMessage(
+        content="",  # 清空内容，避免重复显示
+        tool_calls=tool_calls,
+        additional_kwargs=last_msg.additional_kwargs,
+        id=last_msg.id,
+        response_metadata=last_msg.response_metadata
+    )
+
+    return {"messages": messages[:-1] + [new_msg]}
+
 
 
 def build_agent(ctx=None):
@@ -251,11 +312,12 @@ def build_agent(ctx=None):
         get_situation_dashboard  # 新增：获取态势看板数据
     ]
     
-    # 创建Agent
+    # 创建Agent - 使用 post_model_hook 处理文本格式的工具调用
     agent = create_react_agent(
         model=llm,
         tools=tools,
         prompt=cfg.get("sp"),
+        post_model_hook=_tool_call_parser,
         checkpointer=get_memory_saver(),
         state_schema=AgentState,
     )

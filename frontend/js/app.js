@@ -137,7 +137,33 @@ function handleStreamMessage(data, messageId) {
             // 如果 output 是字符串，直接显示
             if (typeof data.output === 'string') {
                 appendToMessage(messageId, data.output);
-            } 
+            }
+            // 如果 output 包含 messages 数组（Agent 的完整输出）
+            else if (data.output.messages && Array.isArray(data.output.messages)) {
+                // 取最后一条 AI 消息的内容
+                const msgs = data.output.messages;
+                for (let i = msgs.length - 1; i >= 0; i--) {
+                    const msg = msgs[i];
+                    if (msg.type === 'ai' && msg.content && !msg.content.includes('<tool_call>')) {
+                        appendToMessage(messageId, msg.content);
+                        return;
+                    }
+                }
+                // 如果所有 AI 消息都包含 tool_call，取最后一条消息的内容
+                const lastMsg = msgs[msgs.length - 1];
+                if (lastMsg && lastMsg.content) {
+                    // 如果是 tool_call 文本，隐藏内部 XML 标签，只显示友好的提示
+                    let text = lastMsg.content;
+                    text = text.replace(/<tool_call>[\s\S]*?<\/tool_call>/g, '');
+                    text = text.replace(/<tool_result>[\s\S]*?<\/tool_result>/g, '');
+                    text = text.trim();
+                    if (text) {
+                        appendToMessage(messageId, text);
+                    } else {
+                        appendToMessage(messageId, 'AI 正在调用数据工具进行分析，请稍候...');
+                    }
+                }
+            }
             // 如果 output 有 content 字段
             else if (data.output.content) {
                 appendToMessage(messageId, data.output.content);

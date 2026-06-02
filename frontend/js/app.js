@@ -149,18 +149,29 @@ function handleStreamMessage(data, messageId) {
                         return;
                     }
                 }
-                // 如果所有 AI 消息都包含 tool_call，取最后一条消息的内容
-                const lastMsg = msgs[msgs.length - 1];
-                if (lastMsg && lastMsg.content) {
-                    // 如果是 tool_call 文本，隐藏内部 XML 标签，只显示友好的提示
-                    let text = lastMsg.content;
-                    text = text.replace(/<tool_call>[\s\S]*?<\/tool_call>/g, '');
-                    text = text.replace(/<tool_result>[\s\S]*?<\/tool_result>/g, '');
-                    text = text.trim();
-                    if (text) {
-                        appendToMessage(messageId, text);
+                // 如果所有 AI 消息都没内容，取最后一条成功 tool 的结果
+                const lastTool = [...msgs].reverse().find(m => 
+                    m.type === 'tool' && m.content && m.status === 'success'
+                );
+                if (lastTool && lastTool.content) {
+                    // 尝试解析 JSON 并格式化
+                    try {
+                        const jsonData = JSON.parse(lastTool.content);
+                        appendToMessage(messageId, '📊 分析数据已获取，正在生成报告...');
+                    } catch {
+                        appendToMessage(messageId, lastTool.content);
+                    }
+                } else {
+                    // 最后兜底 - 取最后一条非空消息
+                    const lastNonEmpty = [...msgs].reverse().find(m => m.content && m.content.trim());
+                    if (lastNonEmpty) {
+                        let text = lastNonEmpty.content;
+                        text = text.replace(/<tool_call>[\s\S]*?<\/tool_call>/g, '');
+                        text = text.replace(/<tool_result>[\s\S]*?<\/tool_result>/g, '');
+                        text = text.trim();
+                        appendToMessage(messageId, text || '✅ 分析完成');
                     } else {
-                        appendToMessage(messageId, 'AI 正在调用数据工具进行分析，请稍候...');
+                        appendToMessage(messageId, '✅ 分析完成');
                     }
                 }
             }

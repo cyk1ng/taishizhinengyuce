@@ -183,9 +183,12 @@ def _tool_call_parser(state: dict) -> dict:
     if not tool_calls:
         return state
 
-    # 创建新的 AIMessage 并添加 tool_calls
+    # 去掉原始内容中的 <tool_call> 标签，保留正常文字
+    cleaned_content = re.sub(r'<tool_call>.*?</tool_call>', '', content, flags=re.DOTALL).strip()
+
+    # 创建新的 AIMessage，保留 cleaned_content
     new_msg = AIMessage(
-        content="",  # 清空内容，避免重复显示
+        content=cleaned_content,
         tool_calls=tool_calls,
         additional_kwargs=last_msg.additional_kwargs,
         id=last_msg.id,

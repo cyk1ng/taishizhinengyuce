@@ -25,13 +25,20 @@ class DispatchAPI {
      */
     async streamRun(message, onMessage, onError, onComplete) {
         try {
+            // ⏱️ 添加 60 秒超时，防止无限加载
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 60000);
+
             const response = await fetch(`${this.baseUrl}${API_CONFIG.ENDPOINTS.STREAM_RUN}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ message })
+                body: JSON.stringify({ message }),
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -40,6 +47,7 @@ class DispatchAPI {
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let buffer = '';
+            let receivedData = false;
 
             while (true) {
                 const { done, value } = await reader.read();
@@ -57,6 +65,7 @@ class DispatchAPI {
                         const data = line.slice(6);
                         try {
                             const parsed = JSON.parse(data);
+                            receivedData = true;
                             onMessage(parsed);
                         } catch (e) {
                             console.warn('Failed to parse SSE data:', data);
@@ -65,7 +74,7 @@ class DispatchAPI {
                 }
             }
 
-            if (onComplete) onComplete();
+            if (onComplete) onComplete(receivedData);
         } catch (error) {
             console.error('Stream API error:', error);
             if (onError) onError(error);

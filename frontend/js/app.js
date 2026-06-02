@@ -61,14 +61,21 @@ async function sendMessage() {
             },
             // 错误回调
             (error) => {
-                updateMessage(assistantMessageId, `❌ 错误: ${error.message}`);
+                let errorMsg = error.message;
+                if (error.name === 'AbortError') {
+                    errorMsg = '请求超时（60秒），请检查 Ollama 模型是否正常运行';
+                }
+                updateMessage(assistantMessageId, `❌ ${errorMsg}`);
                 AppState.isProcessing = false;
                 setLoading(false);
             },
             // 完成回调
-            () => {
+            (receivedData) => {
                 AppState.isProcessing = false;
                 setLoading(false);
+                if (!receivedData) {
+                    updateMessage(assistantMessageId, '⚠️ 请求已超时或无数据返回，请检查后端服务或 Ollama 模型是否正常运行。');
+                }
             }
         );
     } catch (error) {
@@ -84,10 +91,15 @@ async function sendMessage() {
  */
 function handleStreamMessage(data, messageId) {
     // 根据消息类型处理
-    if (data.type === 'token' || data.content) {
-        // 文本内容
+    if (data.type === 'token' || data.type === 'message') {
+        // 文本内容或消息内容
         const content = data.content || data.token || data.text || data.message || '';
-        appendToMessage(messageId, content);
+        if (content) {
+            appendToMessage(messageId, content);
+        }
+    } else if (data.content && typeof data.content === 'string' && data.content.length > 0 && !data.type) {
+        // 无 type 字段但有内容的纯文本数据
+        appendToMessage(messageId, data.content);
     } else if (data.type === 'tool_call') {
         // 工具调用
         handleToolCall(data, messageId);
@@ -106,6 +118,16 @@ function handleStreamMessage(data, messageId) {
     } else if (data.type === 'complete') {
         // 完成
         console.log('Stream complete');
+    } else if (data.type === 'message_end') {
+        // 消息结束事件 - 提取最后的消息内容
+        if (data.message) {
+            appendToMessage(messageId, data.message);
+        } else if (data.content) {
+            appendToMessage(messageId, data.content);
+        }
+    } else if (data.type === 'message_start') {
+        // 消息开始，无需处理
+        console.log('Message started');
     } else if (data.type === 'error') {
         // 错误
         updateMessage(messageId, `❌ ${data.message || data.error_msg || 'Unknown error'}`);

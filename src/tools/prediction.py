@@ -19,7 +19,6 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from langchain.tools import tool, ToolRuntime
 from langchain_core.messages import HumanMessage, SystemMessage
-from coze_coding_dev_sdk import LLMClient
 from coze_coding_utils.runtime_ctx.context import new_context
 
 
@@ -103,6 +102,9 @@ class BusinessVolumePredictor:
     def _init_llm_client(self, ctx):
         """初始化LLM客户端"""
         if self.llm_client is None:
+            import importlib
+            _sdk = importlib.import_module('coze_coding_dev_sdk')
+            LLMClient = _sdk.LLMClient
             self.llm_client = LLMClient(ctx=ctx)
         return self.llm_client
     

@@ -26,7 +26,6 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 from langchain.tools import tool, ToolRuntime
 from coze_coding_utils.runtime_ctx.context import new_context
-from coze_coding_dev_sdk import SearchClient
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -679,6 +678,9 @@ def get_weather_by_search(
         # 构造搜索查询
         query = f"{date} {location} 天气预报 温度 降雨 风力"
         
+        import importlib
+        _sdk = importlib.import_module('coze_coding_dev_sdk')
+        SearchClient = _sdk.SearchClient
         client = SearchClient(ctx=ctx)
         response = client.web_search(
             query=query,

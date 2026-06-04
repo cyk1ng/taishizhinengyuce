@@ -516,7 +516,7 @@ def predict_non_plan_workload_with_weather(
             HistoricalWeatherData.save_weather(target_date, weather_data["weather_info"])
         else:
             # 通过搜索获取实际天气
-            from coze_coding_dev_sdk import SearchClient
+            import importlib; _sdk = importlib.import_module('coze_coding_dev_sdk'); SearchClient = _sdk.SearchClient
             query = f"{target_date} {location} 天气预报 温度 降雨 风力"
             client = SearchClient(ctx=ctx)
             response = client.web_search(query=query, count=5, need_summary=True)

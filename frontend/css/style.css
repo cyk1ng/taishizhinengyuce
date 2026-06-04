@@ -875,7 +875,8 @@ body {
 .chat-card {
     display: flex;
     flex-direction: column;
-    height: 280px;
+    min-height: 280px;
+    max-height: calc(100vh - 660px);
 }
 
 .chat-body {

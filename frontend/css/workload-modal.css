@@ -1,0 +1,464 @@
+/* ========================================
+   计划工作量和非计划工作量弹窗样式
+   ======================================== */
+
+/* 计划工作量弹窗 */
+.plan-workload-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.plan-workload-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.plan-workload-card:hover {
+    border-color: var(--accent-blue);
+    box-shadow: var(--glow-blue);
+}
+
+.plan-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.plan-icon {
+    font-size: 20px;
+}
+
+.plan-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.plan-card-body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.plan-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.plan-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.plan-value {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.plan-value.green {
+    color: var(--highlight-green);
+}
+
+.plan-value.blue {
+    color: var(--highlight-blue);
+}
+
+.plan-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 4px 0;
+}
+
+.plan-stat.total {
+    padding-top: 8px;
+    border-top: 1px dashed var(--border-color);
+}
+
+.plan-stat.total .plan-value {
+    color: var(--text-primary);
+}
+
+/* 班次分配部分 */
+.shift-allocation-section {
+    margin-top: 24px;
+}
+
+.section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.shift-allocation-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.shift-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.shift-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.shift-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--accent-cyan);
+}
+
+/* 非计划工作量弹窗 */
+.non-plan-workload-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.non-plan-workload-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.non-plan-workload-card:hover {
+    border-color: var(--accent-orange);
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.2);
+}
+
+.non-plan-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.non-plan-icon {
+    font-size: 20px;
+}
+
+.non-plan-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.non-plan-card-body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.non-plan-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.non-plan-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.non-plan-value {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.non-plan-value.red {
+    color: var(--highlight-red);
+}
+
+.non-plan-value.yellow {
+    color: var(--highlight-yellow);
+}
+
+.non-plan-value.orange {
+    color: var(--accent-orange);
+}
+
+.non-plan-desc {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    background: var(--bg-input);
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.non-plan-desc-label {
+    color: var(--accent-blue);
+    font-weight: 600;
+}
+
+.non-plan-desc-value {
+    color: var(--text-muted);
+}
+
+/* 非计划工作量总计部分 */
+.non-plan-total-section {
+    margin-top: 24px;
+}
+
+.non-plan-total-card {
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+    border: 2px solid var(--accent-orange);
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.non-plan-total-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.non-plan-total-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--accent-orange);
+    text-shadow: 0 0 10px rgba(249, 115, 22, 0.3);
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+    .plan-workload-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .non-plan-workload-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .plan-workload-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .non-plan-workload-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .shift-allocation-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ========================================
+   天气详情弹窗样式
+   ======================================== */
+
+.weather-modal-content {
+    max-width: 600px;
+}
+
+.weather-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.weather-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.weather-detail-item:hover {
+    border-color: var(--accent-cyan);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.15);
+}
+
+.weather-detail-icon {
+    font-size: 32px;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(59, 130, 246, 0.1));
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.weather-detail-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+.weather-detail-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.weather-detail-value {
+    font-size: 18px;
+    color: var(--text-primary);
+    font-weight: 600;
+    font-family: 'Segoe UI', monospace;
+}
+
+.weather-action-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.modal-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.modal-btn.primary {
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+    color: white;
+}
+
+.modal-btn.primary:hover {
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    transform: translateY(-1px);
+}
+
+.modal-btn.secondary {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.modal-btn.secondary:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--accent-blue);
+}
+
+@media (max-width: 768px) {
+    .weather-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .weather-action-buttons {
+        flex-direction: column;
+    }
+
+    .modal-btn {
+        width: 100%;
+    }
+}
+
+/* ========================================
+   天气编辑表单样式
+   ======================================== */
+
+.weather-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.weather-edit-form .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.weather-edit-form .form-group label {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.weather-edit-form .form-group input,
+.weather-edit-form .form-group select {
+    padding: 12px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: all 0.3s ease;
+    font-family: 'Segoe UI', monospace;
+}
+
+.weather-edit-form .form-group input:focus,
+.weather-edit-form .form-group select:focus {
+    outline: none;
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+}
+
+.weather-edit-form .form-group input:hover,
+.weather-edit-form .form-group select:hover {
+    border-color: var(--accent-blue);
+}
+
+.weather-edit-form .form-group select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    padding-right: 40px;
+    background-color: var(--bg-card);
+}
+
+.weather-edit-form .form-group select option {
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    padding: 10px;
+}
+

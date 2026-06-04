@@ -1,0 +1,67 @@
+{
+  "historical_data": {
+    "enabled": true,
+    "source_type": "database",
+    "connection": {
+      "host": "${DB_HOST}",
+      "port": "${DB_PORT}",
+      "database": "${DB_NAME}",
+      "table": "dispatch_records",
+      "username": "${DB_USER}",
+      "password": "${DB_PASSWORD}"
+    },
+    "query_config": {
+      "default_lookback_days": 30,
+      "max_records": 10000,
+      "cache_enabled": true,
+      "cache_ttl_minutes": 60
+    },
+    "description": "历史调度记录数据库 - 存储历史调度工单、故障记录等数据（用于业务量预测）"
+  },
+  "weather": {
+    "enabled": true,
+    "source_type": "api",
+    "api_endpoint": "${WEATHER_API_ENDPOINT}",
+    "api_key": "${WEATHER_API_KEY}",
+    "location": {
+      "city": "${CITY_NAME}",
+      "latitude": "${LATITUDE}",
+      "longitude": "${LONGITUDE}"
+    },
+    "request_config": {
+      "timeout_seconds": 30,
+      "retry_count": 3,
+      "cache_enabled": true,
+      "cache_ttl_minutes": 120
+    },
+    "description": "天气预报API - 提供未来7天天气预报数据（用于业务量预测）"
+  },
+  "holiday": {
+    "enabled": true,
+    "source_type": "local",
+    "data_file": "assets/holiday_calendar.json",
+    "update_frequency": "yearly",
+    "description": "节假日日历 - 法定节假日和特殊日期信息"
+  },
+  "equipment_status": {
+    "enabled": true,
+    "source_type": "api",
+    "api_endpoint": "${EQUIPMENT_API_ENDPOINT}",
+    "auth_token": "${EQUIPMENT_AUTH_TOKEN}",
+    "request_config": {
+      "timeout_seconds": 30,
+      "retry_count": 3
+    },
+    "description": "设备状态监控API - 实时设备运行状态和故障信息"
+  },
+  "schedule_tables": {
+    "enabled": true,
+    "source_type": "database",
+    "tables": {
+      "working_user": "上班人员表 - 存储人员基本信息、角色、班组",
+      "working_groups": "班组表 - 存储班组信息",
+      "work_schedule_recode": "排班记录表 - 存储排班安排"
+    },
+    "description": "排班相关数据表 - 用于智能排班功能，已在 scheduling.py 中直接查询"
+  }
+}

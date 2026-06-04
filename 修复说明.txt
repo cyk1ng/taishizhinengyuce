@@ -1,0 +1,10 @@
+# 修复说明：请按照以下步骤修改 src/main.py 文件
+
+# 找到 _get_graph 方法（大约在第58行）
+# 将整个方法替换为以下内容：
+
+    def _get_graph(self, ctx=Context):
+        # 强制使用Agent模式
+        return graph_helper.get_agent_instance("agents.agent", ctx)
+
+# 注意：保持缩进与原方法一致（8个空格或2个tab）

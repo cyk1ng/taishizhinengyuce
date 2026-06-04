@@ -1,0 +1,72 @@
+{
+  "shift_structure": {
+    "shifts_per_day": 3,
+    "shift_names": ["早班", "中班", "晚班"],
+    "shift_times": {
+      "早班": {
+        "start": "08:00",
+        "end": "16:00",
+        "description": "上午班次"
+      },
+      "中班": {
+        "start": "16:00",
+        "end": "24:00",
+        "description": "下午至晚间班次"
+      },
+      "晚班": {
+        "start": "00:00",
+        "end": "08:00",
+        "description": "夜间班次"
+      }
+    }
+  },
+  "staffing_requirements": {
+    "leader_required": 1,
+    "leader_max": 1,
+    "leader_description": "值班长必须1人，只能1人",
+    "zhizhi_min": 1,
+    "zhizhi_description": "正值至少1人，可以多人",
+    "fuzhi_min": 1,
+    "fuzhi_description": "副值至少1人，可以多人",
+    "other_optional": true,
+    "other_description": "其他值班人员可选"
+  },
+  "constraints": {
+    "one_shift_per_day_per_group": true,
+    "one_shift_description": "一个班组一天只能排一次班（早/中/晚三选一）",
+    "max_consecutive_days": 6,
+    "max_consecutive_description": "最大连续工作天数",
+    "max_night_shifts_per_week": 3,
+    "max_night_description": "每周最多晚班次数",
+    "fair_rotation": true,
+    "fair_rotation_description": "公平轮换",
+    "only_active_groups": true,
+    "only_active_description": "只安排生效状态为'是'的班组"
+  },
+  "role_definitions": {
+    "3": {
+      "name": "值班长",
+      "code": 3,
+      "description": "负责班次全面工作，决策指挥",
+      "per_shift": "必须1人，只能1人"
+    },
+    "2": {
+      "name": "正值",
+      "code": 2,
+      "description": "主要技术骨干，独立处理业务",
+      "per_shift": "至少1人，可多人"
+    },
+    "1": {
+      "name": "副值",
+      "code": 1,
+      "description": "辅助值班，协助处理业务",
+      "per_shift": "至少1人，可多人"
+    },
+    "0": {
+      "name": "其他值班人员",
+      "code": 0,
+      "description": "辅助支持岗位",
+      "per_shift": "可选，按需配置"
+    }
+  }
+}

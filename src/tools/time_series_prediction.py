@@ -25,19 +25,11 @@ from coze_coding_utils.runtime_ctx.context import new_context
 
 # 时序预测库
 from prophet import Prophet
+import torch
+import torch.nn as nn
 from sklearn.preprocessing import MinMaxScaler
 from xgboost import XGBRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-
-# 可选导入：PyTorch (用于LSTM)
-TORCH_AVAILABLE = False
-nn = None
-try:
-    import torch
-    import torch.nn as nn
-    TORCH_AVAILABLE = True
-except ImportError:
-    print("警告: PyTorch 未安装，LSTM预测功能将不可用。如需使用LSTM，请运行: pip install torch")
 
 
 class ProphetPredictor:
@@ -133,34 +125,26 @@ class ProphetPredictor:
         }
 
 
-class LSTMPredictor:
+class LSTMPredictor(nn.Module):
     """
     LSTM时序预测器
-
+    
     优势：
     - 捕捉长期依赖关系
     - 处理非线性模式
     - 适合复杂时间序列
     """
-    
+
     def __init__(self, input_size: int = 5, hidden_size: int = 64, num_layers: int = 2):
-        if not TORCH_AVAILABLE:
-            raise ImportError(
-                "PyTorch 未安装，无法使用LSTM预测功能。\n"
-                "请安装 PyTorch: pip install torch\n"
-                "或者只使用 Prophet 和 XGBoost 模型进行预测。"
-            )
-        
-        self.nn = nn  # 引用模块级 nn
+        super(LSTMPredictor, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
 
-        self.lstm = self.nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=0.2)
-        self.fc = self.nn.Linear(hidden_size, 1)
-        self.dropout = self.nn.Dropout(0.2)
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=0.2)
+        self.fc = nn.Linear(hidden_size, 1)
+        self.dropout = nn.Dropout(0.2)
 
     def forward(self, x):
-        import torch
         h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
         c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
 
@@ -174,13 +158,6 @@ class LSTMModel:
     """LSTM模型封装"""
 
     def __init__(self, sequence_length: int = 7):
-        if not TORCH_AVAILABLE:
-            raise ImportError(
-                "PyTorch 未安装，无法使用LSTM预测功能。\n"
-                "请安装 PyTorch: pip install torch\n"
-                "或者只使用 Prophet 和 XGBoost 模型进行预测。"
-            )
-
         self.sequence_length = sequence_length
         self.model = None
         self.scaler = MinMaxScaler()
@@ -531,26 +508,15 @@ def predict_with_time_series(
 
         # LSTM预测
         if 'lstm' in model_list:
-            if not TORCH_AVAILABLE:
-                print("警告: PyTorch 未安装，跳过LSTM预测")
-                model_results['LSTM'] = {
-                    'success': False,
-                    'warning': 'PyTorch 未安装，LSTM预测功能不可用。请安装: pip install torch'
-                }
-            else:
-                try:
-                    lstm_model = LSTMModel(sequence_length=7)
-                    lstm_model.train(historical_records, epochs=50)
-                    lstm_result = lstm_model.predict(historical_records, prediction_days)
-                    predictions_list.append(lstm_result)
-                    model_results['LSTM'] = lstm_result
+            try:
+                lstm_model = LSTMModel(sequence_length=7)
+                lstm_model.train(historical_records, epochs=50)
+                lstm_result = lstm_model.predict(historical_records, prediction_days)
+                predictions_list.append(lstm_result)
+                model_results['LSTM'] = lstm_result
 
-                except Exception as e:
-                    print(f"LSTM预测失败: {e}")
-                    model_results['LSTM'] = {
-                        'success': False,
-                        'error': str(e)
-                    }
+            except Exception as e:
+                print(f"LSTM预测失败: {e}")
 
         # XGBoost预测
         if 'xgboost' in model_list:

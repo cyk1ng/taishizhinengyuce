@@ -46,5 +46,6 @@ dependencies = [
 [tool.uv]
 dev-dependencies = []
 
-[project.urls]
-Home = "https://github.com"
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

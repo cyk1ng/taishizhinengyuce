@@ -61,21 +61,14 @@ async function sendMessage() {
             },
             // 错误回调
             (error) => {
-                let errorMsg = error.message;
-                if (error.name === 'AbortError') {
-                    errorMsg = '请求超时（60秒），请检查 Ollama 模型是否正常运行';
-                }
-                updateMessage(assistantMessageId, `❌ ${errorMsg}`);
+                updateMessage(assistantMessageId, `❌ 错误: ${error.message}`);
                 AppState.isProcessing = false;
                 setLoading(false);
             },
             // 完成回调
-            (receivedData) => {
+            () => {
                 AppState.isProcessing = false;
                 setLoading(false);
-                if (!receivedData) {
-                    updateMessage(assistantMessageId, '⚠️ 请求已超时或无数据返回，请检查后端服务或 Ollama 模型是否正常运行。');
-                }
             }
         );
     } catch (error) {
@@ -90,141 +83,98 @@ async function sendMessage() {
  * 处理流式消息
  */
 function handleStreamMessage(data, messageId) {
-    // 根据消息类型处理
+    console.log('Received data:', JSON.stringify(data));
+    
+    // 1. token / message 类型 - 流式文本
     if (data.type === 'token' || data.type === 'message') {
-        // 文本内容或消息内容
         const content = data.content || data.token || data.text || data.message || '';
         if (content) {
             appendToMessage(messageId, content);
-        }
-    } else if (data.content && typeof data.content === 'string' && data.content.length > 0 && !data.type) {
-        // 无 type 字段但有内容的纯文本数据
-        appendToMessage(messageId, data.content);
-    } else if (data.type === 'tool_call') {
-        // 工具调用
-        handleToolCall(data, messageId);
-    } else if (data.type === 'prediction') {
-        // 预测结果
-        handlePredictionResult(data);
-    } else if (data.type === 'staffing') {
-        // 人员建议
-        handleStaffingRecommendation(data);
-    } else if (data.type === 'workload') {
-        // 工作量统计
-        handleWorkloadData(data);
-    } else if (data.type === 'risk') {
-        // 风险预警
-        handleRiskAlert(data);
-    } else if (data.type === 'complete') {
-        // 完成
-        console.log('Stream complete');
-    } else if (data.type === 'message_end') {
-        // 消息结束事件 - 提取最后的消息内容
-        if (data.message) {
-            appendToMessage(messageId, data.message);
-        } else if (data.content) {
-            appendToMessage(messageId, data.content);
-        }
-    } else if (data.type === 'message_start') {
-        // 消息开始，无需处理
-        console.log('Message started');
-    } else if (data.type === 'error') {
-        // 错误
-        updateMessage(messageId, `❌ ${data.message || data.error_msg || 'Unknown error'}`);
-    } else if (data.type === 'workflow_end') {
-        // 工作流结束事件 - 提取 output 内容
-        if (data.output) {
-            // 如果 output 是字符串，直接显示
-            if (typeof data.output === 'string') {
-                appendToMessage(messageId, data.output);
-            }
-            // 如果 output 包含 messages 数组（Agent 的完整输出）
-            else if (data.output.messages && Array.isArray(data.output.messages)) {
-                // 取最后一条 AI 消息的内容
-                const msgs = data.output.messages;
-                for (let i = msgs.length - 1; i >= 0; i--) {
-                    const msg = msgs[i];
-                    if (msg.type === 'ai' && msg.content && !msg.content.includes('<tool_call>')) {
-                        appendToMessage(messageId, msg.content);
-                        return;
-                    }
-                }
-                // 如果所有 AI 消息都没内容，取最后一条成功 tool 的结果
-                const lastTool = [...msgs].reverse().find(m => 
-                    m.type === 'tool' && m.content && m.status === 'success'
-                );
-                if (lastTool && lastTool.content) {
-                    // 尝试解析 JSON 并格式化
-                    try {
-                        const jsonData = JSON.parse(lastTool.content);
-                        appendToMessage(messageId, '📊 分析数据已获取，正在生成报告...');
-                    } catch {
-                        appendToMessage(messageId, lastTool.content);
-                    }
-                } else {
-                    // 最后兜底 - 取最后一条非空消息
-                    const lastNonEmpty = [...msgs].reverse().find(m => m.content && m.content.trim());
-                    if (lastNonEmpty) {
-                        let text = lastNonEmpty.content;
-                        text = text.replace(/<tool_call>[\s\S]*?<\/tool_call>/g, '');
-                        text = text.replace(/<tool_result>[\s\S]*?<\/tool_result>/g, '');
-                        text = text.trim();
-                        appendToMessage(messageId, text || '✅ 分析完成');
-                    } else {
-                        appendToMessage(messageId, '✅ 分析完成');
-                    }
-                }
-            }
-            // 如果 output 有 content 字段
-            else if (data.output.content) {
-                appendToMessage(messageId, data.output.content);
-            }
-            // 如果 output 有 text 字段
-            else if (data.output.text) {
-                appendToMessage(messageId, data.output.text);
-            }
-            // 如果 output 是对象且有响应内容
-            else if (typeof data.output === 'object') {
-                const outputStr = JSON.stringify(data.output, null, 2);
-                // 如果 output 不为空对象，显示它
-                if (outputStr !== '{}') {
-                    appendToMessage(messageId, outputStr);
-                }
-            }
-        }
-    } else if (data.type === 'node_end') {
-        // 节点结束事件
-        if (data.output) {
-            if (typeof data.output === 'string') {
-                appendToMessage(messageId, data.output);
-            } else if (data.output.content) {
-                appendToMessage(messageId, data.output.content);
-            } else if (data.output.text) {
-                appendToMessage(messageId, data.output.text);
-            } else if (data.output.response) {
-                appendToMessage(messageId, data.output.response);
-            }
-        }
-    } else if (data.type === 'workflow_start') {
-        // 工作流开始
-        console.log('Workflow started');
-    } else if (data.type === 'node_start') {
-        // 节点开始
-        console.log('Node started:', data.node_name);
-    } else if (data.type === 'ping') {
-        // 心跳，无需处理
-    } else {
-        // 如果没有任何已知字段，尝试直接显示整个数据
-        const content = data.content || data.token || data.text || data.message || data.output || '';
-        if (content && (typeof content !== 'object' || Object.keys(content).length > 0)) {
-            if (typeof content === 'string') {
-                appendToMessage(messageId, content);
-            } else {
-                appendToMessage(messageId, JSON.stringify(content, null, 2));
-            }
+            return;
         }
     }
+    
+    // 2. 特殊类型处理（预测、人员建议、工作量等）
+    if (data.type === 'prediction') {
+        handlePredictionResult(data);
+        return;
+    } else if (data.type === 'staffing') {
+        handleStaffingRecommendation(data);
+        return;
+    } else if (data.type === 'workload') {
+        handleWorkloadData(data);
+        return;
+    } else if (data.type === 'risk') {
+        handleRiskAlert(data);
+        return;
+    }
+    
+    // 3. workflow_end - 工作流完成，提取 output 内容
+// workflow_end - 工作流完成
+if (data.type === 'workflow_end') {
+    if (data.output && data.output.messages) {
+        const msgs = data.output.messages;
+        let displayText = '';
+        // 从后往前找：先找有文字的最后一条AI消息
+        for (let i = msgs.length - 1; i >= 0; i--) {
+            const msg = msgs[i];
+            if (msg.type === 'ai' && msg.content) {
+                displayText = msg.content;
+                break;
+            }
+        }
+        // 如果AI没有文字回复，找最后一条成功的工具返回内容
+        if (!displayText) {
+            for (let i = msgs.length - 1; i >= 0; i--) {
+                const msg = msgs[i];
+                if (msg.type === 'tool' && msg.status === 'success' && msg.content) {
+                    try {
+                        const parsed = JSON.parse(msg.content);
+                        if (parsed.success) {
+                            displayText = '📊 数据获取成功：\n' + JSON.stringify(parsed, null, 2);
+                        } else {
+                            displayText = '⚠️ ' + (parsed.message || '数据获取异常');
+                        }
+                    } catch(e) {
+                        displayText = msg.content;
+                    }
+                    break;
+                }
+            }
+        }
+        // 再没有就取最后一条非空消息
+        if (!displayText) {
+            for (let i = msgs.length - 1; i >= 0; i--) {
+                const msg = msgs[i];
+                if (msg.content && msg.type !== 'ai') {
+                    displayText = msg.content;
+                    break;
+                }
+            }
+        }
+        if (displayText) {
+            appendToMessage(messageId, displayText);
+        }
+    }
+    return;
 }
+
+    
+    // 4. message_end - 消息结束
+    if (data.type === 'message_end') {
+        if (data.message) appendToMessage(messageId, data.message);
+        else if (data.content) appendToMessage(messageId, data.content);
+        return;
+    }
+    
+    // 5. 无 type 但有 content/text 的纯文本
+    const content = data.content || data.token || data.text || data.message || data.output || '';
+    if (content && typeof content === 'string') {
+        appendToMessage(messageId, content);
+        return;
+    }
+}
+
 
 /**
  * 添加消息到聊天窗口
@@ -805,10 +755,12 @@ function showWeatherModal(event) {
     document.body.appendChild(modal);
 
     // 获取当前天气数据
-    const currentTemp = document.getElementById('weather-temp')?.textContent || '--~--℃';
-    const currentPrecip = document.getElementById('weather-precipitation')?.textContent || '--';
-    const currentWind = document.getElementById('weather-wind')?.textContent || '--';
-    const currentExtreme = document.getElementById('weather-extreme')?.textContent || '--';
+    const tempEl = document.getElementById('weather-temp');
+    const currentTemp = tempEl ? tempEl.textContent : '--~--℃';
+    const currentPrecip = document.getElementById('weather-precipitation') ? document.getElementById('weather-precipitation').textContent : '--';
+    const currentWind = document.getElementById('weather-wind') ? document.getElementById('weather-wind').textContent : '--';
+    const currentExtreme = document.getElementById('weather-extreme') ? document.getElementById('weather-extreme').textContent : '--';
+
 
     // 填充查看模式数据
     document.getElementById('modal-weather-temp').textContent = currentTemp;

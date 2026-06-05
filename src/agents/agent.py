@@ -320,6 +320,16 @@ def build_agent(ctx=None):
     )
     sp = greeting_rule + sp
 
+    # 给 sp 末尾追加更强的"必须用中文回复"指令（模型更容易记住末尾的内容）
+    chinese_output_rule = (
+        "\n\n## 最终回答铁律\n"
+        "1. 你的输出将直接显示给用户看，不要包含任何 <tool_call> 标签\n"
+        "2. 所有工具调用完毕后，必须用中文写一段完整的自然语言总结\n"
+        "3. 如果用户只是打招呼（你好、早上好等），直接说'你好！有什么可以帮助你的吗？'，不调用任何工具\n"
+        "4. 禁止输出JSON、代码块、原始数据给用户"
+    )
+    sp = sp + chinese_output_rule
+
     # 创建Agent - 使用 post_model_hook 处理 Ollama 文本工具调用
     agent = create_react_agent(
         model=llm,

@@ -219,9 +219,16 @@ function appendToMessage(messageId, content) {
             typingIndicator.remove();
         }
         
-        // 追加内容
+        // 追加内容，同时过滤掉 <tool_call> 标签（流式传输时实时清理）
         const currentText = contentDiv.innerText || '';
-        contentDiv.innerHTML = md.render(currentText + content);
+        const rawText = currentText + content;
+        // 1. 移除完整的 <tool_call>...</tool_call> 块
+        // 2. 移除末尾未闭合的 <tool_call>... 部分
+        const filteredText = rawText
+            .replace(/<tool_call>[\s\S]*?<\/tool_call>/g, '')
+            .replace(/<tool_call>[\s\S]*$/gm, '')
+            .trim();
+        contentDiv.innerHTML = md.render(filteredText);
         
         // 滚动到底部
         const container = document.getElementById('messagesContainer');

@@ -158,7 +158,9 @@ def _tool_call_parser(state: dict) -> dict:
     if '<tool_call>' not in content:
         return state
 
-    pattern = r'<tool_call>\s*({.*?})\s*</tool_call>'
+    # 提取 <tool_call> 和 </tool_call> 之间的完整内容（支持嵌套JSON）
+    # 注意：不能使用 {.*?} 因为会匹配到嵌套括号中的第一个 }，导致JSON解析失败
+    pattern = r'<tool_call>\s*(.*?)\s*</tool_call>'
     matches = re.findall(pattern, content, re.DOTALL)
 
     if not matches:
@@ -184,6 +186,9 @@ def _tool_call_parser(state: dict) -> dict:
 
     # 去掉原始内容中的 <tool_call> 标签，保留正常文字
     cleaned_content = re.sub(r'<tool_call>.*?</tool_call>', '', content, flags=re.DOTALL).strip()
+    # 如果清理后为空，用最后一条工具结果的信息做友好提示
+    if not cleaned_content:
+        cleaned_content = "根据查询结果，我已获取到相关数据，请您进一步说明想了解的具体内容。"
 
     # 创建新的 AIMessage
     new_msg = AIMessage(

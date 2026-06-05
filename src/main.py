@@ -7,7 +7,7 @@ import traceback
 import logging
 from datetime import datetime
 from typing import Any, Dict, Iterable, AsyncIterable, AsyncGenerator, Optional
-import cozeloop
+# import cozeloop  # 已禁用，避免401认证日志
 import uvicorn
 import time
 from pathlib import Path
@@ -39,7 +39,7 @@ from coze_coding_utils.helper.agent_helper import to_stream_input
 from coze_coding_utils.openai.handler import OpenAIChatHandler
 from coze_coding_utils.log.parser import LangGraphParser
 from coze_coding_utils.log.err_trace import extract_core_stack
-from coze_coding_utils.log.loop_trace import init_run_config, init_agent_config
+# from coze_coding_utils.log.loop_trace import init_run_config, init_agent_config  # 已禁用
 
 
 # 超时配置常量
@@ -90,8 +90,9 @@ class GraphService:
         try:
             graph = self._get_graph(ctx)
             # custom tracer
-            run_config = init_run_config(graph, ctx)
-            run_config["configurable"] = {"thread_id": ctx.run_id}
+            run_config = None
+            if ctx and hasattr(ctx, 'run_id'):
+                run_config = {"configurable": {"thread_id": ctx.run_id}}
 
             # 直接调用，LangGraph会在当前任务上下文中执行
             # 如果当前任务被取消，LangGraph的执行也会被取消
@@ -125,10 +126,7 @@ class GraphService:
         run_id = ctx.run_id
         logger.info(f"Starting stream with run_id: {run_id}")
         graph = self._get_graph(ctx)
-        if graph_helper.is_agent_proj():
-            run_config = init_agent_config(graph, ctx)
-        else:
-            run_config = init_run_config(graph, ctx)  # vibeflow
+        run_config = None
 
         is_workflow = not graph_helper.is_agent_proj()
 
@@ -142,7 +140,7 @@ class GraphService:
         finally:
             # 清理任务记录
             self.running_tasks.pop(run_id, None)
-            cozeloop.flush()
+            pass  # cozeloop.flush() disabled
 
     # 取消执行 - 使用asyncio的标准方式
     def cancel_run(self, run_id: str, ctx: Optional[Context] = None) -> Dict[str, Any]:
@@ -201,7 +199,7 @@ class GraphService:
         _g.add_edge("sn", END)
         _graph = _g.compile()
 
-        run_config = init_run_config(_graph, ctx)
+        run_config = None
         return await _graph.ainvoke(payload, config=run_config)
 
     def graph_inout_schema(self) -> Any:
@@ -512,7 +510,7 @@ async def http_run(request: Request) -> Dict[str, Any]:
             }
         )
     finally:
-        cozeloop.flush()
+        pass  # cozeloop.flush() disabled
 
 
 HEADER_X_WORKFLOW_STREAM_MODE = "x-workflow-stream-mode"
@@ -636,7 +634,7 @@ async def http_node_run(node_id: str, request: Request):
             }
         )
     finally:
-        cozeloop.flush()
+        pass  # cozeloop.flush() disabled
 
 
 @app.post("/v1/chat/completions")
@@ -654,7 +652,7 @@ async def openai_chat_completions(request: Request):
         logger.error(f"JSON decode error in openai_chat_completions: {e}")
         raise HTTPException(status_code=400, detail="Invalid JSON format")
     finally:
-        cozeloop.flush()
+        pass  # cozeloop.flush() disabled
 
 
 @app.get("/health")

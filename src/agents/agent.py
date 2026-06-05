@@ -251,83 +251,31 @@ def build_agent(ctx=None):
 
     # 注册工具
     tools = [
-        # 数据融合工具
+        # 核心工具（精简至12个，qwen2.5:7b 只能处理少量工具）
         get_historical_dispatch_data,
         get_weather_forecast,
-        get_holiday_info,
-        get_equipment_status,
-        fuse_multi_source_data,
-
-        # 预测工具
+        get_weather_by_search,
         predict_dispatch_volume,
-        analyze_prediction_trend,
-        predict_with_time_series,
-        evaluate_prediction_performance,
-
-        # 决策工具
-        generate_staffing_decision,
-        optimize_shift_schedule,
-        generate_decision_report,
-
-        # 排班工具
-        get_schedule_staff_info,
-        get_existing_schedule,
-        generate_intelligent_schedule,
-        analyze_schedule_fairness,
-        export_schedule_report,
-        save_schedule_records,
-
-        # 工作量统计工具
-        get_realtime_workload_dashboard,
-        get_workload_weights_config,
-        analyze_staff_requirement,
-        get_workload_by_module,
-        # 人员需求预测工具
-        predict_staffing_need,
-        generate_staffing_recommendations,
-        evaluate_staff_efficiency,
-        calculate_optimal_staffing,
-        # 计划工作量统计工具
         calculate_plan_workload,
         calculate_non_plan_workload,
-        get_workload_dashboard,
-        manual_adjust_plan_workload,
-        get_manual_adjustments,
-        # 天气管理工具
-        get_weather_by_search,
-        get_typical_weather_by_season,
-        detect_high_incidents_for_prediction,
-        save_weather_workload_association,
-        manual_adjust_weather,
-        get_weather_adjustments,
-        collect_historical_workload,
-        # 风险预警工具
+        get_realtime_workload_dashboard,
         assess_comprehensive_risk,
         generate_risk_alert_report,
-        check_daily_risks,
-        # 态势感知工具
-        assess_situation_awareness,
-        generate_situation_report,
-        get_situation_dashboard
+        generate_staffing_recommendations,
+        generate_intelligent_schedule,
     ]
 
-    # 从配置加载 sp，并在前面加上通用对话规则
-    sp = cfg.get("sp", "")
-    greeting_rule = (
-        "【通用对话规则】如果用户只是打招呼、问候（如'你好'、'早上好'等）、"
-        "询问你的身份等非业务问题，请直接友好地用中文回复，"
-        "不要调用任何工具，不要进行业务分析。\n\n"
-    )
-    sp = greeting_rule + sp
+    # 追加中文输出规则
+    chinese_output_rule = """
 
-    # 给 sp 末尾追加更强的"必须用中文回复"指令（模型更容易记住末尾的内容）
-    chinese_output_rule = (
-        "\n\n## 最终回答铁律\n"
-        "1. 你的输出将直接显示给用户看，不要包含任何 <tool_call> 标签\n"
-        "2. 所有工具调用完毕后，必须用中文写一段完整的自然语言总结\n"
-        "3. 如果用户只是打招呼（你好、早上好等），直接说'你好！有什么可以帮助你的吗？'，不调用任何工具\n"
-        "4. 禁止输出JSON、代码块、原始数据给用户"
-    )
+【最终回答铁律】
+1. 所有工具调用完成后必须用中文写总结
+2. 禁止输出JSON、代码块给用户
+3. 禁止列出工具名称——直接调用即可
+4. 用中文回复，保持简洁"""
+
+    # 使用 config 中精简后的 sp
+    sp = cfg.get("sp", "")
     sp = sp + chinese_output_rule
 
     # 创建Agent - 使用 post_model_hook 处理 Ollama 文本工具调用

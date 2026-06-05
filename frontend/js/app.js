@@ -123,38 +123,19 @@ if (data.type === 'workflow_end') {
                 break;
             }
         }
-        // 如果AI没有文字回复，找最后一条成功的工具返回内容
-        if (!displayText) {
-            for (let i = msgs.length - 1; i >= 0; i--) {
-                const msg = msgs[i];
-                if (msg.type === 'tool' && msg.status === 'success' && msg.content) {
-                    try {
-                        const parsed = JSON.parse(msg.content);
-                        if (parsed.success) {
-                            displayText = '📊 数据获取成功：\n' + JSON.stringify(parsed, null, 2);
-                        } else {
-                            displayText = '⚠️ ' + (parsed.message || '数据获取异常');
-                        }
-                    } catch(e) {
-                        displayText = msg.content;
-                    }
-                    break;
-                }
-            }
-        }
-        // 再没有就取最后一条非空消息
-        if (!displayText) {
-            for (let i = msgs.length - 1; i >= 0; i--) {
-                const msg = msgs[i];
-                if (msg.content && msg.type !== 'ai') {
-                    displayText = msg.content;
-                    break;
-                }
-            }
-        }
+        // 如果AI有文字回复，直接显示
         if (displayText) {
+            // 检查是否包含 JSON/代码，如果是则过滤掉
+            if (displayText.startsWith('{') || displayText.includes('"success"') || 
+                displayText.includes('"data"') || displayText.includes('"message"')) {
+                displayText = '✅ 分析已完成。如有需要，请进一步提出具体问题。';
+            }
             appendToMessage(messageId, displayText);
+            return;
         }
+        // AI没有文字回复 → 用友好的中文提示，不要展示原始JSON
+        displayText = '✅ 已获取到相关数据，请告诉我您想具体了解哪些信息？';
+        appendToMessage(messageId, displayText);
     }
     return;
 }

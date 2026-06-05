@@ -306,8 +306,14 @@ def build_agent(ctx=None):
         get_situation_dashboard
     ]
 
-    # 从配置加载 sp
+    # 从配置加载 sp，并在前面加上通用对话规则
     sp = cfg.get("sp", "")
+    greeting_rule = (
+        "【通用对话规则】如果用户只是打招呼、问候（如'你好'、'早上好'等）、"
+        "询问你的身份等非业务问题，请直接友好地用中文回复，"
+        "不要调用任何工具，不要进行业务分析。\n\n"
+    )
+    sp = greeting_rule + sp
 
     # 创建Agent - 使用 post_model_hook 处理 Ollama 文本工具调用
     agent = create_react_agent(

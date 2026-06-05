@@ -1,12 +1,9 @@
-import psycopg
-from psycopg_pool import AsyncConnectionPool
-from langgraph.checkpoint.postgres import PostgresSaver
-from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from langgraph.checkpoint.memory import MemorySaver
-from langgraph.checkpoint.base import BaseCheckpointSaver
 from typing import Optional, Union
 import logging
 import time
+
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.checkpoint.base import BaseCheckpointSaver
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +16,8 @@ class MemoryManager:
     """Memory Manager 单例类"""
 
     _instance: Optional['MemoryManager'] = None
-    _checkpointer: Optional[Union[AsyncPostgresSaver, MemorySaver]] = None
-    _pool: Optional[AsyncConnectionPool] = None
+    _checkpointer: Optional[BaseCheckpointSaver] = None
+    _pool: Optional[object] = None
     _setup_done: bool = False
 
     def __new__(cls):
@@ -28,8 +25,10 @@ class MemoryManager:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def _connect_with_retry(self, db_url: str) -> Optional[psycopg.Connection]:
+    def _connect_with_retry(self, db_url: str):
         """带重试的数据库连接，每次 15 秒超时，共尝试 2 次"""
+        import psycopg
+
         last_error = None
         for attempt in range(1, DB_MAX_RETRIES + 1):
             try:
@@ -41,12 +40,14 @@ class MemoryManager:
                 last_error = e
                 logger.warning(f"Database connection attempt {attempt} failed: {e}")
                 if attempt < DB_MAX_RETRIES:
-                    time.sleep(1)  # 重试前短暂等待
+                    time.sleep(1)
         logger.error(f"All {DB_MAX_RETRIES} database connection attempts failed, last error: {last_error}")
         return None
 
     def _setup_schema_and_tables(self, db_url: str) -> bool:
         """同步创建 schema 和表（只执行一次），返回是否成功"""
+        from langgraph.checkpoint.postgres import PostgresSaver
+
         if self._setup_done:
             return True
 
@@ -108,6 +109,9 @@ class MemoryManager:
             db_url = f"{db_url}?options=-csearch_path%3Dmemory"
 
         # 4. 尝试创建连接池和 checkpointer
+        from psycopg_pool import AsyncConnectionPool
+        from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+
         try:
             self._pool = AsyncConnectionPool(
                 conninfo=db_url,
@@ -124,11 +128,12 @@ class MemoryManager:
 
         return self._checkpointer
 
+
 _memory_manager: Optional[MemoryManager] = None
 
 
 def get_memory_saver() -> BaseCheckpointSaver:
-    """获取 checkpointer，优先使用 PostgresSaver，db_url 不可用或连接失败时退化为 MemorySaver"""
+    """获取 memory saver 实例（全局单例）"""
     global _memory_manager
     if _memory_manager is None:
         _memory_manager = MemoryManager()

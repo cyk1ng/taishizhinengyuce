@@ -126,7 +126,7 @@ class GraphService:
         run_id = ctx.run_id
         logger.info(f"Starting stream with run_id: {run_id}")
         graph = self._get_graph(ctx)
-        run_config = None
+        run_config = {}
 
         is_workflow = not graph_helper.is_agent_proj()
 

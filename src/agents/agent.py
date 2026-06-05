@@ -249,21 +249,55 @@ def build_agent(ctx=None):
         default_headers=default_headers(ctx) if ctx else {}
     )
 
-    # 注册工具
-    tools = [
-        # 核心工具（精简至12个，qwen2.5:7b 只能处理少量工具）
-        get_historical_dispatch_data,
-        get_weather_forecast,
-        get_weather_by_search,
-        predict_dispatch_volume,
-        calculate_plan_workload,
-        calculate_non_plan_workload,
-        get_realtime_workload_dashboard,
-        assess_comprehensive_risk,
-        generate_risk_alert_report,
-        generate_staffing_recommendations,
-        generate_intelligent_schedule,
-    ]
+    # 注册全部工具（从 config 中加载工具列表）
+    _tool_map = {
+        'get_historical_dispatch_data': get_historical_dispatch_data,
+        'get_weather_forecast': get_weather_forecast,
+        'get_holiday_info': get_holiday_info,
+        'get_equipment_status': get_equipment_status,
+        'fuse_multi_source_data': fuse_multi_source_data,
+        'predict_dispatch_volume': predict_dispatch_volume,
+        'analyze_prediction_trend': analyze_prediction_trend,
+        'predict_with_time_series': predict_with_time_series,
+        'evaluate_prediction_performance': evaluate_prediction_performance,
+        'generate_staffing_decision': generate_staffing_decision,
+        'optimize_shift_schedule': optimize_shift_schedule,
+        'generate_decision_report': generate_decision_report,
+        'get_schedule_staff_info': get_schedule_staff_info,
+        'get_existing_schedule': get_existing_schedule,
+        'generate_intelligent_schedule': generate_intelligent_schedule,
+        'analyze_schedule_fairness': analyze_schedule_fairness,
+        'export_schedule_report': export_schedule_report,
+        'save_schedule_records': save_schedule_records,
+        'get_realtime_workload_dashboard': get_realtime_workload_dashboard,
+        'get_workload_weights_config': get_workload_weights_config,
+        'analyze_staff_requirement': analyze_staff_requirement,
+        'get_workload_by_module': get_workload_by_module,
+        'predict_staffing_need': predict_staffing_need,
+        'generate_staffing_recommendations': generate_staffing_recommendations,
+        'evaluate_staff_efficiency': evaluate_staff_efficiency,
+        'calculate_optimal_staffing': calculate_optimal_staffing,
+        'assess_situation_awareness': assess_situation_awareness,
+        'generate_situation_report': generate_situation_report,
+        'get_situation_dashboard': get_situation_dashboard,
+        'assess_comprehensive_risk': assess_comprehensive_risk,
+        'generate_risk_alert_report': generate_risk_alert_report,
+        'check_daily_risks': check_daily_risks,
+        'calculate_plan_workload': calculate_plan_workload,
+        'calculate_non_plan_workload': calculate_non_plan_workload,
+        'get_workload_dashboard': get_workload_dashboard,
+        'manual_adjust_plan_workload': manual_adjust_plan_workload,
+        'get_manual_adjustments': get_manual_adjustments,
+        'get_weather_by_search': get_weather_by_search,
+        'get_typical_weather_by_season': get_typical_weather_by_season,
+        'detect_high_incidents_for_prediction': detect_high_incidents_for_prediction,
+        'save_weather_workload_association': save_weather_workload_association,
+        'manual_adjust_weather': manual_adjust_weather,
+        'get_weather_adjustments': get_weather_adjustments,
+        'collect_historical_workload': collect_historical_workload,
+    }
+    tool_names = cfg.get("tools", [])
+    tools = [_tool_map[name] for name in tool_names if name in _tool_map]
 
     # 追加中文输出规则
     chinese_output_rule = """

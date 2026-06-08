@@ -23,7 +23,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import MessagesState
 from langgraph.graph.message import add_messages
 from langchain_core.messages import AnyMessage, AIMessage, ToolMessage
-from coze_coding_utils.runtime_ctx.context import default_headers
+
 from storage.memory.memory_saver import get_memory_saver
 import importlib
 
@@ -226,28 +226,25 @@ def build_agent(ctx=None):
     if not api_key:
         raise ValueError(
             "❌ 缺少必要的环境变量: COZE_WORKLOAD_IDENTITY_API_KEY\n"
-            "请设置环境变量或在 .env 文件中配置"
+            "请在 .env 文件中设置: COZE_WORKLOAD_IDENTITY_API_KEY=<智谱API Key>\n"
+            "智谱API Key获取: https://open.bigmodel.cn/usercenter/apikeys"
         )
 
     if not base_url:
-        base_url = "https://api.coze.cn/v1"
-        print(f"⚠️  未设置 COZE_INTEGRATION_MODEL_BASE_URL，使用默认值: {base_url}")
+        base_url = "https://open.bigmodel.cn/api/paas/v4/"
+        print(f"⚠️  未设置 COZE_INTEGRATION_MODEL_BASE_URL，使用GLM默认值: {base_url}")
 
     # 初始化LLM
-    llm = ChatOpenAI(
-        model=cfg['config'].get("model"),
-        api_key=api_key,
-        base_url=base_url,
-        temperature=cfg['config'].get('temperature', 0.3),
-        streaming=True,
-        timeout=cfg['config'].get('timeout', 600),
-        extra_body={
-            "thinking": {
-                "type": cfg['config'].get('thinking', 'disabled')
-            }
-        },
-        default_headers=default_headers(ctx) if ctx else {}
-    )
+    llm_kwargs = {
+        "model": cfg['config'].get("model"),
+        "api_key": api_key,
+        "base_url": base_url,
+        "temperature": cfg['config'].get('temperature', 0.3),
+        "streaming": True,
+        "timeout": cfg['config'].get('timeout', 600),
+    }
+    # GLM-4-Flash 不需要 extra_body 和 default_headers
+    llm = ChatOpenAI(**llm_kwargs)
 
     # 注册全部工具（从 config 中加载工具列表）
     _tool_map = {

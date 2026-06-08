@@ -247,6 +247,8 @@ def build_agent(ctx=None):
     # GLM-4-Flash 不需要 extra_body 和 default_headers
     llm = ChatOpenAI(**llm_kwargs)
 
+    print(f"🔍 GLM请求参数: model={llm_kwargs['model']}, base_url={llm_kwargs['base_url']}, temperature={llm_kwargs['temperature']}, max_tokens={llm_kwargs['max_tokens']}")
+
     # 注册全部工具（从 config 中加载工具列表）
     _tool_map = {
         'get_historical_dispatch_data': get_historical_dispatch_data,
@@ -309,6 +311,9 @@ def build_agent(ctx=None):
     # 使用 config 中精简后的 sp
     sp = cfg.get("sp", "")
     sp = sp + chinese_output_rule
+
+    print(f"🔍 工具数量: {len(tools)}个")
+    print(f"🔍 系统提示词长度: {len(sp)}字符")
 
     # 创建Agent - 使用 post_model_hook 处理 Ollama 文本工具调用
     agent = create_react_agent(

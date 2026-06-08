@@ -239,7 +239,8 @@ def build_agent(ctx=None):
         "model": cfg['config'].get("model"),
         "api_key": api_key,
         "base_url": base_url,
-        "temperature": cfg['config'].get('temperature', 0.3),
+        "temperature": cfg['config'].get('temperature', 0.7),
+        "max_tokens": cfg['config'].get('max_completion_tokens', 8000),  # GLM用max_tokens
         "streaming": True,
         "timeout": cfg['config'].get('timeout', 600),
     }

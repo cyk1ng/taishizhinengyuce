@@ -116,6 +116,88 @@ class GraphService:
             # 清理任务记录
             self.running_tasks.pop(run_id, None)
 
+    # 直接流式处理（绕过 AgentStreamRunner 的 content 数组转换）
+    async def _agent_stream_direct(self, payload: Dict[str, Any], ctx=None, run_id: str = "") -> AsyncGenerator[str, None]:
+        """直接使用 graph.astream() 流式返回，绕过多模态 content 数组格式"""
+        if ctx is None:
+            ctx = new_context(method="agent_stream_direct")
+
+        logger.info(f"使用 _agent_stream_direct 处理 agent 流, run_id={run_id}")
+
+        try:
+            graph = self._get_graph(ctx)
+
+            # 从 payload 中提取用户消息（支持 {message: "..."} 和 {"messages": [...]} 格式）
+            user_query = ""
+            if "message" in payload:
+                user_query = payload["message"]
+            elif "messages" in payload:
+                msgs = payload["messages"]
+                if msgs and isinstance(msgs, list):
+                    last = msgs[-1]
+                    if isinstance(last, dict):
+                        user_query = last.get("content", "")
+                    elif isinstance(last, str):
+                        user_query = last
+
+            if not user_query:
+                user_query = str(payload)
+
+            # 关键：用字符串格式（非数组），GLM-4-Flash 纯文本模型兼容
+            stream_input = {"messages": [("user", user_query)]}
+            run_config = {"configurable": {"thread_id": run_id or ctx.run_id}}
+
+            logger.info(f"直接流式输入格式: 消息类型=字符串, 内容长度={len(user_query)}")
+
+            # 使用 stream_mode="values" 获取完整状态更新
+            async for chunk in graph.astream(stream_input, stream_mode="values", config=run_config, context=ctx):
+                messages = chunk.get("messages", [])
+                if not messages:
+                    continue
+
+                last_msg = messages[-1]
+                msg_content = getattr(last_msg, "content", "")
+                msg_type = type(last_msg).__name__
+
+                if msg_content:
+                    # 按 agent_stream_handler 格式包装
+                    sse_data = {
+                        "type": "message",
+                        "content": msg_content,
+                        "msg_type": msg_type,
+                        "run_id": run_id or ctx.run_id,
+                        "role": getattr(last_msg, "type", "assistant"),
+                    }
+                    yield self._sse_event(sse_data)
+
+            # 流结束事件
+            end_data = {
+                "type": "end",
+                "run_id": run_id or ctx.run_id,
+                "message": "Stream completed",
+            }
+            yield self._sse_event(end_data)
+            logger.info(f"直接流式处理完成, run_id={run_id}")
+
+        except asyncio.CancelledError:
+            logger.info(f"直接流式处理被取消, run_id={run_id}")
+            cancel_data = {
+                "type": "end",
+                "code": "CANCELED",
+                "run_id": run_id or ctx.run_id,
+                "message": "Stream cancelled",
+            }
+            yield self._sse_event(cancel_data)
+        except Exception as e:
+            logger.error(f"直接流式处理出错: {e}, run_id={run_id}", exc_info=True)
+            err_data = {
+                "type": "error",
+                "code": "900002",
+                "run_id": run_id or ctx.run_id,
+                "error_msg": f"(BadRequestError): Error code: 400 - {str(e)}",
+            }
+            yield self._sse_event(err_data)
+
     # 流式运行（SSE 格式化）：HTTP 路由使用
     async def stream_sse(self, payload: Dict[str, Any], ctx=None, run_opt: Optional[RunOpt] = None) -> AsyncGenerator[str, None]:
         if ctx is None:
@@ -553,14 +635,11 @@ async def http_stream_run(request: Request):
         raise HTTPException(status_code=400, detail=f"Invalid JSON format:{extract_core_stack()}")
 
     if is_agent:
-        stream_generator = agent_stream_handler(
+        # 使用直接流式处理，绕过 AgentStreamRunner 的 content 数组转换
+        stream_generator = service._agent_stream_direct(
             payload=payload,
             ctx=ctx,
             run_id=run_id,
-            stream_sse_func=service.stream_sse,
-            sse_event_func=service._sse_event,
-            error_classifier=service.error_classifier,
-            register_task_func=_register_task,
         )
     else:
         stream_generator = workflow_stream_handler(

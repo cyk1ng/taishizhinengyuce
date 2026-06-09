@@ -150,25 +150,38 @@ class GraphService:
             logger.info(f"直接流式输入格式: 消息类型=字符串, 内容长度={len(user_query)}")
 
             # 使用 stream_mode="values" 获取完整状态更新
+            # 只输出 AI 最终文本回复，过滤工具调用中间过程
             async for chunk in graph.astream(stream_input, stream_mode="values", config=run_config, context=ctx):
                 messages = chunk.get("messages", [])
                 if not messages:
                     continue
 
                 last_msg = messages[-1]
-                msg_content = getattr(last_msg, "content", "")
-                msg_type = type(last_msg).__name__
 
-                if msg_content:
-                    # 按 agent_stream_handler 格式包装
-                    sse_data = {
-                        "type": "message",
-                        "content": msg_content,
-                        "msg_type": msg_type,
-                        "run_id": run_id or ctx.run_id,
-                        "role": getattr(last_msg, "type", "assistant"),
-                    }
-                    yield self._sse_event(sse_data)
+                # 跳过工具调用消息（AIMessage 含 tool_calls）
+                if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
+                    continue
+
+                # 跳过工具执行结果（ToolMessage）
+                if type(last_msg).__name__ == "ToolMessage":
+                    continue
+
+                # 跳过用户消息（HumanMessage）
+                if type(last_msg).__name__ == "HumanMessage":
+                    continue
+
+                # 只输出 AI 文本回复
+                msg_content = getattr(last_msg, "content", "")
+                if not msg_content:
+                    continue
+
+                sse_data = {
+                    "type": "message",
+                    "content": msg_content,
+                    "run_id": run_id or ctx.run_id,
+                    "role": "assistant",
+                }
+                yield self._sse_event(sse_data)
 
             # 流结束事件
             end_data = {

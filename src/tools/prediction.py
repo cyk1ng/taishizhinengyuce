@@ -17,9 +17,10 @@ import json
 import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
-from langchain.tools import tool, ToolRuntime
+from langchain.tools import tool
 from langchain_core.messages import HumanMessage, SystemMessage
 from coze_coding_utils.runtime_ctx.context import new_context
+from coze_coding_utils.log.write_log import request_context
 
 
 # 配置文件路径
@@ -277,9 +278,7 @@ class BusinessVolumePredictor:
 def predict_dispatch_volume(
     start_date: str,
     end_date: str,
-    prediction_days: int = 7,
-    runtime: ToolRuntime = None
-) -> str:
+    prediction_days: int = 7) -> str:
     """
     预测配网调度业务量
     
@@ -290,7 +289,7 @@ def predict_dispatch_volume(
     
     返回：业务量预测结果JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="predict_dispatch_volume")
+    ctx = request_context.get() or new_context(method="predict_dispatch_volume")
     
     try:
         # 1. 获取融合数据
@@ -298,9 +297,7 @@ def predict_dispatch_volume(
         
         fused_data_json = fuse_multi_source_data.invoke({
             "start_date": start_date,
-            "end_date": end_date,
-            "runtime": runtime
-        })
+            "end_date": end_date})
         fused_data = json.loads(fused_data_json)
         
         if not fused_data.get("success"):
@@ -342,9 +339,7 @@ def predict_dispatch_volume(
 
 @tool
 def analyze_prediction_trend(
-    prediction_result: str,
-    runtime: ToolRuntime = None
-) -> str:
+    prediction_result: str) -> str:
     """
     分析预测趋势并生成洞察
     
@@ -353,7 +348,7 @@ def analyze_prediction_trend(
     
     返回：趋势分析报告JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="analyze_prediction_trend")
+    ctx = request_context.get() or new_context(method="analyze_prediction_trend")
     
     try:
         prediction_data = json.loads(prediction_result)

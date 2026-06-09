@@ -18,9 +18,10 @@ import json
 import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
-from langchain.tools import tool, ToolRuntime
+from langchain.tools import tool
 from langchain_core.messages import HumanMessage, SystemMessage
 from coze_coding_utils.runtime_ctx.context import new_context
+from coze_coding_utils.log.write_log import request_context
 
 
 # 配置文件路径
@@ -369,9 +370,7 @@ class StaffingDecisionEngine:
 def generate_staffing_decision(
     prediction_summary: str,
     daily_predictions: str,
-    current_staff_count: int = 10,
-    runtime: ToolRuntime = None
-) -> str:
+    current_staff_count: int = 10) -> str:
     """
     生成值班人员调整决策建议
     
@@ -382,7 +381,7 @@ def generate_staffing_decision(
     
     返回：人员调整决策建议JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="generate_staffing_decision")
+    ctx = request_context.get() or new_context(method="generate_staffing_decision")
     
     try:
         # 解析预测摘要
@@ -438,9 +437,7 @@ def generate_staffing_decision(
 @tool
 def optimize_shift_schedule(
     staffing_decision: str,
-    optimization_objective: str = "balance_workload",
-    runtime: ToolRuntime = None
-) -> str:
+    optimization_objective: str = "balance_workload") -> str:
     """
     优化班次安排
     
@@ -450,7 +447,7 @@ def optimize_shift_schedule(
     
     返回：优化后的班次安排JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="optimize_shift_schedule")
+    ctx = request_context.get() or new_context(method="optimize_shift_schedule")
     
     try:
         decision_data = json.loads(staffing_decision)
@@ -533,9 +530,7 @@ def optimize_shift_schedule(
 def generate_decision_report(
     prediction_result: str,
     staffing_decision: str,
-    output_format: str = "markdown",
-    runtime: ToolRuntime = None
-) -> str:
+    output_format: str = "markdown") -> str:
     """
     生成综合决策报告
     
@@ -546,7 +541,7 @@ def generate_decision_report(
     
     返回：决策报告
     """
-    ctx = runtime.context if runtime else new_context(method="generate_decision_report")
+    ctx = request_context.get() or new_context(method="generate_decision_report")
     
     try:
         prediction_data = json.loads(prediction_result)

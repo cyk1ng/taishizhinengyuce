@@ -30,8 +30,9 @@ import json
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
-from langchain.tools import tool, ToolRuntime
+from langchain.tools import tool
 from coze_coding_utils.runtime_ctx.context import new_context
+from coze_coding_utils.log.write_log import request_context
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -788,9 +789,7 @@ class WorkloadCalculator:
 
 @tool
 def get_realtime_workload_dashboard(
-    target_date: str = "",
-    runtime: ToolRuntime = None
-) -> str:
+    target_date: str = "") -> str:
     """
     获取实时工作量看板数据
     
@@ -805,7 +804,7 @@ def get_realtime_workload_dashboard(
     
     返回：工作量看板数据JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="get_realtime_workload_dashboard")
+    ctx = request_context.get() or new_context(method="get_realtime_workload_dashboard")
     
     try:
         if not target_date:
@@ -830,7 +829,7 @@ def get_realtime_workload_dashboard(
 
 
 @tool
-def get_workload_weights_config(runtime: ToolRuntime = None) -> str:
+def get_workload_weights_config() -> str:
     """
     获取工作量权重配置
     
@@ -852,9 +851,7 @@ def get_workload_weights_config(runtime: ToolRuntime = None) -> str:
 
 @tool
 def analyze_staff_requirement(
-    target_date: str = "",
-    runtime: ToolRuntime = None
-) -> str:
+    target_date: str = "") -> str:
     """
     分析人力资源需求
     
@@ -868,7 +865,7 @@ def analyze_staff_requirement(
     
     返回：人力资源分析报告JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="analyze_staff_requirement")
+    ctx = request_context.get() or new_context(method="analyze_staff_requirement")
     
     try:
         if not target_date:
@@ -934,9 +931,7 @@ def analyze_staff_requirement(
 @tool
 def get_workload_by_module(
     target_date: str = "",
-    module: str = "",
-    runtime: ToolRuntime = None
-) -> str:
+    module: str = "") -> str:
     """
     按业务模块统计工作量
     

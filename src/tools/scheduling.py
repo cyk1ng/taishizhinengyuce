@@ -25,9 +25,10 @@ import json
 import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
-from langchain.tools import tool, ToolRuntime
+from langchain.tools import tool
 from langchain_core.messages import HumanMessage, SystemMessage
 from coze_coding_utils.runtime_ctx.context import new_context
+from coze_coding_utils.log.write_log import request_context
 
 # 配置文件路径
 SCHEDULE_CONFIG = "assets/schedule_config.json"
@@ -787,9 +788,7 @@ class IntelligentScheduleEngine:
 
 @tool
 def get_schedule_staff_info(
-    city_dept_id: str = "",
-    runtime: ToolRuntime = None
-) -> str:
+    city_dept_id: str = "") -> str:
     """
     获取排班人员信息（包括生效班组）
     
@@ -798,7 +797,7 @@ def get_schedule_staff_info(
     
     返回：人员信息JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="get_schedule_staff_info")
+    ctx = request_context.get() or new_context(method="get_schedule_staff_info")
     
     try:
         from storage.database.db import is_database_connected
@@ -883,9 +882,7 @@ def get_schedule_staff_info(
 def get_existing_schedule(
     start_date: str,
     end_date: str,
-    city_dept_id: str = "",
-    runtime: ToolRuntime = None
-) -> str:
+    city_dept_id: str = "") -> str:
     """
     获取现有排班记录
     
@@ -896,7 +893,7 @@ def get_existing_schedule(
     
     返回：排班记录JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="get_existing_schedule")
+    ctx = request_context.get() or new_context(method="get_existing_schedule")
     
     try:
         records = ScheduleDataProvider.get_schedule_records(
@@ -960,9 +957,7 @@ def get_existing_schedule(
 @tool
 def generate_intelligent_schedule(
     prediction_result: str,
-    city_dept_id: str = "",
-    runtime: ToolRuntime = None
-) -> str:
+    city_dept_id: str = "") -> str:
     """
     生成智能排班方案
     
@@ -978,7 +973,7 @@ def generate_intelligent_schedule(
     
     返回：智能排班方案JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="generate_intelligent_schedule")
+    ctx = request_context.get() or new_context(method="generate_intelligent_schedule")
     
     try:
         prediction_data = json.loads(prediction_result)
@@ -1009,9 +1004,7 @@ def generate_intelligent_schedule(
 
 @tool
 def analyze_schedule_fairness(
-    schedule_records: str,
-    runtime: ToolRuntime = None
-) -> str:
+    schedule_records: str) -> str:
     """
     分析排班公平性
     
@@ -1020,7 +1013,7 @@ def analyze_schedule_fairness(
     
     返回：公平性分析报告JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="analyze_schedule_fairness")
+    ctx = request_context.get() or new_context(method="analyze_schedule_fairness")
     
     try:
         records_data = json.loads(schedule_records)
@@ -1106,9 +1099,7 @@ def analyze_schedule_fairness(
 @tool
 def export_schedule_report(
     schedule_result: str,
-    output_format: str = "markdown",
-    runtime: ToolRuntime = None
-) -> str:
+    output_format: str = "markdown") -> str:
     """
     导出排班报告
     
@@ -1118,7 +1109,7 @@ def export_schedule_report(
     
     返回：排班报告
     """
-    ctx = runtime.context if runtime else new_context(method="export_schedule_report")
+    ctx = request_context.get() or new_context(method="export_schedule_report")
     
     try:
         schedule_data = json.loads(schedule_result)
@@ -1207,9 +1198,7 @@ def export_schedule_report(
 @tool
 def save_schedule_records(
     schedule_data: str,
-    city_dept_id: str = "",
-    runtime: ToolRuntime = None
-) -> str:
+    city_dept_id: str = "") -> str:
     """
     保存排班记录到数据库
     
@@ -1223,7 +1212,7 @@ def save_schedule_records(
     - SHIFT_TYPE 使用数字枚举：1=晚班, 2=早班, 3=中班
     - STATUS 使用数字枚举：1=计划, 2=执行中, 3=已完成, 4=取消
     """
-    ctx = runtime.context if runtime else new_context(method="save_schedule_records")
+    ctx = request_context.get() or new_context(method="save_schedule_records")
     
     try:
         from storage.database.db import get_session, is_database_connected

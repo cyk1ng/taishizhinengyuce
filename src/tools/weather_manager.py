@@ -24,8 +24,9 @@ import json
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
-from langchain.tools import tool, ToolRuntime
+from langchain.tools import tool
 from coze_coding_utils.runtime_ctx.context import new_context
+from coze_coding_utils.log.write_log import request_context
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -660,9 +661,7 @@ class HighIncidentDetector:
 @tool
 def get_weather_by_search(
     date: str,
-    location: str = "云南昆明",
-    runtime: ToolRuntime = None
-) -> str:
+    location: str = "云南昆明") -> str:
     """
     通过Web搜索获取天气信息
     
@@ -672,7 +671,7 @@ def get_weather_by_search(
     
     返回：天气信息JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="get_weather_by_search")
+    ctx = request_context.get() or new_context(method="get_weather_by_search")
     
     try:
         # 构造搜索查询
@@ -769,9 +768,7 @@ def get_weather_by_search(
 
 @tool
 def get_typical_weather_by_season(
-    date: str,
-    runtime: ToolRuntime = None
-) -> str:
+    date: str) -> str:
     """
     根据月份获取典型天气（用于预测时自动填写）
     
@@ -780,7 +777,7 @@ def get_typical_weather_by_season(
     
     返回：典型天气信息JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="get_typical_weather_by_season")
+    ctx = request_context.get() or new_context(method="get_typical_weather_by_season")
     
     try:
         month = datetime.strptime(date, "%Y-%m-%d").month
@@ -847,9 +844,7 @@ def get_typical_weather_by_season(
 
 @tool
 def detect_high_incidents_for_prediction(
-    hours_back: int = 24,
-    runtime: ToolRuntime = None
-) -> str:
+    hours_back: int = 24) -> str:
     """
     检测最近时间段高发的故障、重过载事件，用于预测
     
@@ -858,7 +853,7 @@ def detect_high_incidents_for_prediction(
     
     返回：高发事件检测结果JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="detect_high_incidents_for_prediction")
+    ctx = request_context.get() or new_context(method="detect_high_incidents_for_prediction")
     
     try:
         prediction_impact = HighIncidentDetector.get_prediction_impact()
@@ -884,9 +879,7 @@ def detect_high_incidents_for_prediction(
 def save_weather_workload_association(
     date: str,
     weather_data: str,
-    workload_data: str,
-    runtime: ToolRuntime = None
-) -> str:
+    workload_data: str) -> str:
     """
     保存天气与工作量的关联数据（用于智能体训练）
 
@@ -897,7 +890,7 @@ def save_weather_workload_association(
 
     返回：操作结果JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="save_weather_workload_association")
+    ctx = request_context.get() or new_context(method="save_weather_workload_association")
 
     try:
         weather = json.loads(weather_data)
@@ -930,9 +923,7 @@ def manual_adjust_weather(
     precipitation_level: str = "",
     wind_level: str = "",
     extreme_weather: str = "",
-    reason: str = "",
-    runtime: ToolRuntime = None
-) -> str:
+    reason: str = "") -> str:
     """
     手动修改天气数据（天气总有突发情况，需人工查看当天天气后进行手动修改）
 
@@ -946,7 +937,7 @@ def manual_adjust_weather(
 
     返回：操作结果JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="manual_adjust_weather")
+    ctx = request_context.get() or new_context(method="manual_adjust_weather")
 
     try:
         # 解析极端天气
@@ -995,9 +986,7 @@ def manual_adjust_weather(
 
 @tool
 def get_weather_adjustments(
-    date: str = "",
-    runtime: ToolRuntime = None
-) -> str:
+    date: str = "") -> str:
     """
     查询手动修改的天气数据
 
@@ -1006,7 +995,7 @@ def get_weather_adjustments(
 
     返回：手动修改记录JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="get_weather_adjustments")
+    ctx = request_context.get() or new_context(method="get_weather_adjustments")
 
     try:
         adjustments = HistoricalWeatherData.get_manual_adjustments(date if date else None)
@@ -1032,9 +1021,7 @@ def get_weather_adjustments(
 @tool
 def collect_historical_workload(
     period_type: str = "normal",
-    limit: int = 50,
-    runtime: ToolRuntime = None
-) -> str:
+    limit: int = 50) -> str:
     """
     按时期类型收集历史业务量数据
 
@@ -1050,7 +1037,7 @@ def collect_historical_workload(
 
     返回：历史业务量数据JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="collect_historical_workload")
+    ctx = request_context.get() or new_context(method="collect_historical_workload")
 
     try:
         valid_periods = ["rainy_peak", "wind_peak", "winter_peak", "normal"]

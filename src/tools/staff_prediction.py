@@ -20,8 +20,9 @@ import logging
 import numpy as np
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
-from langchain.tools import tool, ToolRuntime
+from langchain.tools import tool
 from coze_coding_utils.runtime_ctx.context import new_context
+from coze_coding_utils.log.write_log import request_context
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -386,9 +387,7 @@ class StaffingRecommendationEngine:
 def predict_staffing_need(
     predictions: str,
     current_staff: str,
-    lookback_days: int = 30,
-    runtime: ToolRuntime = None
-) -> str:
+    lookback_days: int = 30) -> str:
     """
     预测人员需求
 
@@ -399,7 +398,7 @@ def predict_staffing_need(
 
     返回：人员需求预测结果JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="predict_staffing_need")
+    ctx = request_context.get() or new_context(method="predict_staffing_need")
 
     try:
         predictions_data = json.loads(predictions)
@@ -435,9 +434,7 @@ def predict_staffing_need(
 @tool
 def generate_staffing_recommendations(
     staffing_needs: str,
-    available_staff: str,
-    runtime: ToolRuntime = None
-) -> str:
+    available_staff: str) -> str:
     """
     生成人员配置建议
 
@@ -447,7 +444,7 @@ def generate_staffing_recommendations(
 
     返回：人员配置建议JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="generate_staffing_recommendations")
+    ctx = request_context.get() or new_context(method="generate_staffing_recommendations")
 
     try:
         needs_data = json.loads(staffing_needs)
@@ -474,9 +471,7 @@ def generate_staffing_recommendations(
 
 @tool
 def evaluate_staff_efficiency(
-    staff_list: str,
-    runtime: ToolRuntime = None
-) -> str:
+    staff_list: str) -> str:
     """
     评估人员效能
 
@@ -485,7 +480,7 @@ def evaluate_staff_efficiency(
 
     返回：人员效能评估结果JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="evaluate_staff_efficiency")
+    ctx = request_context.get() or new_context(method="evaluate_staff_efficiency")
 
     try:
         staff_data = json.loads(staff_list)
@@ -521,9 +516,7 @@ def calculate_optimal_staffing(
     safety_margin: float = 1.2,
     min_shift_leader: int = 1,
     min_primary: int = 1,
-    min_secondary: int = 1,
-    runtime: ToolRuntime = None
-) -> str:
+    min_secondary: int = 1) -> str:
     """
     计算最优人员配置
 
@@ -536,7 +529,7 @@ def calculate_optimal_staffing(
 
     返回：最优人员配置方案JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="calculate_optimal_staffing")
+    ctx = request_context.get() or new_context(method="calculate_optimal_staffing")
 
     try:
         model = StaffEfficiencyModel()

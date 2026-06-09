@@ -14,8 +14,9 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from enum import Enum
-from langchain.tools import tool, ToolRuntime
+from langchain.tools import tool
 from coze_coding_utils.runtime_ctx.context import new_context
+from coze_coding_utils.log.write_log import request_context
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -217,9 +218,7 @@ def assess_comprehensive_risk(
     workload_data: str = "{}",
     staff_data: str = "{}",
     weather_data: str = "{}",
-    incident_data: str = "{}",
-    runtime: ToolRuntime = None
-) -> str:
+    incident_data: str = "{}") -> str:
     """
     综合风险评估
 
@@ -232,7 +231,7 @@ def assess_comprehensive_risk(
 
     返回：综合风险评估报告JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="assess_comprehensive_risk")
+    ctx = request_context.get() or new_context(method="assess_comprehensive_risk")
 
     try:
         # 解析输入数据
@@ -319,9 +318,7 @@ def assess_comprehensive_risk(
 @tool
 def generate_risk_alert_report(
     risk_data: str,
-    target_date: str = "",
-    runtime: ToolRuntime = None
-) -> str:
+    target_date: str = "") -> str:
     """
     生成风险预警报告
 
@@ -331,7 +328,7 @@ def generate_risk_alert_report(
 
     返回：风险预警报告JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="generate_risk_alert_report")
+    ctx = request_context.get() or new_context(method="generate_risk_alert_report")
 
     try:
         if not target_date:
@@ -435,9 +432,7 @@ def generate_risk_alert_report(
 
 @tool
 def check_daily_risks(
-    target_date: str = "",
-    runtime: ToolRuntime = None
-) -> str:
+    target_date: str = "") -> str:
     """
     每日风险检查（简化版，用于快速评估）
 
@@ -446,7 +441,7 @@ def check_daily_risks(
 
     返回：风险检查结果JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="check_daily_risks")
+    ctx = request_context.get() or new_context(method="check_daily_risks")
 
     try:
         if not target_date:

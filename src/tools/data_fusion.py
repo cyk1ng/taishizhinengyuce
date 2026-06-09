@@ -18,8 +18,9 @@ import json
 import os
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
-from langchain.tools import tool, ToolRuntime
+from langchain.tools import tool
 from coze_coding_utils.runtime_ctx.context import new_context
+from coze_coding_utils.log.write_log import request_context
 
 # 配置文件路径
 DATA_SOURCES_CONFIG = "assets/data_sources.json"
@@ -277,9 +278,7 @@ class HolidayCalendar:
 @tool
 def get_historical_dispatch_data(
     start_date: str,
-    end_date: str,
-    runtime: ToolRuntime = None
-) -> str:
+    end_date: str) -> str:
     """
     获取历史调度数据
     
@@ -289,7 +288,7 @@ def get_historical_dispatch_data(
     
     返回：历史调度记录JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="get_historical_dispatch_data")
+    ctx = request_context.get() or new_context(method="get_historical_dispatch_data")
     
     try:
         start = datetime.strptime(start_date, "%Y-%m-%d")
@@ -325,9 +324,7 @@ def get_historical_dispatch_data(
 
 @tool
 def get_weather_forecast(
-    days: int = 7,
-    runtime: ToolRuntime = None
-) -> str:
+    days: int = 7) -> str:
     """
     获取天气预报数据
     
@@ -336,7 +333,7 @@ def get_weather_forecast(
     
     返回：天气预报JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="get_weather_forecast")
+    ctx = request_context.get() or new_context(method="get_weather_forecast")
     
     try:
         forecast = WeatherDataGenerator.generate_forecast(days)
@@ -366,9 +363,7 @@ def get_weather_forecast(
 @tool
 def get_holiday_info(
     start_date: str,
-    end_date: str,
-    runtime: ToolRuntime = None
-) -> str:
+    end_date: str) -> str:
     """
     获取节假日信息
     
@@ -378,7 +373,7 @@ def get_holiday_info(
     
     返回：节假日信息JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="get_holiday_info")
+    ctx = request_context.get() or new_context(method="get_holiday_info")
     
     try:
         calendar = HolidayCalendar()
@@ -423,15 +418,13 @@ def get_holiday_info(
 
 
 @tool
-def get_equipment_status(
-    runtime: ToolRuntime = None
-) -> str:
+def get_equipment_status() -> str:
     """
     获取设备运行状态
     
     返回：设备状态JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="get_equipment_status")
+    ctx = request_context.get() or new_context(method="get_equipment_status")
     
     try:
         # 生产环境替换为实际API调用
@@ -477,9 +470,7 @@ def get_equipment_status(
 @tool
 def fuse_multi_source_data(
     start_date: str,
-    end_date: str,
-    runtime: ToolRuntime = None
-) -> str:
+    end_date: str) -> str:
     """
     多源数据融合 - 整合历史调度、天气、节假日、设备状态等数据
     
@@ -489,14 +480,14 @@ def fuse_multi_source_data(
     
     返回：融合后的综合数据JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="fuse_multi_source_data")
+    ctx = request_context.get() or new_context(method="fuse_multi_source_data")
     
     try:
         # 获取各数据源数据
-        historical_json = get_historical_dispatch_data.invoke({"start_date": start_date, "end_date": end_date, "runtime": runtime})
-        weather_json = get_weather_forecast.invoke({"days": 7, "runtime": runtime})
-        holiday_json = get_holiday_info.invoke({"start_date": start_date, "end_date": end_date, "runtime": runtime})
-        equipment_json = get_equipment_status.invoke({"runtime": runtime})
+        historical_json = get_historical_dispatch_data.invoke({"start_date": start_date, "end_date": end_date})
+        weather_json = get_weather_forecast.invoke({"days": 7})
+        holiday_json = get_holiday_info.invoke({"start_date": start_date, "end_date": end_date})
+        equipment_json = get_equipment_status.invoke({})
         
         historical_data = json.loads(historical_json)
         weather_data = json.loads(weather_json)

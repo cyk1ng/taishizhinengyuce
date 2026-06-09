@@ -21,8 +21,9 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from enum import Enum
-from langchain.tools import tool, ToolRuntime
+from langchain.tools import tool
 from coze_coding_utils.runtime_ctx.context import new_context
+from coze_coding_utils.log.write_log import request_context
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -218,9 +219,7 @@ def assess_situation_awareness(
     staff_data: str = "{}",
     equipment_data: str = "{}",
     weather_data: str = "{}",
-    event_data: str = "{}",
-    runtime: ToolRuntime = None
-) -> str:
+    event_data: str = "{}") -> str:
     """
     态势感知评估
 
@@ -234,7 +233,7 @@ def assess_situation_awareness(
 
     返回：态势感知评估结果JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="assess_situation_awareness")
+    ctx = request_context.get() or new_context(method="assess_situation_awareness")
 
     try:
         # 解析输入数据
@@ -334,9 +333,7 @@ def assess_situation_awareness(
 @tool
 def generate_situation_report(
     situation_data: str,
-    target_date: str = "",
-    runtime: ToolRuntime = None
-) -> str:
+    target_date: str = "") -> str:
     """
     生成态势分析报告
 
@@ -346,7 +343,7 @@ def generate_situation_report(
 
     返回：态势分析报告JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="generate_situation_report")
+    ctx = request_context.get() or new_context(method="generate_situation_report")
 
     try:
         if not target_date:
@@ -444,9 +441,7 @@ def generate_situation_report(
 @tool
 def get_situation_dashboard(
     target_date: str = "",
-    days_back: int = 7,
-    runtime: ToolRuntime = None
-) -> str:
+    days_back: int = 7) -> str:
     """
     获取态势看板数据（简化版）
 
@@ -456,7 +451,7 @@ def get_situation_dashboard(
 
     返回：态势看板数据JSON字符串
     """
-    ctx = runtime.context if runtime else new_context(method="get_situation_dashboard")
+    ctx = request_context.get() or new_context(method="get_situation_dashboard")
 
     try:
         if not target_date:

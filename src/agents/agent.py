@@ -315,6 +315,21 @@ def build_agent(ctx=None):
     print(f"🔍 工具数量: {len(tools)}个")
     print(f"🔍 系统提示词长度: {len(sp)}字符")
 
+    # 调试：打印实际发给模型的 messages
+    original_invoke = llm.invoke
+    def debug_invoke(messages, **kwargs):
+        import json as _json
+        msgs_preview = []
+        for m in messages[:5]:
+            msgs_preview.append({
+                "role": getattr(m, "type", "unknown"),
+                "content_len": len(getattr(m, "content", "")),
+                "tool_calls": len(getattr(m, "tool_calls", []) or [])
+            })
+        print(f"🔍 LLM invoke messages({len(messages)}条): {_json.dumps(msgs_preview, ensure_ascii=False)}")
+        return original_invoke(messages, **kwargs)
+    llm.invoke = debug_invoke
+
     # 创建Agent - 使用 post_model_hook 处理 Ollama 文本工具调用
     agent = create_react_agent(
         model=llm,

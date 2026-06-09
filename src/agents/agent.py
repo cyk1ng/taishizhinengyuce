@@ -156,7 +156,7 @@ def build_agent(ctx=None):
         base_url=base_url,
         temperature=cfg['config'].get('temperature', 0.7),
         max_tokens=cfg['config'].get('max_tokens', 8000),
-        streaming=True,
+        streaming=False,   # 先关闭 streaming 排查问题
         timeout=cfg['config'].get('timeout', 600),
     )
 
@@ -227,6 +227,7 @@ def build_agent(ctx=None):
         tools=tools,
         system_prompt=cfg.get("sp", ""),
         checkpointer=get_memory_saver(),
+        debug=True,   # 开启调试模式
     )
 
     return agent

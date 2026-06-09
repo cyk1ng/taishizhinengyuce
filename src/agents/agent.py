@@ -15,14 +15,11 @@
 
 import os
 import json
-import re
-from typing import Annotated
+import logging
 from pathlib import Path
-from langgraph.prebuilt import create_react_agent
+
+from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
-from langgraph.graph import MessagesState
-from langgraph.graph.message import add_messages
-from langchain_core.messages import AnyMessage, AIMessage, ToolMessage
 
 from storage.memory.memory_saver import get_memory_saver
 import importlib
@@ -35,10 +32,8 @@ try:
     env_path = Path(__file__).parent.parent.parent / ".env"
     if env_path.exists():
         load_dotenv(env_path)
-        print(f"✅ 已加载环境变量文件: {env_path}")
 except ImportError:
-    print("⚠️  未安装 python-dotenv，跳过 .env 文件加载")
-    print("   提示：运行 'pip install python-dotenv' 可启用此功能")
+    pass
 
 # 导入工具模块
 from tools.data_fusion import (
@@ -96,7 +91,7 @@ from tools.risk_alert import (
     generate_risk_alert_report,
     check_daily_risks
 )
-# 导入计划工作量统计工具模块（更新：包含计划工作量和非计划工作量）
+# 导入计划工作量统计工具模块
 from tools.plan_workload import (
     calculate_plan_workload,
     calculate_non_plan_workload,
@@ -110,96 +105,16 @@ from tools.weather_manager import (
     get_typical_weather_by_season,
     detect_high_incidents_for_prediction,
     save_weather_workload_association,
-    manual_adjust_weather,  # 新增：手动修改天气数据
-    get_weather_adjustments,  # 新增：查询天气修改记录
-    collect_historical_workload  # 新增：收集历史业务量数据
+    manual_adjust_weather,
+    get_weather_adjustments,
+    collect_historical_workload
 )
 
 
+logger = logging.getLogger(__name__)
+
 # 配置文件路径
 LLM_CONFIG = "config/agent_llm_config.json"
-
-# 默认保留最近20轮对话（40条消息）
-MAX_MESSAGES = 40
-
-
-def _windowed_messages(old, new):
-    """滑动窗口：只保留最近MAX_MESSAGES条消息"""
-    combined = add_messages(old, new)
-    # 确保返回的是消息列表，而不是BaseMessage对象
-    if hasattr(combined, '__iter__'):
-        return list(combined)[-MAX_MESSAGES:]
-    return combined
-
-
-class AgentState(MessagesState):
-    """Agent状态定义"""
-    messages: Annotated[list[AnyMessage], _windowed_messages]
-    remaining_steps: int
-
-
-def _tool_call_parser(state: dict) -> dict:
-    """
-    解析 Ollama 模型返回的文本格式工具调用（如 <tool_call>...</tool_call>）
-    转换为标准 AIMessage.tool_calls 格式，使框架能自动执行工具
-    """
-    messages = state.get("messages", [])
-    if not messages:
-        return state
-
-    last_msg = messages[-1]
-    if not isinstance(last_msg, AIMessage):
-        return state
-
-    content = last_msg.content
-    if not content or not isinstance(content, str):
-        return state
-
-    if '<tool_call>' not in content:
-        return state
-
-    # 提取 <tool_call> 和 </tool_call> 之间的完整内容（支持嵌套JSON）
-    # 注意：不能使用 {.*?} 因为会匹配到嵌套括号中的第一个 }，导致JSON解析失败
-    pattern = r'<tool_call>\s*(.*?)\s*</tool_call>'
-    matches = re.findall(pattern, content, re.DOTALL)
-
-    if not matches:
-        return state
-
-    tool_calls = []
-    for i, match in enumerate(matches):
-        try:
-            call_data = json.loads(match.strip())
-            tool_name = call_data.get("name", "")
-            arguments = call_data.get("arguments", {})
-            tool_calls.append({
-                "name": tool_name,
-                "args": arguments,
-                "id": f"call_{i}_{tool_name}",
-                "type": "tool_call"
-            })
-        except json.JSONDecodeError:
-            continue
-
-    if not tool_calls:
-        return state
-
-    # 去掉原始内容中的 <tool_call> 标签，保留正常文字
-    cleaned_content = re.sub(r'<tool_call>.*?</tool_call>', '', content, flags=re.DOTALL).strip()
-    # 如果清理后为空，用最后一条工具结果的信息做友好提示
-    if not cleaned_content:
-        cleaned_content = "根据查询结果，我已获取到相关数据，请您进一步说明想了解的具体内容。"
-
-    # 创建新的 AIMessage
-    new_msg = AIMessage(
-        content=cleaned_content,
-        tool_calls=tool_calls,
-        additional_kwargs=last_msg.additional_kwargs,
-        id=last_msg.id,
-        response_metadata=last_msg.response_metadata
-    )
-
-    return {"messages": messages[:-1] + [new_msg]}
 
 
 def build_agent(ctx=None):
@@ -232,22 +147,25 @@ def build_agent(ctx=None):
 
     if not base_url:
         base_url = "https://open.bigmodel.cn/api/paas/v4/"
-        print(f"⚠️  未设置 COZE_INTEGRATION_MODEL_BASE_URL，使用GLM默认值: {base_url}")
+        logger.warning("未设置 COZE_INTEGRATION_MODEL_BASE_URL，使用GLM默认值: %s", base_url)
 
-    # 初始化LLM
-    llm_kwargs = {
-        "model": cfg['config'].get("model"),
-        "api_key": api_key,
-        "base_url": base_url,
-        "temperature": cfg['config'].get('temperature', 0.7),
-        "max_tokens": cfg['config'].get('max_completion_tokens', 8000),  # GLM用max_tokens
-        "streaming": True,
-        "timeout": cfg['config'].get('timeout', 600),
-    }
-    # GLM-4-Flash 不需要 extra_body 和 default_headers
-    llm = ChatOpenAI(**llm_kwargs)
+    # 初始化LLM - GLM-4-Flash 使用 OpenAI 兼容模式
+    llm = ChatOpenAI(
+        model=cfg['config'].get("model"),
+        api_key=api_key,
+        base_url=base_url,
+        temperature=cfg['config'].get('temperature', 0.7),
+        max_tokens=cfg['config'].get('max_tokens', 8000),
+        streaming=True,
+        timeout=cfg['config'].get('timeout', 600),
+    )
 
-    print(f"🔍 GLM请求参数: model={llm_kwargs['model']}, base_url={llm_kwargs['base_url']}, temperature={llm_kwargs['temperature']}, max_tokens={llm_kwargs['max_tokens']}")
+    logger.info(
+        "GLM请求参数: model=%s, base_url=%s, temperature=%s, max_tokens=%s",
+        cfg['config'].get("model"), base_url,
+        cfg['config'].get('temperature', 0.7),
+        cfg['config'].get('max_tokens', 8000)
+    )
 
     # 注册全部工具（从 config 中加载工具列表）
     _tool_map = {
@@ -299,45 +217,16 @@ def build_agent(ctx=None):
     tool_names = cfg.get("tools", [])
     tools = [_tool_map[name] for name in tool_names if name in _tool_map]
 
-    # 追加中文输出规则
-    chinese_output_rule = """
+    logger.info("工具数量: %d个", len(tools))
+    logger.info("系统提示词长度: %d字符", len(cfg.get("sp", "")))
 
-【最终回答铁律】
-1. 所有工具调用完成后必须用中文写总结
-2. 禁止输出JSON、代码块给用户
-3. 禁止列出工具名称——直接调用即可
-4. 用中文回复，保持简洁"""
-
-    # 使用 config 中精简后的 sp
-    sp = cfg.get("sp", "")
-    sp = sp + chinese_output_rule
-
-    print(f"🔍 工具数量: {len(tools)}个")
-    print(f"🔍 系统提示词长度: {len(sp)}字符")
-
-    # 调试：打印实际发给模型的 messages
-    original_invoke = llm.invoke
-    def debug_invoke(messages, **kwargs):
-        import json as _json
-        msgs_preview = []
-        for m in messages[:5]:
-            msgs_preview.append({
-                "role": getattr(m, "type", "unknown"),
-                "content_len": len(getattr(m, "content", "")),
-                "tool_calls": len(getattr(m, "tool_calls", []) or [])
-            })
-        print(f"🔍 LLM invoke messages({len(messages)}条): {_json.dumps(msgs_preview, ensure_ascii=False)}")
-        return original_invoke(messages, **kwargs)
-    llm.invoke = debug_invoke
-
-    # 创建Agent - 使用 post_model_hook 处理 Ollama 文本工具调用
-    agent = create_react_agent(
+    # 创建Agent
+    # GLM-4-Flash 原生支持 tool_calls，无需 post_model_hook/middleware
+    agent = create_agent(
         model=llm,
         tools=tools,
-        prompt=sp,
-        post_model_hook=_tool_call_parser,
+        system_prompt=cfg.get("sp", ""),
         checkpointer=get_memory_saver(),
-        state_schema=AgentState,
     )
 
     return agent

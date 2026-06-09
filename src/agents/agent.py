@@ -227,7 +227,7 @@ def build_agent(ctx=None):
         tools=tools,
         system_prompt=cfg.get("sp", ""),
         checkpointer=get_memory_saver(),
-        debug=True,   # 开启调试模式
+        debug=False,  # 关闭 debug 输出，避免 [values] 脏数据
     )
 
     return agent

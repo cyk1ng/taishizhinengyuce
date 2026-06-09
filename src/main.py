@@ -634,8 +634,9 @@ async def http_stream_run(request: Request):
         logger.error(f"JSON decode error in http_stream_run: {e}, traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=400, detail=f"Invalid JSON format:{extract_core_stack()}")
 
-    if is_agent:
-        # 使用直接流式处理，绕过 AgentStreamRunner 的 content 数组转换
+    # 强制使用直接流式处理（本项目是 Agent，但环境变量 COZE_PROJECT_TYPE 未设置导致 is_agent_proj() 返回 False）
+    # 使用直接流式处理，绕过 AgentStreamRunner 的 content 数组转换 + 绕过 is_agent_proj 判断
+    if True:
         stream_generator = service._agent_stream_direct(
             payload=payload,
             ctx=ctx,

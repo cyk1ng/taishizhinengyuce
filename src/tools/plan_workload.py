@@ -202,7 +202,7 @@ class PlanWorkloadDatabase:
         return records
     
     @staticmethod
-    def collect_equipment_workload(target_date: str) -> List[Dict]:
+    def collect_equipment_workload(target_date: str = None) -> List[Dict]:
         """
         采集设备投退工作量
         
@@ -229,36 +229,39 @@ class PlanWorkloadDatabase:
         try:
             from sqlalchemy import text
             
-            # 查询设备投退记录（以批准开始时间为准查询）
-            sql = text("""
+            # 查询设备投退记录（TD_OUTAGE_REPAIR_APPLY_INFO 中 FILL_OVERHAUL_TYPE='新设备投产'）
+            date_condition = ""
+            params = {}
+            if target_date:
+                date_condition = "AND TRUNC(FILL_WORK_BEGIN_DATE) = TO_DATE(:target_date, 'YYYY-MM-DD')"
+                params["target_date"] = target_date
+            
+            sql = text(f"""
                 SELECT 
-                    OPERATION_ID as record_id,
-                    OPERATION_NO as operation_no,
-                    OPERATION_TYPE as operation_type,
-                    EQUIPMENT_NAME as equipment_name,
-                    APPROVED_START_TIME as approved_start_time,
-                    APPROVED_END_TIME as approved_end_time,
-                    STATUS as status,
-                    OPERATOR_NAME as operator_name,
+                    MK_ID as record_id,
+                    FILL_PLAN_CODE as operation_no,
+                    FILL_OVERHAUL_TYPE as operation_type,
+                    FILL_WORK_BEGIN_DATE as approved_start_time,
+                    FILL_WORK_END_DATE as approved_end_time,
+                    FORM_STATUS as status,
                     'A6' as task_category,
                     '设备投退' as task_name,
-                    -- 判断状态分类
                     CASE 
-                        WHEN STATUS IN ('pending', 'executing', 'in_progress', '待执行', '执行中') THEN 'in_progress'
-                        WHEN STATUS IN ('completed', 'finished', 'terminated', '已终结', '已完成') THEN 'completed'
+                        WHEN FORM_STATUS IN ('DJS', 'DZX', 'ZX', 'RB') THEN 'in_progress'
+                        WHEN FORM_STATUS IN ('ZJ', 'ZF', 'RC', 'CL') THEN 'completed'
                         ELSE 'unknown'
                     END as status_category,
-                    -- 判断是否跨夜班（21:00后结束）
                     CASE 
-                        WHEN HOUR(APPROVED_END_TIME) >= 21 THEN 1
+                        WHEN EXTRACT(HOUR FROM FILL_WORK_END_DATE) >= 21 THEN 1
                         ELSE 0
                     END as is_night_shift
-                FROM equipment_operations
-                WHERE DATE(APPROVED_START_TIME) = :target_date
-                ORDER BY APPROVED_START_TIME
+                FROM TD_OUTAGE_REPAIR_APPLY_INFO
+                WHERE FILL_OVERHAUL_TYPE = '新设备投产'
+                {date_condition}
+                ORDER BY FILL_WORK_BEGIN_DATE
             """)
             
-            result = session.execute(sql, {"target_date": target_date})
+            result = session.execute(sql, params)
             for row in result:
                 data = dict(row._mapping)
                 records.append(data)

@@ -345,27 +345,22 @@ class WorkloadDatabase:
         try:
             from sqlalchemy import text
             
-            # 1. 采集检修业务（停电/复电）
+            # 1. 采集检修业务（停电/复电）- Oracle 表 TD_OUTAGE_REPAIR_APPLY_INFO
             sql_maintenance = text("""
                 SELECT 
-                    record_id,
+                    MK_ID as record_id,
                     'plan' as task_type,
-                    CASE 
-                        WHEN operation_type = 'power_off' AND order_type = 'phone' THEN 'A1_phone'
-                        WHEN operation_type = 'power_off' AND order_type = 'network' THEN 'A1_network'
-                        WHEN operation_type = 'power_on' AND order_type = 'phone' THEN 'A2_phone'
-                        WHEN operation_type = 'power_on' AND order_type = 'network' THEN 'A2_network'
-                    END as task_category,
-                    CASE WHEN operation_type = 'power_off' THEN '停电' ELSE '复电' END as task_name,
-                    order_type,
+                    'A1_phone' as task_category,
+                    '计划检修' as task_name,
+                    'phone' as order_type,
                     '停电检修' as module,
-                    start_time,
-                    end_time,
-                    status,
+                    FILL_WORK_BEGIN_DATE as start_time,
+                    FILL_WORK_END_DATE as end_time,
+                    FORM_STATUS as status,
                     1 as count
-                FROM maintenance_records
-                WHERE DATE(start_time) = :target_date
-                  AND operation_type IN ('power_off', 'power_on')
+                FROM TD_OUTAGE_REPAIR_APPLY_INFO
+                WHERE TRUNC(FILL_WORK_BEGIN_DATE) = TO_DATE(:target_date, 'YYYY-MM-DD')
+                  AND FILL_OVERHAUL_TYPE IN ('JH', '计划检修')
                 
                 UNION ALL
                 

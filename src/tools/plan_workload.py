@@ -127,7 +127,7 @@ class PlanWorkloadDatabase:
         return None
     
     @staticmethod
-    def collect_maintenance_workload(target_date: str) -> List[Dict]:
+    def collect_maintenance_workload(target_date: Optional[str] = None) -> List[Dict]:
         """
         采集计划检修工作量
         
@@ -140,7 +140,7 @@ class PlanWorkloadDatabase:
         - 支持开展中、已终结分类
         
         参数：
-            target_date: 目标日期 (YYYY-MM-DD)
+            target_date: 目标日期 (YYYY-MM-DD)，为空时查询所有记录
         
         返回：检修工作量记录列表
         """
@@ -181,12 +181,12 @@ class PlanWorkloadDatabase:
                         ELSE 0
                     END as is_night_shift
                 FROM TD_OUTAGE_REPAIR_APPLY_INFO
-                WHERE TRUNC(FILL_WORK_BEGIN_DATE) = TO_DATE(:target_date, 'YYYY-MM-DD')
-                  AND FILL_OVERHAUL_TYPE IN ('JH', '计划检修')
+                WHERE FILL_OVERHAUL_TYPE IN ('JH', '计划检修')
                 ORDER BY FILL_WORK_BEGIN_DATE
             """)
             
-            result = session.execute(sql, {"target_date": target_date})
+            params = {"target_date": target_date} if target_date else {}
+            result = session.execute(sql, params)
             for row in result:
                 data = dict(row._mapping)
                 records.append(data)
@@ -1239,19 +1239,25 @@ def get_workload_dashboard(
     返回：工作量看板数据JSON字符串
     """
     try:
+        # 仪表盘：target_date为空时检修单查所有记录（不限日期），其他表仍按当天
         if not target_date:
-            target_date = datetime.now().strftime("%Y-%m-%d")
+            all_records_mode = True
+            today_str = datetime.now().strftime("%Y-%m-%d")
+        else:
+            all_records_mode = False
+            today_str = target_date
         
-        # 1. 采集计划工作量数据
-        maintenance_records = PlanWorkloadDatabase.collect_maintenance_workload(target_date)
-        equipment_records = PlanWorkloadDatabase.collect_equipment_workload(target_date)
-        transfer_records = PlanWorkloadDatabase.collect_transfer_workload(target_date)
-        weekly_plan_records = PlanWorkloadDatabase.collect_weekly_plan_workload(target_date)
+        maintenance_records = PlanWorkloadDatabase.collect_maintenance_workload(
+            None if all_records_mode else target_date
+        )
+        equipment_records = PlanWorkloadDatabase.collect_equipment_workload(today_str)
+        transfer_records = PlanWorkloadDatabase.collect_transfer_workload(today_str)
+        weekly_plan_records = PlanWorkloadDatabase.collect_weekly_plan_workload(today_str)
         
         # 2. 采集非计划工作量数据
-        fault_records = NonPlanWorkloadDatabase.collect_fault_workload(target_date)
-        defect_records = NonPlanWorkloadDatabase.collect_defect_workload(target_date)
-        overload_records = NonPlanWorkloadDatabase.collect_overload_workload(target_date)
+        fault_records = NonPlanWorkloadDatabase.collect_fault_workload(today_str)
+        defect_records = NonPlanWorkloadDatabase.collect_defect_workload(today_str)
+        overload_records = NonPlanWorkloadDatabase.collect_overload_workload(today_str)
         
         # 3. 分配计划工作量到各班次
         plan_allocation_results = {

@@ -402,20 +402,21 @@ class WorkloadDatabase:
                 
                 UNION ALL
                 
-                -- 4. 采集设备投退任务
+                -- 4. 采集设备投退任务（新表TD_OUTAGE_REPAIR_APPLY_INFO, FILL_OVERHAUL_TYPE='新设备投产'）
                 SELECT 
-                    record_id,
+                    MK_ID as record_id,
                     'plan' as task_type,
                     'A6' as task_category,
                     '设备投退' as task_name,
                     '' as order_type,
                     '设备投退' as module,
-                    operation_time as start_time,
-                    operation_time as end_time,
-                    status,
+                    FILL_WORK_BEGIN_DATE as start_time,
+                    FILL_WORK_END_DATE as end_time,
+                    FORM_STATUS as status,
                     1 as count
-                FROM equipment_operations
-                WHERE DATE(operation_time) = :target_date
+                FROM TD_OUTAGE_REPAIR_APPLY_INFO
+                WHERE FILL_OVERHAUL_TYPE = '新设备投产'
+                  AND TRUNC(FILL_WORK_BEGIN_DATE) = TO_DATE(:target_date, 'YYYY-MM-DD')
             """)
             
             result = session.execute(sql_maintenance, {"target_date": target_date})

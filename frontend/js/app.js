@@ -448,13 +448,26 @@ function updateDashboardWithData(data) {
     const summary = data.summary || {};
     const hourlyDetails = data.hourly_details || [];
     
-    // 更新统计数据
-    document.getElementById('stat-maintenance').innerHTML = 
-        `${summary.total_plan_count || 0}<span class="unit">单</span>`;
-    document.getElementById('stat-weekly-plan').innerHTML = 
-        `${summary.total_plan_count || 0}<span class="unit">单</span>`;
-    document.getElementById('stat-trip').innerHTML = 
-        `${summary.total_non_plan_count || 0}<span class="unit">起</span>`;
+    // ========== 更新顶部统计卡片 ==========
+    // 计划工作量
+    const planTotal = summary.total_plan_count || 0;
+    const inProgress = summary.in_progress || 0;
+    const completed = summary.completed || 0;
+    
+    document.getElementById('stat-plan-total').innerHTML = `${planTotal}<span class="unit">单</span>`;
+    document.getElementById('stat-plan-in-progress').textContent = inProgress;
+    document.getElementById('stat-plan-completed').textContent = completed;
+    
+    // 非计划工作量
+    const faultCount = summary.fault_count || 0;
+    const defectCount = summary.defect_count || 0;
+    const overloadCount = summary.overload_count || 0;
+    const nonPlanTotal = faultCount + defectCount + overloadCount;
+    
+    document.getElementById('stat-non-plan-total').innerHTML = `${nonPlanTotal}<span class="unit">起</span>`;
+    document.getElementById('stat-non-plan-fault').textContent = faultCount;
+    document.getElementById('stat-non-plan-defect').textContent = defectCount;
+    document.getElementById('stat-non-plan-overload').textContent = overloadCount;
     
     // 更新当值人员信息
     const totalStaff = hourlyDetails.reduce((sum, h) => sum + (h.staff_count || 0), 0) / 24 || 0;
@@ -465,16 +478,13 @@ function updateDashboardWithData(data) {
     document.getElementById('staffCapacity').textContent = avgCapacity.toFixed(1);
     
     // 更新超负荷状态
-    const overloadCount = summary.overload_count || 0;
     const overloadEl = document.getElementById('overloadStatus');
     overloadEl.textContent = overloadCount > 0 ? '是' : '否';
     overloadEl.className = 'staff-value ' + (overloadCount > 0 ? 'warning' : 'success');
     
-    // 更新图表
+    // 更新图表（直接传入完整 data，updateWorkloadData 会解析 hourly_details）
     if (typeof updateWorkloadData === 'function') {
-        updateWorkloadData({
-            workloadTimeline: hourlyDetails
-        });
+        updateWorkloadData(data);
     }
     
     // 更新最后更新时间
@@ -845,10 +855,10 @@ document.addEventListener('DOMContentLoaded', function() {
     updateWeatherData();
     setInterval(updateWeatherData, 3600000);
     
-    // 注释：暂时不自动加载实时数据，使用假数据展示效果
-    // setTimeout(() => {
-    //     loadRealTimeData();
-    // }, 1000);
+    // 自动加载今日实时数据
+    setTimeout(() => {
+        loadRealTimeData();
+    }, 1000);
     
     // 更新工作量统计数据
     updateWorkloadStats();
@@ -1011,22 +1021,36 @@ function closeModal(modalId) {
 /**
  * 更新工作量统计数据
  */
-function updateWorkloadStats() {
+async function updateWorkloadStats() {
+    try {
+        const response = await fetch(`${window.location.origin}/api/workload_dashboard`);
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+                updateDashboardWithData(data);
+                return;
+            }
+        }
+    } catch (e) {
+        console.warn('workload_dashboard API 暂不可用，显示占位数据');
+    }
+    
+    // 占位数据：API不可用时展示
     const today = new Date().toISOString().split('T')[0];
     
     // 计划工作量
-    const planTotal = 41;
-    const planInProgress = 29;
-    const planCompleted = 12;
+    const planTotal = 0;
+    const planInProgress = 0;
+    const planCompleted = 0;
     
     document.getElementById('stat-plan-total').innerHTML = `${planTotal}<span class="unit">单</span>`;
     document.getElementById('stat-plan-in-progress').textContent = planInProgress;
     document.getElementById('stat-plan-completed').textContent = planCompleted;
     
     // 非计划工作量
-    const faultCount = 8;
-    const defectCount = 5;
-    const overloadCount = 2;
+    const faultCount = 0;
+    const defectCount = 0;
+    const overloadCount = 0;
     const nonPlanTotal = faultCount + defectCount + overloadCount;
     
     document.getElementById('stat-non-plan-total').innerHTML = `${nonPlanTotal}<span class="unit">起</span>`;

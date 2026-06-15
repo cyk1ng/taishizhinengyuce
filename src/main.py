@@ -494,6 +494,59 @@ async def save_weather(request: Request):
         logger.error(f"保存天气信息失败: {e}")
         raise HTTPException(status_code=500, detail=f"保存天气信息失败: {str(e)}")
 
+# 工作量看板数据接口
+@app.get("/api/workload_dashboard")
+async def workload_dashboard():
+    """获取今日工作量看板数据（实时数据库查询）"""
+    try:
+        from tools.plan_workload import get_workload_dashboard, calculate_plan_workload
+        from tools.non_plan_workload import calculate_non_plan_workload
+        
+        today = datetime.now().strftime("%Y-%m-%d")
+        
+        # 调用现有工具获取今日数据
+        dashboard_raw = get_workload_dashboard.invoke({"target_date": today})
+        dashboard_data = json.loads(dashboard_raw) if isinstance(dashboard_raw, str) else dashboard_raw
+        
+        plan_raw = calculate_plan_workload.invoke({"target_date": today})
+        plan_data = json.loads(plan_raw) if isinstance(plan_raw, str) else plan_raw
+        
+        nonplan_raw = calculate_non_plan_workload.invoke({"target_date": today})
+        nonplan_data = json.loads(nonplan_raw) if isinstance(nonplan_raw, str) else nonplan_raw
+        
+        # 聚合前端所需数据格式
+        plan_summary = dashboard_data.get("plan_workload", {})
+        nonplan_summary = dashboard_data.get("non_plan_workload", {})
+        
+        total_plan = plan_summary.get("total", 0)
+        in_progress = plan_summary.get("in_progress", 0)
+        completed = plan_summary.get("completed", 0)
+        
+        total_nonplan = nonplan_summary.get("total", 0)
+        fault_count = nonplan_summary.get("fault_count", 0)
+        defect_count = nonplan_summary.get("defect_count", 0)
+        overload_count = nonplan_summary.get("overload_count", 0)
+        
+        return {
+            "success": True,
+            "date": today,
+            "summary": {
+                "total_plan_count": total_plan,
+                "total_non_plan_count": total_nonplan,
+                "overload_count": overload_count,
+                "in_progress": in_progress,
+                "completed": completed,
+                "fault_count": fault_count,
+                "defect_count": defect_count
+            },
+            "hourly_details": dashboard_data.get("hourly_details", []),
+            "plan_allocation": plan_data.get("shift_allocation", {}),
+            "raw": dashboard_data
+        }
+    except Exception as e:
+        logger.error(f"获取今日工作量数据失败: {e}")
+        return {"success": False, "error": str(e), "date": datetime.now().strftime("%Y-%m-%d")}
+
 # 健康检查接口
 @app.get("/health")
 async def health_check():

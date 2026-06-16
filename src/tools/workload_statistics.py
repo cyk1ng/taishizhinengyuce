@@ -457,60 +457,42 @@ class WorkloadDatabase:
         try:
             from sqlalchemy import text
             
-            # 1. 采集故障日志（跳闸）
+            # 1. 采集故障日志（OC_GZ_TRIP_REPORT）
             sql_fault = text("""
                 SELECT 
-                    record_id,
+                    MK_ID as record_id,
                     'non_plan' as task_type,
-                    CASE 
-                        WHEN reclose_result = 'success' THEN 'B1_success'
-                        WHEN reclose_result = 'fail' AND fault_type = 'known' THEN 'B1_fail_known'
-                        WHEN reclose_result = 'fail' AND fault_type = 'unknown' THEN 'B1_fail_unknown'
-                        WHEN fault_type = 'bus_ground' THEN 'B1_bus_ground'
-                    END as task_category,
-                    CASE 
-                        WHEN reclose_result = 'success' THEN '跳闸重合成功'
-                        WHEN reclose_result = 'fail' AND fault_type = 'known' THEN '跳闸重合不成功(确定故障)'
-                        WHEN reclose_result = 'fail' AND fault_type = 'unknown' THEN '跳闸重合不成功(不确定故障)'
-                        WHEN fault_type = 'bus_ground' THEN '母线接地'
-                    END as task_name,
+                    'B1_fault_generic' as task_category,
+                    '故障跳闸' as task_name,
                     '故障日志' as module,
-                    fault_time as start_time,
-                    expected_restore_time as end_time,
-                    status,
-                    CASE WHEN DATE(fault_time) = :target_date 
-                              AND DATE(expected_restore_time) = :target_date THEN 2 ELSE 1 END as count
-                FROM fault_logs
-                WHERE DATE(fault_time) = :target_date
-                   OR DATE(expected_restore_time) = :target_date
+                    DIS_TD_TIME as start_time,
+                    DIS_TD_TIME as end_time,
+                    IS_PLACE_FILE as status,
+                    1 as count
+                FROM OC_GZ_TRIP_REPORT
+                WHERE IS_PLACE_FILE = 'N'
             """)
             
-            result = session.execute(sql_fault, {"target_date": target_date})
+            result = session.execute(sql_fault)
             for row in result:
                 data = dict(row._mapping)
-                category = data.get("task_category", "")
-                if category in WORKLOAD_WEIGHTS["non_plan_task"]["items"]:
-                    data["weight"] = WORKLOAD_WEIGHTS["non_plan_task"]["items"][category]["weight"]
-                else:
-                    data["weight"] = 0.0
+                data["weight"] = WORKLOAD_WEIGHTS["non_plan_task"]["items"].get("B1_fault_generic", 1.0)
                 records.append(WorkloadRecord(data))
             
-            # 2. 采集异常缺陷
+            # 2. 采集异常缺陷（OP_EXCEPTION_RECORD）
             sql_defect = text("""
                 SELECT 
-                    record_id,
+                    MK_ID as record_id,
                     'non_plan' as task_type,
                     'B2' as task_category,
                     '异常缺陷' as task_name,
                     '缺陷记录' as module,
-                    fault_time as start_time,
-                    expected_restore_time as end_time,
-                    status,
-                    CASE WHEN DATE(fault_time) = :target_date 
-                              AND DATE(expected_restore_time) = :target_date THEN 2 ELSE 1 END as count
-                FROM defect_records
-                WHERE DATE(fault_time) = :target_date
-                   OR DATE(expected_restore_time) = :target_date
+                    RECORD_TIME as start_time,
+                    RECORD_TIME as end_time,
+                    EXCEPTION_STATUS as status,
+                    1 as count
+                FROM OP_EXCEPTION_RECORD
+                WHERE EXCEPTION_STATUS IN ('1', '2', '3')
             """)
             
             result = session.execute(sql_defect, {"target_date": target_date})
@@ -519,20 +501,20 @@ class WorkloadDatabase:
                 data["weight"] = WORKLOAD_WEIGHTS["non_plan_task"]["items"]["B2"]["weight"]
                 records.append(WorkloadRecord(data))
             
-            # 3. 采集重过载记录
+            # 3. 采集重过载记录（OC_OVER_LOAD_LINE_LOG）
             sql_overload = text("""
                 SELECT 
-                    record_id,
+                    MK_ID as record_id,
                     'non_plan' as task_type,
                     'B3' as task_category,
                     '重过载' as task_name,
                     '重过载' as module,
-                    record_time as start_time,
-                    record_time as end_time,
-                    status,
+                    LOAD_TIME as start_time,
+                    LOAD_TIME as end_time,
+                    FEEDER_STATUS as status,
                     1 as count
-                FROM overload_records
-                WHERE DATE(record_time) = :target_date
+                FROM OC_OVER_LOAD_LINE_LOG
+                WHERE FEEDER_STATUS IN ('0', '1')
             """)
             
             result = session.execute(sql_overload, {"target_date": target_date})

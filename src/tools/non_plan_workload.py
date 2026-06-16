@@ -103,54 +103,32 @@ class NonPlanWorkloadDatabase:
         try:
             from sqlalchemy import text
             
-            # 计算向前追溯的日期
-            start_date = datetime.strptime(target_date, "%Y-%m-%d") - timedelta(days=days_back)
-            start_date_str = start_date.strftime("%Y-%m-%d")
-            
-            # 查询前三天未交班的故障单
+            # 查询未归档的故障日志（OC_GZ_TRIP_REPORT）
             sql = text("""
                 SELECT 
-                    RECORD_ID as record_id,
-                    FAULT_ID as fault_id,
-                    FAULT_TYPE as fault_type,
-                    RECLOSER_RESULT as reclose_result,
-                    EQUIPMENT_NAME as equipment_name,
-                    VOLTAGE_LEVEL as voltage_level,
-                    FAULT_TIME as fault_time,
-                    EXPECTED_RESTORE_TIME as expected_restore_time,
-                    ACTUAL_RESTORE_TIME as actual_restore_time,
-                    IS_HANDED_OVER as is_handed_over,
-                    STATUS as status,
-                    DUTY_OFFICER as duty_officer,
-                    CASE 
-                        WHEN RECLOSER_RESULT = 'success' THEN 'B1_success'
-                        WHEN RECLOSER_RESULT = 'fail' AND FAULT_TYPE = 'known' THEN 'B1_fail_known'
-                        WHEN RECLOSER_RESULT = 'fail' AND FAULT_TYPE = 'unknown' THEN 'B1_fail_unknown'
-                        WHEN FAULT_TYPE = 'bus_ground' THEN 'B1_bus_ground'
-                        ELSE 'B1_unknown'
-                    END as task_category,
-                    CASE 
-                        WHEN RECLOSER_RESULT = 'success' THEN '跳闸重合成功'
-                        WHEN RECLOSER_RESULT = 'fail' AND FAULT_TYPE = 'known' THEN '跳闸重合不成功(确定故障)'
-                        WHEN RECLOSER_RESULT = 'fail' AND FAULT_TYPE = 'unknown' THEN '跳闸重合不成功(不确定故障)'
-                        WHEN FAULT_TYPE = 'bus_ground' THEN '母线接地'
-                        ELSE '未知故障类型'
-                    END as task_name,
+                    MK_ID as record_id,
+                    MK_ID as fault_id,
+                    '' as fault_type,
+                    '' as reclose_result,
+                    '' as equipment_name,
+                    '' as voltage_level,
+                    DIS_TD_TIME as fault_time,
+                    DIS_TD_TIME as expected_restore_time,
+                    DIS_TD_TIME as actual_restore_time,
+                    IS_PLACE_FILE as is_handed_over,
+                    IS_PLACE_FILE as status,
+                    '' as duty_officer,
+                    'B1_fault_generic' as task_category,
+                    '故障跳闸' as task_name,
                     1 as count
-                FROM fault_logs
-                WHERE FAULT_TIME >= :start_date
-                  AND FAULT_TIME < :target_date_next
-                  AND (IS_HANDED_OVER = 0 OR IS_HANDED_OVER IS NULL)
-                ORDER BY FAULT_TIME DESC
+                FROM OC_GZ_TRIP_REPORT
+                WHERE IS_PLACE_FILE = 'N'
+                ORDER BY DIS_TD_TIME DESC
             """)
             
-            # 计算目标日期的下一天
-            target_date_next = (datetime.strptime(target_date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
+
             
-            result = session.execute(sql, {
-                "start_date": start_date_str,
-                "target_date_next": target_date_next
-            })
+            result = session.execute(sql)
             
             for row in result:
                 data = dict(row._mapping)
@@ -162,7 +140,7 @@ class NonPlanWorkloadDatabase:
                     data["weight"] = 0.0
                 records.append(data)
             
-            logger.info(f"采集故障日志 {len(records)} 条（前{days_back}天未交班）")
+            logger.info(f"采集故障日志 {len(records)} 条（未归档）")
             
         except Exception as e:
             logger.error(f"采集故障日志失败: {e}")
@@ -194,26 +172,26 @@ class NonPlanWorkloadDatabase:
         try:
             from sqlalchemy import text
             
-            # 查询所有未交班的缺陷单
+            # 查询未归档的异常缺陷（OP_EXCEPTION_RECORD，状态1/2/3为开展中）
             sql = text("""
                 SELECT 
-                    RECORD_ID as record_id,
-                    DEFECT_ID as defect_id,
-                    DEFECT_TYPE as defect_type,
-                    DEFECT_LEVEL as defect_level,
-                    EQUIPMENT_NAME as equipment_name,
-                    DEFECT_TIME as defect_time,
-                    EXPECTED_FIX_TIME as expected_fix_time,
-                    ACTUAL_FIX_TIME as actual_fix_time,
-                    IS_HANDED_OVER as is_handed_over,
-                    STATUS as status,
-                    REPORTER as reporter,
+                    MK_ID as record_id,
+                    RECORD_CODE as defect_id,
+                    '' as defect_type,
+                    EXCEPTION_STATUS as defect_level,
+                    '' as equipment_name,
+                    RECORD_TIME as defect_time,
+                    RECORD_TIME as expected_fix_time,
+                    RECORD_TIME as actual_fix_time,
+                    EXCEPTION_STATUS as is_handed_over,
+                    EXCEPTION_STATUS as status,
+                    '' as reporter,
                     'B2' as task_category,
                     '异常缺陷' as task_name,
                     1 as count
-                FROM defect_records
-                WHERE IS_HANDED_OVER = 0 OR IS_HANDED_OVER IS NULL
-                ORDER BY DEFECT_TIME DESC
+                FROM OP_EXCEPTION_RECORD
+                WHERE EXCEPTION_STATUS IN ('1', '2', '3')
+                ORDER BY RECORD_TIME DESC
             """)
             
             result = session.execute(sql)
@@ -223,7 +201,7 @@ class NonPlanWorkloadDatabase:
                 data["weight"] = WORKLOAD_WEIGHTS["non_plan_task"]["items"]["B2"]["weight"]
                 records.append(data)
             
-            logger.info(f"采集异常缺陷 {len(records)} 条（未交班）")
+            logger.info(f"采集异常缺陷 {len(records)} 条（未归档-开展中）")
             
         except Exception as e:
             logger.error(f"采集异常缺陷失败: {e}")
@@ -255,28 +233,28 @@ class NonPlanWorkloadDatabase:
         try:
             from sqlalchemy import text
             
-            # 查询所有未解决的重过载记录
+            # 查询开展中的重过载（OC_OVER_LOAD_LINE_LOG，FEEDER_STATUS 0/1为开展中）
             sql = text("""
                 SELECT 
-                    RECORD_ID as record_id,
-                    OVERLOAD_ID as overload_id,
-                    OVERLOAD_TYPE as overload_type,
-                    EQUIPMENT_NAME as equipment_name,
-                    LOAD_RATE as load_rate,
-                    RATED_CAPACITY as rated_capacity,
-                    ACTUAL_LOAD as actual_load,
-                    RECORD_TIME as record_time,
-                    EXPECTED_RESOLVE_TIME as expected_resolve_time,
-                    ACTUAL_RESOLVE_TIME as actual_resolve_time,
-                    IS_RESOLVED as is_resolved,
-                    STATUS as status,
-                    MONITOR_PERSON as monitor_person,
+                    MK_ID as record_id,
+                    WORK_NO as overload_id,
+                    '' as overload_type,
+                    '' as equipment_name,
+                    0.0 as load_rate,
+                    0.0 as rated_capacity,
+                    0.0 as actual_load,
+                    LOAD_TIME as record_time,
+                    LOAD_TIME as expected_resolve_time,
+                    LOAD_TIME as actual_resolve_time,
+                    FEEDER_STATUS as is_resolved,
+                    FEEDER_STATUS as status,
+                    '' as monitor_person,
                     'B3' as task_category,
                     '重过载' as task_name,
                     1 as count
-                FROM overload_records
-                WHERE IS_RESOLVED = 0 OR IS_RESOLVED IS NULL
-                ORDER BY RECORD_TIME DESC
+                FROM OC_OVER_LOAD_LINE_LOG
+                WHERE FEEDER_STATUS IN ('0', '1')
+                ORDER BY LOAD_TIME DESC
             """)
             
             result = session.execute(sql)
@@ -286,7 +264,7 @@ class NonPlanWorkloadDatabase:
                 data["weight"] = WORKLOAD_WEIGHTS["non_plan_task"]["items"]["B3"]["weight"]
                 records.append(data)
             
-            logger.info(f"采集重过载记录 {len(records)} 条（未解决）")
+            logger.info(f"采集重过载记录 {len(records)} 条（开展中-状态0/1）")
             
         except Exception as e:
             logger.error(f"采集重过载记录失败: {e}")
@@ -423,7 +401,7 @@ def calculate_non_plan_workload(
             "fault_logs": {
                 "count": fault_count,
                 "weight": round(fault_weight, 2),
-                "description": f"前{days_back}天未交班故障单"
+                "description": f"未归档故障单"
             },
             "defect_records": {
                 "count": defect_count,

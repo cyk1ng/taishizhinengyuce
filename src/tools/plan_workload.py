@@ -484,40 +484,26 @@ class NonPlanWorkloadDatabase:
             target_dt = datetime.strptime(target_date, "%Y-%m-%d")
             three_days_ago = target_dt - timedelta(days=3)
             
-            # 查询前三天未交班的故障单
+            # 查询未归档的故障日志（OC_GZ_TRIP_REPORT）
             sql = text("""
                 SELECT 
-                    FAULT_ID as record_id,
-                    FAULT_NO as fault_no,
-                    FAULT_TYPE as fault_type,
-                    EQUIPMENT_NAME as equipment_name,
-                    FAULT_TIME as fault_time,
-                    EXPECTED_RESTORE_TIME as expected_restore_time,
-                    STATUS as status,
-                    HANDOVER_STATUS as handover_status,
-                    OPERATOR_NAME as operator_name,
-                    CASE 
-                        WHEN FAULT_TYPE = 'success' THEN '跳闸重合成功'
-                        WHEN FAULT_TYPE = 'fail_known' THEN '跳闸重合不成功(确定故障)'
-                        WHEN FAULT_TYPE = 'fail_unknown' THEN '跳闸重合不成功(不确定故障)'
-                        WHEN FAULT_TYPE = 'bus_ground' THEN '母线接地'
-                        ELSE '故障'
-                    END as task_name,
-                    -- 判断是否未交班
-                    CASE 
-                        WHEN HANDOVER_STATUS IN ('not_handed_over', 'unhanded', '未交班') THEN 1
-                        ELSE 0
-                    END as is_not_handed_over
-                FROM fault_logs
-                WHERE (FAULT_TIME >= :start_date AND FAULT_TIME <= :end_date)
-                  AND HANDOVER_STATUS IN ('not_handed_over', 'unhanded', '未交班')
-                ORDER BY FAULT_TIME
+                    MK_ID as record_id,
+                    DDBZ_CODE as fault_no,
+                    '' as fault_type,
+                    '' as equipment_name,
+                    DIS_TD_TIME as fault_time,
+                    DIS_TD_TIME as expected_restore_time,
+                    IS_PLACE_FILE as status,
+                    IS_PLACE_FILE as handover_status,
+                    '' as operator_name,
+                    '故障跳闸' as task_name,
+                    1 as is_not_handed_over
+                FROM OC_GZ_TRIP_REPORT
+                WHERE IS_PLACE_FILE = 'N'
+                ORDER BY DIS_TD_TIME
             """)
             
-            result = session.execute(sql, {
-                "start_date": three_days_ago.strftime("%Y-%m-%d"),
-                "end_date": target_date
-            })
+            result = session.execute(sql)
             for row in result:
                 data = dict(row._mapping)
                 records.append(data)
@@ -555,31 +541,26 @@ class NonPlanWorkloadDatabase:
         try:
             from sqlalchemy import text
             
-            # 查询当值记录未交班的缺陷单
+            # 查询未归档的异常缺陷（OP_EXCEPTION_RECORD，状态1/2/3为开展中）
             sql = text("""
                 SELECT 
-                    DEFECT_ID as record_id,
-                    DEFECT_NO as defect_no,
-                    DEFECT_TYPE as defect_type,
-                    EQUIPMENT_NAME as equipment_name,
-                    FAULT_TIME as fault_time,
-                    EXPECTED_RESTORE_TIME as expected_restore_time,
-                    STATUS as status,
-                    HANDOVER_STATUS as handover_status,
-                    OPERATOR_NAME as operator_name,
+                    MK_ID as record_id,
+                    RECORD_CODE as defect_no,
+                    '' as defect_type,
+                    '' as equipment_name,
+                    RECORD_TIME as fault_time,
+                    RECORD_TIME as expected_restore_time,
+                    EXCEPTION_STATUS as status,
+                    EXCEPTION_STATUS as handover_status,
+                    '' as operator_name,
                     '异常缺陷' as task_name,
-                    -- 判断是否未交班
-                    CASE 
-                        WHEN HANDOVER_STATUS IN ('not_handed_over', 'unhanded', '未交班') THEN 1
-                        ELSE 0
-                    END as is_not_handed_over
-                FROM defect_records
-                WHERE DATE(FAULT_TIME) = :target_date
-                  AND HANDOVER_STATUS IN ('not_handed_over', 'unhanded', '未交班')
-                ORDER BY FAULT_TIME
+                    1 as is_not_handed_over
+                FROM OP_EXCEPTION_RECORD
+                WHERE EXCEPTION_STATUS IN ('1', '2', '3')
+                ORDER BY RECORD_TIME
             """)
             
-            result = session.execute(sql, {"target_date": target_date})
+            result = session.execute(sql)
             for row in result:
                 data = dict(row._mapping)
                 records.append(data)
@@ -617,26 +598,21 @@ class NonPlanWorkloadDatabase:
         try:
             from sqlalchemy import text
             
-            # 查询当值记录未解决的重过载
+            # 查询开展中的重过载（OC_OVER_LOAD_LINE_LOG，FEEDER_STATUS 0/1为开展中）
             sql = text("""
                 SELECT 
-                    OVERLOAD_ID as record_id,
-                    OVERLOAD_NO as overload_no,
-                    OVERLOAD_TYPE as overload_type,
-                    EQUIPMENT_NAME as equipment_name,
-                    RECORD_TIME as record_time,
-                    EXPECTED_RESTORE_TIME as expected_restore_time,
-                    STATUS as status,
-                    OPERATOR_NAME as operator_name,
+                    MK_ID as record_id,
+                    WORK_NO as overload_no,
+                    '' as overload_type,
+                    '' as equipment_name,
+                    LOAD_TIME as record_time,
+                    LOAD_TIME as expected_restore_time,
+                    FEEDER_STATUS as status,
+                    '' as operator_name,
                     '重过载' as task_name,
-                    -- 判断是否未解决
-                    CASE 
-                        WHEN STATUS IN ('unresolved', 'pending', '未解决', '待处理') THEN 1
-                        ELSE 0
-                    END as is_unresolved
-                FROM overload_records
-                WHERE DATE(RECORD_TIME) = :target_date
-                  AND STATUS IN ('unresolved', 'pending', '未解决', '待处理')
+                    1 as is_unresolved
+                FROM OC_OVER_LOAD_LINE_LOG
+                WHERE FEEDER_STATUS IN ('0', '1')
                 ORDER BY RECORD_TIME
             """)
             

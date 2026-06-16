@@ -383,21 +383,19 @@ class WorkloadDatabase:
                 
                 -- 3. 采集周计划任务
                 SELECT 
-                    record_id,
+                    MK_ID as record_id,
                     'plan' as task_type,
-                    CASE WHEN plan_type = 'live_operation' THEN 'A4' ELSE 'A5' END as task_category,
-                    CASE WHEN plan_type = 'live_operation' THEN '周计划(只带电)' ELSE '周计划(只投产)' END as task_name,
+                    'A4' as task_category,
+                    '周计划' as task_name,
                     '' as order_type,
                     '周计划' as module,
-                    CASE WHEN plan_type = 'live_operation' THEN quit_time ELSE work_start_time END as start_time,
-                    CASE WHEN plan_type = 'live_operation' THEN restore_time ELSE work_end_time END as end_time,
-                    status,
-                    CASE WHEN plan_type = 'live_operation' AND DATE(quit_time) = :target_date 
-                              AND DATE(restore_time) = :target_date THEN 2 
-                         WHEN plan_type = 'commissioning' AND is_live_required = 1 THEN 2 
-                         ELSE 1 END as count
-                FROM weekly_plans
-                WHERE DATE(work_start_time) = :target_date
+                    WORK_BEGIN_TIME as start_time,
+                    WROK_END_TIME as end_time,
+                    PLAN_SATE as status,
+                    1 as count
+                FROM OP_WEEKLY_PLAN_MAIN
+                WHERE PLAN_SATE IN ('C', 'S', 'Z', 'G', 'F')
+                    AND TRUNC(WORK_BEGIN_TIME) = TO_DATE(:target_date, 'YYYY-MM-DD')
                 
                 UNION ALL
                 

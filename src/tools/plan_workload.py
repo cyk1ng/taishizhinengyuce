@@ -354,7 +354,7 @@ class PlanWorkloadDatabase:
         return records
     
     @staticmethod
-    def collect_weekly_plan_workload(target_date: str) -> List[Dict]:
+    def collect_weekly_plan_workload(target_date: str = "") -> List[Dict]:
         """
         采集周计划工作量
         
@@ -367,7 +367,7 @@ class PlanWorkloadDatabase:
         - 支持开展中、已终结分类
         
         参数：
-            target_date: 目标日期 (YYYY-MM-DD)
+            target_date: 目标日期 (YYYY-MM-DD)，空字符串时不限制日期
         
         返回：周计划工作量记录列表
         """
@@ -381,30 +381,37 @@ class PlanWorkloadDatabase:
         try:
             from sqlalchemy import text
             
-            # 查询当天批准时间段0:00-23:59状态为执行中的周计划数量
-            # 查询条件：批准开始时间在目标日期的00:00-23:59之间，且状态为执行中
-            sql = text("""
+            # 构建日期过滤条件
+            date_condition = ""
+            params = {}
+            if target_date:
+                date_condition = "AND TRUNC(WORK_BEGIN_TIME) = TO_DATE(:target_date, 'YYYY-MM-DD')"
+                params["target_date"] = target_date
+            
+            sql = text(f"""
                 SELECT 
                     COUNT(*) as task_count,
-                    -- 统计开展中数量（状态为执行中）
+                    -- 统计开展中数量
                     SUM(CASE 
-                        WHEN STATUS IN ('executing', 'in_progress', '执行中') THEN 1 
+                        WHEN PLAN_SATE IN ('C', 'S', 'Z') THEN 1 
                         ELSE 0 
                     END) as in_progress_count,
                     -- 统计已终结数量
                     SUM(CASE 
-                        WHEN STATUS IN ('completed', 'finished', 'terminated', '已终结', '已完成') THEN 1 
+                        WHEN PLAN_SATE IN ('G', 'F') THEN 1 
                         ELSE 0 
                     END) as completed_count,
                     -- 统计跨天工作数量
                     SUM(CASE 
-                        WHEN DATE(APPROVED_START_TIME) != DATE(APPROVED_END_TIME) THEN 1 
+                        WHEN TRUNC(WORK_BEGIN_TIME) != TRUNC(WROK_END_TIME) THEN 1 
                         ELSE 0 
                     END) as cross_day_count
-                FROM weekly_plans
-                WHERE DATE(APPROVED_START_TIME) = :target_date
-                    AND STATUS IN ('executing', 'in_progress', '执行中')
+                FROM OP_WEEKLY_PLAN_MAIN
+                WHERE PLAN_SATE IN ('C', 'S', 'Z', 'G', 'F')
+                    {date_condition}
             """)
+            
+            result = session.execute(sql, params)
             
             result = session.execute(sql, {"target_date": target_date})
             row = result.fetchone()

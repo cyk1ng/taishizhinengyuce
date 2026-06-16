@@ -277,20 +277,21 @@ class PlanWorkloadDatabase:
         return records
     
     @staticmethod
-    def collect_transfer_workload(target_date: str) -> List[Dict]:
+    def collect_transfer_workload(target_date: str = "") -> List[Dict]:
         """
         采集转供电工作量
         
         业务规则（最新）：
-        - 数据来源：电网管理平台-运行方式管理-配网方式转供电管理-查询
-        - 查询条件：以计划转出开始时间为准
+        - 数据来源：OC_POWER_SUPPLY_MODE（转供电表）
+        - 查询条件：以申请时间 APPLY_TIME 为准
         - 若预测当天三值工作量：
-          - 计划转出开始时间为21:00前的总数纳入早班、中班
-          - 批准转出开始时间为21:00至次日08:30的纳入夜班
+          - 申请时间为21:00前的总数纳入早班、中班
+          - 申请时间为21:00至次日08:30的纳入夜班
         - 支持开展中、已终结分类
+        - EXE/CAN/REC/INE = 开展中，END/CLO = 已终结
         
         参数：
-            target_date: 目标日期 (YYYY-MM-DD)
+            target_date: 目标日期 (YYYY-MM-DD)，为空时不限制日期
         
         返回：转供电工作量记录列表
         """
@@ -304,36 +305,40 @@ class PlanWorkloadDatabase:
         try:
             from sqlalchemy import text
             
-            # 查询转供电记录（以计划转出开始时间为准查询）
-            sql = text("""
+            # 构建日期过滤条件
+            date_condition = ""
+            if target_date:
+                date_condition = "AND TRUNC(APPLY_TIME) = TO_DATE(:target_date, 'YYYY-MM-DD')"
+            
+            sql = text(f"""
                 SELECT 
-                    ORDER_ID as record_id,
-                    ORDER_NO as order_no,
-                    TRANSFER_TYPE as transfer_type,
-                    EQUIPMENT_NAME as equipment_name,
-                    TRANSFER_OUT_TIME as transfer_out_time,
-                    TRANSFER_BACK_TIME as transfer_back_time,
-                    STATUS as status,
-                    OPERATOR_NAME as operator_name,
+                    MK_ID as record_id,
+                    MODE_CODE as order_no,
+                    APPLY_TIME as transfer_out_time,
+                    EXECUTE_STATE as status,
                     'A3' as task_category,
                     '转供电' as task_name,
                     -- 判断状态分类
                     CASE 
-                        WHEN STATUS IN ('pending', 'executing', 'in_progress', '待执行', '执行中') THEN 'in_progress'
-                        WHEN STATUS IN ('completed', 'finished', 'terminated', '已终结', '已完成') THEN 'completed'
+                        WHEN EXECUTE_STATE IN ('EXE', 'CAN', 'REC', 'INE') THEN 'in_progress'
+                        WHEN EXECUTE_STATE IN ('END', 'CLO') THEN 'completed'
                         ELSE 'unknown'
                     END as status_category,
                     -- 判断是否跨夜班（21:00至次日08:30）
                     CASE 
-                        WHEN HOUR(TRANSFER_OUT_TIME) >= 21 OR HOUR(TRANSFER_OUT_TIME) < 8 THEN 1
+                        WHEN EXTRACT(HOUR FROM APPLY_TIME) >= 21 OR EXTRACT(HOUR FROM APPLY_TIME) < 8 THEN 1
                         ELSE 0
                     END as is_night_shift
-                FROM transfer_orders
-                WHERE DATE(TRANSFER_OUT_TIME) = :target_date
-                ORDER BY TRANSFER_OUT_TIME
+                FROM OC_POWER_SUPPLY_MODE
+                WHERE 1=1 {date_condition}
+                ORDER BY APPLY_TIME
             """)
             
-            result = session.execute(sql, {"target_date": target_date})
+            params = {}
+            if target_date:
+                params["target_date"] = target_date
+            
+            result = session.execute(sql, params)
             for row in result:
                 data = dict(row._mapping)
                 records.append(data)

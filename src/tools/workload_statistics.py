@@ -366,19 +366,18 @@ class WorkloadDatabase:
                 
                 -- 2. 采集转供电任务
                 SELECT 
-                    record_id,
+                    MK_ID as record_id,
                     'plan' as task_type,
                     'A3' as task_category,
                     '转供电' as task_name,
                     '' as order_type,
                     '转供电' as module,
-                    transfer_out_time as start_time,
-                    restore_time as end_time,
-                    status,
-                    CASE WHEN DATE(transfer_out_time) = :target_date 
-                              AND DATE(restore_time) = :target_date THEN 2 ELSE 1 END as count
-                FROM transfer_orders
-                WHERE DATE(transfer_out_time) = :target_date
+                    APPLY_TIME as start_time,
+                    APPLY_TIME as end_time,
+                    EXECUTE_STATE as status,
+                    1 as count
+                FROM OC_POWER_SUPPLY_MODE
+                WHERE TRUNC(APPLY_TIME) = TO_DATE(:target_date, 'YYYY-MM-DD')
                 
                 UNION ALL
                 

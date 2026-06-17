@@ -479,8 +479,10 @@ function updateDashboardWithData(data) {
     
     // 更新超负荷状态
     const overloadEl = document.getElementById('overloadStatus');
-    overloadEl.textContent = overloadCount > 0 ? '是' : '否';
-    overloadEl.className = 'staff-value ' + (overloadCount > 0 ? 'warning' : 'success');
+    if (overloadEl) {
+        overloadEl.textContent = overloadCount > 0 ? '是' : '否';
+        overloadEl.className = 'staff-value ' + (overloadCount > 0 ? 'warning' : 'success');
+    }
     
     // 更新图表（直接传入完整 data，updateWorkloadData 会解析 hourly_details）
     if (typeof updateWorkloadData === 'function') {

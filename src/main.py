@@ -495,37 +495,39 @@ async def save_weather(request: Request):
         raise HTTPException(status_code=500, detail=f"保存天气信息失败: {str(e)}")
 
 def _mock_dashboard_response(today):
-    """生成兜底假数据"""
+    """生成兜底假数据（与 plan_workload_detail 和 nonplan_workload_detail 的 mock 数据保持一致）"""
+    # 计划工作量各模块：检修11 + 投退5 + 方式单7 + 周计划18 + 保供电9 = 50
+    # 非计划工作量各模块：跳闸(故障)7 + 缺陷3 + 重过载2 = 12
     return {
         "success": True,
         "date": today,
         "source": "mock",
         "summary": {
-            "total_plan_count": 35,
+            "total_plan_count": 50,
             "total_non_plan_count": 12,
             "overload_count": 2,
-            "in_progress": 22,
-            "completed": 13,
+            "in_progress": 35,
+            "completed": 15,
             "fault_count": 7,
             "defect_count": 3
         },
         "hourly_details": [
             {
                 "hour": h,
-                "plan": max(0, 3 - abs(h - 10)),
+                "plan": max(0, 4 - abs(h - 10)),
                 "nonplan": max(0, 2 - abs(h - 14)),
-                "total_equivalent": max(0, 3 - abs(h - 10)) + max(0, 2 - abs(h - 14)),
-                "staff_capacity": max(0, 3 - abs(h - 10)) + max(0, 2 - abs(h - 14)) + 1,
-                "plan_equivalent": max(0, 3 - abs(h - 10)),
+                "total_equivalent": max(0, 4 - abs(h - 10)) + max(0, 2 - abs(h - 14)),
+                "staff_capacity": max(0, 4 - abs(h - 10)) + max(0, 2 - abs(h - 14)) + 1,
+                "plan_equivalent": max(0, 4 - abs(h - 10)),
                 "non_plan_equivalent": max(0, 2 - abs(h - 14)),
                 "staff_count": 3
             }
             for h in range(6, 23)
         ],
-        "plan_allocation": {"morning": 14, "afternoon": 12, "night": 9},
+        "plan_allocation": {"morning": 20, "afternoon": 18, "night": 12},
         "moduleBusiness": {
-            "labels": ["周计划", "设备投退", "跳闸", "缺陷", "重过载", "保供电", "检修业务", "方式单"],
-            "values": [8, 5, 0, 3, 2, 4, 6, 7]
+            "labels": ["周计划", "设备投退", "跳闸（故障）", "缺陷", "重过载", "保供电", "检修业务", "方式单"],
+            "values": [18, 5, 7, 3, 2, 9, 11, 7]
         }
     }
 
@@ -753,11 +755,11 @@ async def nonplan_workload_detail():
                 "date": today,
                 "source": "mock",
                 "details": {
-                    "fault": {"count": 8},
-                    "defect": {"count": 5},
+                    "fault": {"count": 7},
+                    "defect": {"count": 3},
                     "overload": {"count": 2}
                 },
-                "total": 15
+                "total": 12
             }
             logger.info(f"使用兜底假数据")
             return fallback
@@ -775,11 +777,11 @@ async def nonplan_workload_detail():
             "date": datetime.now().strftime("%Y-%m-%d"),
             "source": "mock",
             "details": {
-                "fault": {"count": 8},
-                "defect": {"count": 5},
+                "fault": {"count": 7},
+                "defect": {"count": 3},
                 "overload": {"count": 2}
             },
-            "total": 15
+            "total": 12
         }
         logger.info(f"使用兜底假数据: {str(fallback)}")
         return fallback

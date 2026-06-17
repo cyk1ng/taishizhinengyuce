@@ -626,33 +626,25 @@ function updateWorkloadData(data) {
             unplannedTask: unplannedTask
         });
         
+        // 优先更新柱状图（各模块业务情况）
+        // 放在最前面确保不会被后续可能的JS错误阻断
+        if (data.moduleBusiness) {
+            initModuleBusinessChart(data.moduleBusiness);
+        }
+
         // 更新统计卡片
         if (data.summary) {
             const summary = data.summary;
             
-            // 更新检修业务单总量（使用计划任务数）
-            document.getElementById('stat-maintenance').innerHTML = 
-                `${summary.total_plan_count || 0}<span class="unit">单</span>`;
-            
-            // 更新周计划开展量
-            document.getElementById('stat-weekly-plan').innerHTML = 
-                `${summary.total_plan_count || 0}<span class="unit">单</span>`;
-            
-            // 更新跳闸总量（使用非计划任务数）
-            document.getElementById('stat-trip').innerHTML = 
-                `${summary.total_non_plan_count || 0}<span class="unit">起</span>`;
-            
-            // 更新方式单业务总量
-            document.getElementById('stat-mode-order').innerHTML = 
-                `${summary.total_plan_count || 0}<span class="unit">单</span>`;
-            
             // 更新当值人员信息
             const totalStaff = hourlyData.reduce((sum, h) => sum + (h.staff_count || 0), 0) / 24 || 0;
-            document.getElementById('currentStaff').textContent = Math.round(totalStaff) + '人';
+            const staffEl = document.getElementById('currentStaff');
+            if (staffEl) staffEl.textContent = Math.round(totalStaff) + '人';
             
             // 更新人员当量
             const avgCapacity = hourlyData.reduce((sum, h) => sum + (h.staff_capacity || 0), 0) / 24 || 0;
-            document.getElementById('staffCapacity').textContent = avgCapacity.toFixed(1);
+            const capacityEl = document.getElementById('staffCapacity');
+            if (capacityEl) capacityEl.textContent = avgCapacity.toFixed(1);
             
             // 更新超负荷状态
             const overloadCount = summary.overload_count || 0;
@@ -671,42 +663,34 @@ function updateWorkloadData(data) {
                 });
             }
         }
-
-        // 如果有moduleBusiness数据，也更新模块柱状图
-        if (data.moduleBusiness) {
-            initModuleBusinessChart(data.moduleBusiness);
-        }
         return;
     }
     
     // 处理其他格式的数据（旧格式兼容）
-    // 更新统计卡片
+    // 更新统计卡片（旧格式兼容，所有元素加 null 保护）
     if (data.stats) {
         const stats = data.stats;
         
-        // 更新检修业务单总量
-        if (stats.maintenance !== undefined) {
-            document.getElementById('stat-maintenance').innerHTML = 
-                `${stats.maintenance}<span class="unit">单</span>`;
-            document.getElementById('stat-maintenance-ongoing').textContent = stats.maintenanceOngoing || 0;
-            document.getElementById('stat-maintenance-done').textContent = stats.maintenanceDone || 0;
-        }
+        const safeText = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val || 0;
+        };
+        const safeHTML = (id, html) => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = html;
+        };
         
-        // 更新周计划开展量
-        if (stats.weeklyPlan !== undefined) {
-            document.getElementById('stat-weekly-plan').innerHTML = 
-                `${stats.weeklyPlan}<span class="unit">单</span>`;
-            document.getElementById('stat-weekly-ongoing').textContent = stats.weeklyOngoing || 0;
-            document.getElementById('stat-weekly-done').textContent = stats.weeklyDone || 0;
-        }
+        safeHTML('stat-maintenance', stats.maintenance !== undefined ? `${stats.maintenance}<span class="unit">单</span>` : null);
+        safeText('stat-maintenance-ongoing', stats.maintenanceOngoing);
+        safeText('stat-maintenance-done', stats.maintenanceDone);
         
-        // 更新跳闸总量
-        if (stats.trip !== undefined) {
-            document.getElementById('stat-trip').innerHTML = 
-                `${stats.trip}<span class="unit">起</span>`;
-            document.getElementById('stat-trip-success').textContent = stats.tripSuccess || 0;
-            document.getElementById('stat-trip-fail').textContent = stats.tripFail || 0;
-        }
+        safeHTML('stat-weekly-plan', stats.weeklyPlan !== undefined ? `${stats.weeklyPlan}<span class="unit">单</span>` : null);
+        safeText('stat-weekly-ongoing', stats.weeklyOngoing);
+        safeText('stat-weekly-done', stats.weeklyDone);
+        
+        safeHTML('stat-trip', stats.trip !== undefined ? `${stats.trip}<span class="unit">起</span>` : null);
+        safeText('stat-trip-success', stats.tripSuccess);
+        safeText('stat-trip-fail', stats.tripFail);
     }
     
     // 更新图表

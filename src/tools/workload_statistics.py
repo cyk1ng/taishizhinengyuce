@@ -445,7 +445,7 @@ class WorkloadDatabase:
         - fault_logs: 故障日志表
         - defect_records: 缺陷记录表
         - overload_records: 重过载记录表
-        - power_supply_protection: 保供电记录表
+        - OP_PROTECT_FEEDER: 保供电记录表
         """
         session = WorkloadDatabase.get_session()
         if not session:
@@ -523,23 +523,23 @@ class WorkloadDatabase:
                 data["weight"] = WORKLOAD_WEIGHTS["non_plan_task"]["items"]["B3"]["weight"]
                 records.append(WorkloadRecord(data))
             
-            # 4. 采集保电任务
+            # 4. 采集保电任务（OP_PROTECT_FEEDER）
             sql_protection = text("""
                 SELECT 
-                    record_id,
+                    MK_ID as record_id,
                     'non_plan' as task_type,
                     'B4' as task_category,
                     '保电任务' as task_name,
                     '保供电' as module,
-                    start_time,
-                    end_time,
-                    status,
+                    APP_TIME as start_time,
+                    APP_TIME as end_time,
+                    EXECUTE_STATE as status,
                     1 as count
-                FROM power_supply_protection
-                WHERE DATE(start_time) = :target_date
+                FROM OP_PROTECT_FEEDER
+                WHERE EXECUTE_STATE IN ('REC', 'EXE', 'SQ', 'SP')
             """)
             
-            result = session.execute(sql_protection, {"target_date": target_date})
+            result = session.execute(sql_protection)
             for row in result:
                 data = dict(row._mapping)
                 data["weight"] = WORKLOAD_WEIGHTS["non_plan_task"]["items"]["B4"]["weight"]

@@ -185,8 +185,7 @@ class PlanWorkloadDatabase:
                 ORDER BY FILL_WORK_BEGIN_DATE
             """)
             
-            params = {"target_date": target_date} if target_date else {}
-            result = session.execute(sql, params)
+            result = session.execute(sql)
             for row in result:
                 data = dict(row._mapping)
                 records.append(data)
@@ -412,8 +411,6 @@ class PlanWorkloadDatabase:
             """)
             
             result = session.execute(sql, params)
-            
-            result = session.execute(sql, {"target_date": target_date})
             row = result.fetchone()
             
             if row:
@@ -479,10 +476,6 @@ class NonPlanWorkloadDatabase:
         
         try:
             from sqlalchemy import text
-            
-            # 计算前三天的日期范围
-            target_dt = datetime.strptime(target_date, "%Y-%m-%d")
-            three_days_ago = target_dt - timedelta(days=3)
             
             # 查询未归档的故障日志（OC_GZ_TRIP_REPORT）
             sql = text("""
@@ -616,7 +609,7 @@ class NonPlanWorkloadDatabase:
                 ORDER BY RECORD_TIME
             """)
             
-            result = session.execute(sql, {"target_date": target_date})
+            result = session.execute(sql)
             for row in result:
                 data = dict(row._mapping)
                 records.append(data)

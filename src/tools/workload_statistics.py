@@ -495,12 +495,12 @@ class WorkloadDatabase:
                 WHERE EXCEPTION_STATUS IN ('1', '2', '3')
             """)
             
-            result = session.execute(sql_defect, {"target_date": target_date})
+            result = session.execute(sql_defect)
             for row in result:
                 data = dict(row._mapping)
                 data["weight"] = WORKLOAD_WEIGHTS["non_plan_task"]["items"]["B2"]["weight"]
                 records.append(WorkloadRecord(data))
-            
+
             # 3. 采集重过载记录（OC_OVER_LOAD_LINE_LOG）
             sql_overload = text("""
                 SELECT 
@@ -517,7 +517,7 @@ class WorkloadDatabase:
                 WHERE FEEDER_STATUS IN ('0', '1')
             """)
             
-            result = session.execute(sql_overload, {"target_date": target_date})
+            result = session.execute(sql_overload)
             for row in result:
                 data = dict(row._mapping)
                 data["weight"] = WORKLOAD_WEIGHTS["non_plan_task"]["items"]["B3"]["weight"]

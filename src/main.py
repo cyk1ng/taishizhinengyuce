@@ -515,17 +515,38 @@ async def workload_dashboard():
         nonplan_data = json.loads(nonplan_raw) if isinstance(nonplan_raw, str) else nonplan_raw
         
         # 聚合前端所需数据格式
-        plan_summary = dashboard_data.get("plan_workload", {})
-        nonplan_summary = dashboard_data.get("non_plan_workload", {})
+        # dashboard_data 结构: {success, data: {plan_workload: {...}, non_plan_workload: {...}}}
+        inner_data = dashboard_data.get("data", {})
+        plan_workload = inner_data.get("plan_workload", {})
+        nonplan_workload = inner_data.get("non_plan_workload", {})
         
-        total_plan = plan_summary.get("total", 0)
-        in_progress = plan_summary.get("in_progress", 0)
-        completed = plan_summary.get("completed", 0)
+        # 计划工作量汇总 - 从各分类汇总加总
+        total_plan = (
+            plan_workload.get("maintenance", {}).get("summary", {}).get("total", 0) +
+            plan_workload.get("equipment", {}).get("summary", {}).get("total", 0) +
+            plan_workload.get("transfer", {}).get("summary", {}).get("total", 0) +
+            plan_workload.get("weekly_plan", {}).get("summary", {}).get("total", 0) +
+            plan_workload.get("protect", {}).get("summary", {}).get("total", 0)
+        )
+        in_progress = (
+            plan_workload.get("maintenance", {}).get("summary", {}).get("in_progress", 0) +
+            plan_workload.get("equipment", {}).get("summary", {}).get("in_progress", 0) +
+            plan_workload.get("transfer", {}).get("summary", {}).get("in_progress", 0) +
+            plan_workload.get("weekly_plan", {}).get("summary", {}).get("in_progress", 0) +
+            plan_workload.get("protect", {}).get("summary", {}).get("in_progress", 0)
+        )
+        completed = (
+            plan_workload.get("maintenance", {}).get("summary", {}).get("completed", 0) +
+            plan_workload.get("equipment", {}).get("summary", {}).get("completed", 0) +
+            plan_workload.get("transfer", {}).get("summary", {}).get("completed", 0) +
+            plan_workload.get("weekly_plan", {}).get("summary", {}).get("completed", 0) +
+            plan_workload.get("protect", {}).get("summary", {}).get("completed", 0)
+        )
         
-        total_nonplan = nonplan_summary.get("total", 0)
-        fault_count = nonplan_summary.get("fault_count", 0)
-        defect_count = nonplan_summary.get("defect_count", 0)
-        overload_count = nonplan_summary.get("overload_count", 0)
+        total_nonplan = nonplan_workload.get("total_count", 0)
+        fault_count = nonplan_workload.get("fault_logs", {}).get("count", 0)
+        defect_count = nonplan_workload.get("defect_records", {}).get("count", 0)
+        overload_count = nonplan_workload.get("overload_records", {}).get("count", 0)
         
         return {
             "success": True,
@@ -539,8 +560,21 @@ async def workload_dashboard():
                 "fault_count": fault_count,
                 "defect_count": defect_count
             },
-            "hourly_details": dashboard_data.get("hourly_details", []),
+            "hourly_details": [],
             "plan_allocation": plan_data.get("shift_allocation", {}),
+            "moduleBusiness": {
+                "labels": ["周计划", "设备投退", "跳闸", "缺陷", "重过载", "保供电", "检修业务", "方式单"],
+                "values": [
+                    plan_workload.get("weekly_plan", {}).get("summary", {}).get("total", 0),
+                    plan_workload.get("equipment", {}).get("summary", {}).get("total", 0),
+                    fault_count,
+                    defect_count,
+                    overload_count,
+                    plan_workload.get("protect", {}).get("summary", {}).get("total", 0),
+                    plan_workload.get("maintenance", {}).get("summary", {}).get("total", 0),
+                    plan_workload.get("transfer", {}).get("summary", {}).get("total", 0)
+                ]
+            },
             "raw": dashboard_data
         }
     except Exception as e:

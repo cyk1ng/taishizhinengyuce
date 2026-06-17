@@ -434,6 +434,90 @@ class PlanWorkloadDatabase:
                 session.close()
         
         return records
+    
+    @staticmethod
+    def collect_protect_feeder_workload(target_date: str = "") -> List[Dict]:
+        """
+        采集保供电工作量
+        
+        业务规则：
+        - 数据来源：OP_PROTECT_FEEDER
+        - EXECUTE_STATE IN ('REC', 'EXE', 'SQ', 'SP') → 开展中
+        - EXECUTE_STATE IN ('CAN', 'END') → 已终结
+        - 时间以 APP_TIME 为准
+        
+        参数：
+            target_date: 目标日期 (YYYY-MM-DD)，空字符串时不限制日期
+        
+        返回：保供电工作量记录列表
+        """
+        session = PlanWorkloadDatabase.get_session()
+        if not session:
+            logger.warning("数据库未连接，返回空列表")
+            return []
+        
+        records = []
+        
+        try:
+            from sqlalchemy import text
+            
+            # 构建日期过滤条件
+            date_condition = ""
+            params = {}
+            if target_date:
+                date_condition = "AND TRUNC(APP_TIME) = TO_DATE(:target_date, 'YYYY-MM-DD')"
+                params["target_date"] = target_date
+            
+            sql = text(f"""
+                SELECT 
+                    MK_ID as record_id,
+                    WORK_NO as task_no,
+                    EXECUTE_STATE as status,
+                    APP_TIME as task_time,
+                    DIS_ORG_ID,
+                    DIS_ORG_NAME,
+                    COUNTY_DEPT_ID,
+                    COUNTY_DEPT_NAME,
+                    CASE 
+                        WHEN EXECUTE_STATE IN ('REC', 'EXE', 'SQ', 'SP') THEN 'in_progress'
+                        WHEN EXECUTE_STATE IN ('CAN', 'END') THEN 'completed'
+                        ELSE 'unknown'
+                    END as status_category,
+                    'A5' as task_category,
+                    '保供电' as task_name,
+                    1 as count
+                FROM OP_PROTECT_FEEDER
+                WHERE EXECUTE_STATE IN ('REC', 'EXE', 'SQ', 'SP', 'CAN', 'END')
+                    {date_condition}
+                ORDER BY APP_TIME DESC
+            """)
+            
+            result = session.execute(sql, params)
+            
+            for row in result.fetchall():
+                records.append({
+                    "record_id": row.record_id,
+                    "task_no": row.task_no,
+                    "status": row.status,
+                    "task_time": str(row.task_time) if row.task_time else "",
+                    "status_category": row.status_category,
+                    "task_category": row.task_category,
+                    "task_name": row.task_name,
+                    "count": row.count,
+                    "total_count": 1,
+                    "in_progress_count": 1 if row.status_category == "in_progress" else 0,
+                    "completed_count": 1 if row.status_category == "completed" else 0
+                })
+            
+            logger.info(f"采集保供电工作量完成: {len(records)}条")
+            
+        except Exception as e:
+            logger.error(f"采集保供电工作量失败: {e}")
+        finally:
+            if session:
+                session.close()
+        
+        return records
 
 
 # ============================================================
@@ -906,6 +990,56 @@ class WorkloadAllocator:
             logger.error(f"分配周计划任务失败: {e}")
         
         return result
+    
+    @staticmethod
+    def allocate_protect_task(record: Dict) -> Dict:
+        """
+        分配保供电任务工作量到各班次
+        
+        业务规则：
+        - 保供电任务按日统计，统一计入早班
+        - 开展中/已终结各统计为1单
+        
+        参数：
+            record: 保供电记录字典
+            
+        返回：分配结果字典
+        """
+        try:
+            in_progress_count = 1 if record.get("status_category") == "in_progress" else 0
+            completed_count = 1 if record.get("status_category") == "completed" else 0
+            
+            result = {
+                "record_id": record.get("record_id", ""),
+                "task_no": record.get("task_no", ""),
+                "task_name": record.get("task_name", "保供电"),
+                "task_category": record.get("task_category", "A5"),
+                "status_category": record.get("status_category", "unknown"),
+                "total_count": 1,
+                "in_progress_count": in_progress_count,
+                "completed_count": completed_count,
+                "shift_allocation": {
+                    "morning": 1,
+                    "afternoon": 0,
+                    "night": 0
+                },
+                "equivalent": 0.0
+            }
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"分配保供电任务失败: {e}")
+            return {
+                "record_id": record.get("record_id", ""),
+                "task_name": "保供电",
+                "task_category": "A5",
+                "total_count": 0,
+                "in_progress_count": 0,
+                "completed_count": 0,
+                "shift_allocation": {"morning": 0, "afternoon": 0, "night": 0},
+                "equivalent": 0.0
+            }
 
 
 # ============================================================
@@ -962,6 +1096,7 @@ def calculate_plan_workload(
         equipment_records = PlanWorkloadDatabase.collect_equipment_workload(target_date)
         transfer_records = PlanWorkloadDatabase.collect_transfer_workload(target_date)
         weekly_plan_records = PlanWorkloadDatabase.collect_weekly_plan_workload(target_date)
+        protect_records = PlanWorkloadDatabase.collect_protect_feeder_workload(target_date)
         
         # 2. 分配工作量到各班次
         allocation_results = {
@@ -1001,6 +1136,17 @@ def calculate_plan_workload(
                 }
             },
             "weekly_plan": {
+                "records": [],
+                "summary": {
+                    "total": 0,
+                    "in_progress": 0,
+                    "completed": 0,
+                    "morning": 0,
+                    "afternoon": 0,
+                    "night": 0
+                }
+            },
+            "protect": {
                 "records": [],
                 "summary": {
                     "total": 0,
@@ -1102,6 +1248,30 @@ def calculate_plan_workload(
             allocation_results["weekly_plan"]["summary"]["morning"] += allocated["shift_allocation"]["morning"]
             allocation_results["weekly_plan"]["summary"]["afternoon"] += allocated["shift_allocation"]["afternoon"]
             allocation_results["weekly_plan"]["summary"]["night"] += allocated["shift_allocation"]["night"]
+            
+            # 更新总计
+            for shift, count in allocated["shift_allocation"].items():
+                if count > 0:
+                    allocation_results["total_summary"][shift]["total_count"] += count
+                    allocation_results["total_summary"][shift]["tasks"].append({
+                        "category": allocated["task_category"],
+                        "name": allocated["task_name"],
+                        "count": count,
+                        "record_id": allocated["record_id"]
+                    })
+        
+        # 2.5 分配保供电任务
+        for record in protect_records:
+            allocated = WorkloadAllocator.allocate_protect_task(record)
+            allocation_results["protect"]["records"].append(allocated)
+            
+            # 更新保供电汇总
+            allocation_results["protect"]["summary"]["total"] += allocated["total_count"]
+            allocation_results["protect"]["summary"]["in_progress"] += allocated["in_progress_count"]
+            allocation_results["protect"]["summary"]["completed"] += allocated["completed_count"]
+            allocation_results["protect"]["summary"]["morning"] += allocated["shift_allocation"]["morning"]
+            allocation_results["protect"]["summary"]["afternoon"] += allocated["shift_allocation"]["afternoon"]
+            allocation_results["protect"]["summary"]["night"] += allocated["shift_allocation"]["night"]
             
             # 更新总计
             for shift, count in allocated["shift_allocation"].items():
@@ -1237,8 +1407,7 @@ def get_workload_dashboard(
         equipment_records = PlanWorkloadDatabase.collect_equipment_workload(today_str)
         transfer_records = PlanWorkloadDatabase.collect_transfer_workload(today_str)
         weekly_plan_records = PlanWorkloadDatabase.collect_weekly_plan_workload(today_str)
-        
-        # 2. 采集非计划工作量数据
+        protect_records = PlanWorkloadDatabase.collect_protect_feeder_workload(today_str)
         fault_records = NonPlanWorkloadDatabase.collect_fault_workload(today_str)
         defect_records = NonPlanWorkloadDatabase.collect_defect_workload(today_str)
         overload_records = NonPlanWorkloadDatabase.collect_overload_workload(today_str)
@@ -1279,6 +1448,17 @@ def get_workload_dashboard(
                 }
             },
             "weekly_plan": {
+                "records": [],
+                "summary": {
+                    "total": 0,
+                    "in_progress": 0,
+                    "completed": 0,
+                    "morning": 0,
+                    "afternoon": 0,
+                    "night": 0
+                }
+            },
+            "protect": {
                 "records": [],
                 "summary": {
                     "total": 0,
@@ -1393,6 +1573,30 @@ def get_workload_dashboard(
                         "record_id": allocated["record_id"]
                     })
         
+        # 分配保供电任务
+        for record in protect_records:
+            allocated = WorkloadAllocator.allocate_protect_task(record)
+            plan_allocation_results["protect"]["records"].append(allocated)
+            
+            # 更新汇总
+            plan_allocation_results["protect"]["summary"]["total"] += allocated["total_count"]
+            plan_allocation_results["protect"]["summary"]["in_progress"] += allocated["in_progress_count"]
+            plan_allocation_results["protect"]["summary"]["completed"] += allocated["completed_count"]
+            plan_allocation_results["protect"]["summary"]["morning"] += allocated["shift_allocation"]["morning"]
+            plan_allocation_results["protect"]["summary"]["afternoon"] += allocated["shift_allocation"]["afternoon"]
+            plan_allocation_results["protect"]["summary"]["night"] += allocated["shift_allocation"]["night"]
+            
+            # 更新总计
+            for shift, count in allocated["shift_allocation"].items():
+                if count > 0:
+                    plan_allocation_results["total_summary"][shift]["total_count"] += count
+                    plan_allocation_results["total_summary"][shift]["tasks"].append({
+                        "category": allocated["task_category"],
+                        "name": allocated["task_name"],
+                        "count": count,
+                        "record_id": allocated["record_id"]
+                    })
+        
         # 计算总计数
         total_count = (
             plan_allocation_results["total_summary"]["morning"]["total_count"] +
@@ -1419,12 +1623,28 @@ def get_workload_dashboard(
             "total_count": len(fault_records) + len(defect_records) + len(overload_records)
         }
         
-        # 5. 合并结果
+        # 5. 计算各模块业务量
+        module_business = {
+            "labels": ["周计划", "设备投退", "跳闸", "缺陷", "重过载", "保供电", "检修业务", "方式单"],
+            "values": [
+                len(weekly_plan_records),
+                len(equipment_records),
+                len(fault_records),
+                len(defect_records),
+                len(overload_records),
+                len(protect_records),
+                len(maintenance_records),
+                len(transfer_records)
+            ]
+        }
+        
+        # 6. 合并结果
         dashboard_data = {
             "target_date": target_date,
             "pre_analyze": pre_analyze,
             "plan_workload": plan_allocation_results,
             "non_plan_workload": non_plan_allocation_results,
+            "moduleBusiness": module_business,
             "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         

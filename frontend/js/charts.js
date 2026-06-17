@@ -44,10 +44,10 @@ function initModuleBusinessChart(data = null) {
         moduleBusinessChart.destroy();
     }
     
-    // 假数据展示效果
+    // 初始化为空的默认数据（等待API推送）
     const defaultData = {
         labels: ['周计划', '设备投退', '跳闸', '缺陷', '重过载', '保供电', '检修业务', '方式单'],
-        values: [8, 5, 0, 3, 2, 4, 6, 7]
+        values: [0, 0, 0, 0, 0, 0, 0, 0]
     };
     
     const chartData = data || defaultData;

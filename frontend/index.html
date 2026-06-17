@@ -358,10 +358,11 @@
             
             <!-- 右侧：预警信息 -->
             <div class="right-panel">
-                <div class="card alert-card">
+                <div class="card alert-card" onclick="showRiskModal()" style="cursor: pointer;">
                     <div class="card-header">
                         <span class="icon">⚠️</span>
                         <span class="title">风险预警</span>
+                        <span class="click-hint">点击查看详情</span>
                     </div>
                     <div class="card-body" id="riskAlerts">
                         <div class="alert-item warning">
@@ -381,10 +382,11 @@
                     </div>
                 </div>
                 
-                <div class="card alert-card">
+                <div class="card alert-card" onclick="showTodoModal()" style="cursor: pointer;">
                     <div class="card-header">
                         <span class="icon">📋</span>
                         <span class="title">今日待办</span>
+                        <span class="click-hint">点击查看详情</span>
                     </div>
                     <div class="card-body" id="todoList">
                         <div class="alert-item warning">
@@ -805,6 +807,184 @@
             <!-- 底部按钮 -->
             <div class="modal-footer">
                 <button class="form-confirm-btn" onclick="saveTimeSlotConfig()">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 风险预警详情弹窗 -->
+    <div id="riskModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚠️ 风险预警详情</h3>
+                <button class="modal-close" onclick="closeModal('riskModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="risk-summary">
+                    <div class="risk-level danger">
+                        <span class="risk-level-icon">🔴</span>
+                        <div class="risk-level-info">
+                            <span class="risk-level-title">高风险</span>
+                            <span class="risk-level-count" id="riskHighCount">1</span>
+                        </div>
+                    </div>
+                    <div class="risk-level warning">
+                        <span class="risk-level-icon">🟡</span>
+                        <div class="risk-level-info">
+                            <span class="risk-level-title">中风险</span>
+                            <span class="risk-level-count" id="riskMediumCount">2</span>
+                        </div>
+                    </div>
+                    <div class="risk-level safe">
+                        <span class="risk-level-icon">🟢</span>
+                        <div class="risk-level-info">
+                            <span class="risk-level-title">低风险</span>
+                            <span class="risk-level-count" id="riskLowCount">1</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="risk-detail-list" id="riskDetailList">
+                    <div class="risk-detail-item danger">
+                        <div class="risk-dot"></div>
+                        <div class="risk-detail-content">
+                            <div class="risk-detail-title">明日预测工作量偏高</div>
+                            <div class="risk-detail-desc">预计工作量指数 85，超出安全阈值，建议增加 1 名值班人员</div>
+                            <div class="risk-detail-meta">
+                                <span class="risk-tag danger-tag">高风险</span>
+                                <span class="risk-time">2026-06-18</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="risk-detail-item warning">
+                        <div class="risk-dot"></div>
+                        <div class="risk-detail-content">
+                            <div class="risk-detail-title">重过载设备预警</div>
+                            <div class="risk-detail-desc">3 台变压器存在重过载风险，需制定转供电方案</div>
+                            <div class="risk-detail-meta">
+                                <span class="risk-tag warning-tag">中风险</span>
+                                <span class="risk-time">2026-06-17</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="risk-detail-item warning">
+                        <div class="risk-dot"></div>
+                        <div class="risk-detail-content">
+                            <div class="risk-detail-title">计划检修高峰</div>
+                            <div class="risk-detail-desc">本周计划检修 11 项，集中在 10:00-16:00 时段，需关注人员调配</div>
+                            <div class="risk-detail-meta">
+                                <span class="risk-tag warning-tag">中风险</span>
+                                <span class="risk-time">2026-06-17</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="risk-detail-item safe">
+                        <div class="risk-dot"></div>
+                        <div class="risk-detail-content">
+                            <div class="risk-detail-title">人员配置合理</div>
+                            <div class="risk-detail-desc">当前班组覆盖良好，满足值班需求</div>
+                            <div class="risk-detail-meta">
+                                <span class="risk-tag safe-tag">低风险</span>
+                                <span class="risk-time">2026-06-17</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="form-confirm-btn" onclick="quickAction('risk')">🤖 AI 深度分析</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 今日待办详情弹窗 -->
+    <div id="todoModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📋 今日待办详情</h3>
+                <button class="modal-close" onclick="closeModal('todoModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="todo-stats">
+                    <div class="todo-stat-item">
+                        <span class="todo-stat-value" id="todoTotalCount">6</span>
+                        <span class="todo-stat-label">全部</span>
+                    </div>
+                    <div class="todo-stat-item">
+                        <span class="todo-stat-value yellow" id="todoPendingCount">3</span>
+                        <span class="todo-stat-label">待处理</span>
+                    </div>
+                    <div class="todo-stat-item">
+                        <span class="todo-stat-value green" id="todoDoneCount">3</span>
+                        <span class="todo-stat-label">已完成</span>
+                    </div>
+                </div>
+                <div class="todo-detail-list" id="todoDetailList">
+                    <div class="todo-detail-item pending">
+                        <div class="todo-checkbox" onclick="toggleTodo(this)"></div>
+                        <div class="todo-detail-content">
+                            <div class="todo-detail-title">审核调度计划</div>
+                            <div class="todo-detail-desc">明日调度计划 A1-A3 待审核确认</div>
+                            <div class="todo-detail-meta">
+                                <span class="todo-tag pending-tag">待处理</span>
+                                <span class="todo-priority high">高优先级</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="todo-detail-item pending">
+                        <div class="todo-checkbox" onclick="toggleTodo(this)"></div>
+                        <div class="todo-detail-content">
+                            <div class="todo-detail-title">确认检修方案</div>
+                            <div class="todo-detail-desc">110kV A线检修方案需调度主任签字确认</div>
+                            <div class="todo-detail-meta">
+                                <span class="todo-tag pending-tag">待处理</span>
+                                <span class="todo-priority high">高优先级</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="todo-detail-item pending">
+                        <div class="todo-checkbox" onclick="toggleTodo(this)"></div>
+                        <div class="todo-detail-content">
+                            <div class="todo-detail-title">转供电方案会签</div>
+                            <div class="todo-detail-desc">B片区3台重过载设备转供电方案需各部门会签</div>
+                            <div class="todo-detail-meta">
+                                <span class="todo-tag pending-tag">待处理</span>
+                                <span class="todo-priority medium">中优先级</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="todo-detail-item done">
+                        <div class="todo-checkbox checked" onclick="toggleTodo(this)">✓</div>
+                        <div class="todo-detail-content">
+                            <div class="todo-detail-title done-text">设备巡检完成</div>
+                            <div class="todo-detail-desc">110kV 变电站巡检已完成，无异常</div>
+                            <div class="todo-detail-meta">
+                                <span class="todo-tag done-tag">已完成</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="todo-detail-item done">
+                        <div class="todo-checkbox checked" onclick="toggleTodo(this)">✓</div>
+                        <div class="todo-detail-content">
+                            <div class="todo-detail-title done-text">日调度日志填写</div>
+                            <div class="todo-detail-desc">6月17日调度日志已填写归档</div>
+                            <div class="todo-detail-meta">
+                                <span class="todo-tag done-tag">已完成</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="todo-detail-item done">
+                        <div class="todo-checkbox checked" onclick="toggleTodo(this)">✓</div>
+                        <div class="todo-detail-content">
+                            <div class="todo-detail-title done-text">异常缺陷登记</div>
+                            <div class="todo-detail-desc">3 条缺陷记录已登记入系统</div>
+                            <div class="todo-detail-meta">
+                                <span class="todo-tag done-tag">已完成</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="form-confirm-btn" onclick="quickAction('report')">🤖 AI 生成决策报告</button>
             </div>
         </div>
     </div>

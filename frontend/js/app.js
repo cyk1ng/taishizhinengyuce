@@ -1057,3 +1057,57 @@ async function updateWorkloadStats() {
     document.getElementById('stat-non-plan-defect').textContent = defectCount;
     document.getElementById('stat-non-plan-overload').textContent = overloadCount;
 }
+
+/**
+ * 显示风险预警详情弹窗
+ */
+function showRiskModal() {
+    const modal = document.getElementById('riskModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+}
+
+/**
+ * 显示今日待办详情弹窗
+ */
+function showTodoModal() {
+    const modal = document.getElementById('todoModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+}
+
+/**
+ * 切换待办事项完成状态
+ */
+function toggleTodo(el) {
+    const item = el.closest('.todo-detail-item');
+    if (!item) return;
+    
+    const isDone = item.classList.contains('done');
+    if (isDone) {
+        item.classList.remove('done');
+        item.classList.add('pending');
+        el.classList.remove('checked');
+        el.textContent = '';
+    } else {
+        item.classList.remove('pending');
+        item.classList.add('done');
+        el.classList.add('checked');
+        el.textContent = '✓';
+    }
+    
+    // 更新统计数字
+    const totalEl = document.getElementById('todoTotalCount');
+    const pendingEl = document.getElementById('todoPendingCount');
+    const doneEl = document.getElementById('todoDoneCount');
+    if (totalEl && pendingEl && doneEl) {
+        const total = document.querySelectorAll('.todo-detail-item').length;
+        const done = document.querySelectorAll('.todo-detail-item.done').length;
+        const pending = total - done;
+        totalEl.textContent = total;
+        pendingEl.textContent = pending;
+        doneEl.textContent = done;
+    }
+}

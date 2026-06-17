@@ -494,6 +494,32 @@ async def save_weather(request: Request):
         logger.error(f"保存天气信息失败: {e}")
         raise HTTPException(status_code=500, detail=f"保存天气信息失败: {str(e)}")
 
+def _mock_dashboard_response(today):
+    """生成兜底假数据"""
+    return {
+        "success": True,
+        "date": today,
+        "source": "mock",
+        "summary": {
+            "total_plan_count": 35,
+            "total_non_plan_count": 12,
+            "overload_count": 2,
+            "in_progress": 22,
+            "completed": 13,
+            "fault_count": 7,
+            "defect_count": 3
+        },
+        "hourly_details": [
+            {"hour": h, "plan": max(0, 3 - abs(h - 10)), "nonplan": max(0, 2 - abs(h - 14))}
+            for h in range(6, 22)
+        ],
+        "plan_allocation": {"morning": 14, "afternoon": 12, "night": 9},
+        "moduleBusiness": {
+            "labels": ["周计划", "设备投退", "跳闸", "缺陷", "重过载", "保供电", "检修业务", "方式单"],
+            "values": [8, 5, 0, 3, 2, 4, 6, 7]
+        }
+    }
+
 # 工作量看板数据接口
 @app.get("/api/workload_dashboard")
 async def workload_dashboard():
@@ -548,8 +574,14 @@ async def workload_dashboard():
         defect_count = nonplan_workload.get("defect_records", {}).get("count", 0)
         overload_count = nonplan_workload.get("overload_records", {}).get("count", 0)
         
+        # 如果真实数据全为0，也使用兜底假数据（避免Oracle空表导致界面空白）
+        if total_plan == 0 and total_nonplan == 0 and fault_count == 0:
+            logger.warning("数据库返回空数据，使用兜底假数据")
+            return _mock_dashboard_response(today)
+        
         return {
             "success": True,
+            "source": "real",
             "date": today,
             "summary": {
                 "total_plan_count": total_plan,
@@ -579,30 +611,7 @@ async def workload_dashboard():
         }
     except Exception as e:
         logger.error(f"获取今日工作量数据失败: {e}，使用兜底假数据")
-        today = datetime.now().strftime("%Y-%m-%d")
-        return {
-            "success": True,
-            "date": today,
-            "source": "mock",
-            "summary": {
-                "total_plan_count": 35,
-                "total_non_plan_count": 12,
-                "overload_count": 2,
-                "in_progress": 22,
-                "completed": 13,
-                "fault_count": 7,
-                "defect_count": 3
-            },
-            "hourly_details": [
-                {"hour": h, "plan": max(0, 3 - abs(h - 10)), "nonplan": max(0, 2 - abs(h - 14))}
-                for h in range(6, 22)
-            ],
-            "plan_allocation": {"morning": 14, "afternoon": 12, "night": 9},
-            "moduleBusiness": {
-                "labels": ["周计划", "设备投退", "跳闸", "缺陷", "重过载", "保供电", "检修业务", "方式单"],
-                "values": [8, 5, 0, 3, 2, 4, 6, 7]
-            }
-        }
+        return _mock_dashboard_response(today)
 
 # 计划工作量详情接口（供前端弹窗调用）
 @app.get("/api/plan_workload_detail")

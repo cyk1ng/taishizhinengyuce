@@ -510,8 +510,17 @@ def _mock_dashboard_response(today):
             "defect_count": 3
         },
         "hourly_details": [
-            {"hour": h, "plan": max(0, 3 - abs(h - 10)), "nonplan": max(0, 2 - abs(h - 14))}
-            for h in range(6, 22)
+            {
+                "hour": h,
+                "plan": max(0, 3 - abs(h - 10)),
+                "nonplan": max(0, 2 - abs(h - 14)),
+                "total_equivalent": max(0, 3 - abs(h - 10)) + max(0, 2 - abs(h - 14)),
+                "staff_capacity": max(0, 3 - abs(h - 10)) + max(0, 2 - abs(h - 14)) + 1,
+                "plan_equivalent": max(0, 3 - abs(h - 10)),
+                "non_plan_equivalent": max(0, 2 - abs(h - 14)),
+                "staff_count": 3
+            }
+            for h in range(6, 23)
         ],
         "plan_allocation": {"morning": 14, "afternoon": 12, "night": 9},
         "moduleBusiness": {

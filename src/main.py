@@ -660,6 +660,26 @@ async def plan_workload_detail():
             "night": max(0, grand_total - max(1, int(grand_total * 0.4)) - max(1, int(grand_total * 0.35))) if grand_total > 0 else 0
         }
         
+        # 如果查询数据全为0，使用兜底假数据
+        if grand_total == 0:
+            logger.warning("计划工作量详情为空，使用兜底假数据")
+            fallback = {
+                "success": True,
+                "date": today,
+                "source": "mock",
+                "details": {
+                    "maintenance": {"in_progress": 8, "completed": 3, "total": 11, "count": 11},
+                    "transfer": {"in_progress": 5, "completed": 2, "total": 7, "count": 7},
+                    "equipment": {"in_progress": 4, "completed": 1, "total": 5, "count": 5},
+                    "weekly_plan": {"in_progress": 12, "completed": 6, "total": 18, "count": 18},
+                    "protect": {"in_progress": 6, "completed": 3, "total": 9, "count": 9}
+                },
+                "summary": {"total_in_progress": 35, "total_completed": 15, "grand_total": 50},
+                "shift_allocation": {"morning": 20, "afternoon": 18, "night": 12}
+            }
+            logger.info(f"使用兜底假数据")
+            return fallback
+        
         return {
             "success": True,
             "date": today,
@@ -673,10 +693,10 @@ async def plan_workload_detail():
         }
     except Exception as e:
         logger.error(f"获取计划工作量详情失败: {e}")
-        # 兜底假数据
         fallback = {
             "success": True,
             "date": datetime.now().strftime("%Y-%m-%d"),
+            "source": "mock",
             "details": {
                 "maintenance": {"in_progress": 8, "completed": 3, "total": 11, "count": 11},
                 "transfer": {"in_progress": 5, "completed": 2, "total": 7, "count": 7},
@@ -716,6 +736,23 @@ async def nonplan_workload_detail():
                 logger.warning(f"采集 {name} 失败: {e}")
                 results[name] = {"count": 0}
         
+        # 如果查询数据全为0，使用兜底假数据
+        if grand_total == 0:
+            logger.warning("非计划工作量详情为空，使用兜底假数据")
+            fallback = {
+                "success": True,
+                "date": today,
+                "source": "mock",
+                "details": {
+                    "fault": {"count": 8},
+                    "defect": {"count": 5},
+                    "overload": {"count": 2}
+                },
+                "total": 15
+            }
+            logger.info(f"使用兜底假数据")
+            return fallback
+        
         return {
             "success": True,
             "date": today,
@@ -727,6 +764,7 @@ async def nonplan_workload_detail():
         fallback = {
             "success": True,
             "date": datetime.now().strftime("%Y-%m-%d"),
+            "source": "mock",
             "details": {
                 "fault": {"count": 8},
                 "defect": {"count": 5},

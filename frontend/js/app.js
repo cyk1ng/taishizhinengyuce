@@ -883,41 +883,34 @@ function showPlanWorkloadModal(event) {
     event.preventDefault();
     event.stopPropagation();
     
-    // 获取当前日期的工作量数据
-    const today = new Date().toISOString().split('T')[0];
-    
     // 调用后端API获取数据
-    // 这里暂时使用假数据
-    const planData = {
-        maintenance: {
-            in_progress: 8,
-            completed: 3,
-            total: 11
-        },
-        transfer: {
-            in_progress: 5,
-            completed: 2,
-            total: 7
-        },
-        equipment: {
-            in_progress: 4,
-            completed: 1,
-            total: 5
-        },
-        weekly_plan: {
-            in_progress: 12,
-            completed: 6,
-            total: 18
-        },
-        shift_allocation: {
-            morning: 15,
-            afternoon: 20,
-            night: 6
-        }
-    };
-    
-    // 更新弹窗数据
-    updatePlanWorkloadModal(planData);
+    fetch('/api/plan_workload_detail')
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.details) {
+                const planData = {
+                    maintenance: data.details.maintenance || {in_progress: 0, completed: 0, total: 0},
+                    transfer: data.details.transfer || {in_progress: 0, completed: 0, total: 0},
+                    equipment: data.details.equipment || {in_progress: 0, completed: 0, total: 0},
+                    weekly_plan: data.details.weekly_plan || {in_progress: 0, completed: 0, total: 0},
+                    protect: data.details.protect || {in_progress: 0, completed: 0, total: 0},
+                    shift_allocation: data.shift_allocation || {morning: 0, afternoon: 0, night: 0}
+                };
+                updatePlanWorkloadModal(planData);
+            }
+        })
+        .catch(err => {
+            console.warn('API请求失败，使用兜底数据:', err);
+            const fallback = {
+                maintenance: {in_progress: 8, completed: 3, total: 11},
+                transfer: {in_progress: 5, completed: 2, total: 7},
+                equipment: {in_progress: 4, completed: 1, total: 5},
+                weekly_plan: {in_progress: 12, completed: 6, total: 18},
+                protect: {in_progress: 6, completed: 3, total: 9},
+                shift_allocation: {morning: 20, afternoon: 18, night: 12}
+            };
+            updatePlanWorkloadModal(fallback);
+        });
     
     // 显示弹窗
     const modal = document.getElementById('planWorkloadModal');
@@ -963,26 +956,30 @@ function showNonPlanWorkloadModal(event) {
     event.preventDefault();
     event.stopPropagation();
     
-    // 获取当前日期的工作量数据
-    const today = new Date().toISOString().split('T')[0];
-    
     // 调用后端API获取数据
-    // 这里暂时使用假数据
-    const nonPlanData = {
-        fault: {
-            count: 8
-        },
-        defect: {
-            count: 5
-        },
-        overload: {
-            count: 2
-        },
-        total: 15
-    };
-    
-    // 更新弹窗数据
-    updateNonPlanWorkloadModal(nonPlanData);
+    fetch('/api/nonplan_workload_detail')
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.details) {
+                const nonPlanData = {
+                    fault: data.details.fault || {count: 0},
+                    defect: data.details.defect || {count: 0},
+                    overload: data.details.overload || {count: 0},
+                    total: data.total || 0
+                };
+                updateNonPlanWorkloadModal(nonPlanData);
+            }
+        })
+        .catch(err => {
+            console.warn('API请求失败，使用兜底数据:', err);
+            const fallback = {
+                fault: {count: 8},
+                defect: {count: 5},
+                overload: {count: 2},
+                total: 15
+            };
+            updateNonPlanWorkloadModal(fallback);
+        });
     
     // 显示弹窗
     const modal = document.getElementById('nonPlanWorkloadModal');

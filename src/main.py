@@ -24,6 +24,7 @@ from coze_coding_utils.log.write_log import setup_logging, request_context
 from coze_coding_utils.log.config import LOG_LEVEL
 from coze_coding_utils.error.classifier import ErrorClassifier, classify_error
 from coze_coding_utils.helper.stream_runner import AgentStreamRunner, WorkflowStreamRunner,agent_stream_handler,workflow_stream_handler, RunOpt
+from tools.local_knowledge import search_knowledge, import_document, get_all_documents, delete_document, update_document, count_documents, get_info
 
 setup_logging(
     log_file=LOG_FILE,
@@ -792,6 +793,83 @@ async def health_check():
     """健康检查接口"""
     return {"status": "ok", "service": "配网调度业务量智能预测系统"}
 
+# ===== 知识库 API（放在通配路由之前，避免被拦截）=====
+
+@app.get("/api/knowledge/list")
+async def knowledge_list(page: int = 1, page_size: int = 20):
+    """获取知识库文档列表（分页）"""
+    try:
+        result = get_all_documents(page=page, page_size=page_size)
+        return result
+    except Exception as e:
+        logger.error(f"知识库列表查询失败: {e}")
+        return {"total": 0, "page": page, "page_size": page_size, "documents": []}
+
+@app.get("/api/knowledge/search")
+async def knowledge_search(q: str = "", top_k: int = 5):
+    """搜索知识库"""
+    try:
+        if not q.strip():
+            return get_all_documents(page=1, page_size=top_k)
+        results = search_knowledge(query=q, top_k=top_k)
+        return {"total": len(results), "results": results}
+    except Exception as e:
+        logger.error(f"知识库搜索失败: {e}")
+        return {"total": 0, "results": []}
+
+@app.post("/api/knowledge/add")
+async def knowledge_add(request: Request):
+    """添加知识到知识库"""
+    try:
+        data = await request.json()
+        content = data.get("content", "").strip()
+        source = data.get("source", "用户手动添加")
+        if not content:
+            return {"success": False, "error": "内容不能为空"}
+        result = import_document(content, source_name=source)
+        return {"success": True, "result": result}
+    except Exception as e:
+        logger.error(f"知识库添加失败: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.put("/api/knowledge/update")
+async def knowledge_update(request: Request):
+    """更新知识库文档"""
+    try:
+        data = await request.json()
+        doc_id = data.get("id", "").strip()
+        content = data.get("content", "").strip()
+        source = data.get("source", "").strip() or None
+        if not doc_id or not content:
+            return {"success": False, "error": "ID和内容不能为空"}
+        result = update_document(doc_id, content, source_name=source)
+        return result
+    except Exception as e:
+        logger.error(f"知识库更新失败: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.delete("/api/knowledge/delete")
+async def knowledge_delete(request: Request):
+    """删除知识库文档"""
+    try:
+        data = await request.json()
+        doc_id = data.get("id", "").strip()
+        if not doc_id:
+            return {"success": False, "error": "ID不能为空"}
+        result = delete_document(doc_id)
+        return result
+    except Exception as e:
+        logger.error(f"知识库删除失败: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/knowledge/info")
+async def knowledge_info():
+    """获取知识库统计信息"""
+    try:
+        return get_info()
+    except Exception as e:
+        return {"type": "local", "error": str(e)}
+
 # 前端 HTML 文件路由（必须放在最后，避免拦截API路由）
 @app.get("/{file_name:path}")
 async def read_html_files(file_name: str):
@@ -1030,93 +1108,18 @@ async def openai_chat_completions(request: Request):
 
     logger.info(f"Received request for /v1/chat/completions: run_id={ctx.run_id}")
 
-    try:
-        payload = await request.json()
-        return await openai_handler.handle(payload, ctx)
-    except json.JSONDecodeError as e:
-        logger.error(f"JSON decode error in openai_chat_completions: {e}")
-        raise HTTPException(status_code=400, detail="Invalid JSON format")
-    finally:
-        pass  # cozeloop.flush() disabled
 
 
-@app.get("/health")
-async def health_check():
-    try:
-        # 这里可以添加更多的健康检查逻辑
-        return {
-            "status": "ok",
-            "message": "Service is running",
-        }
-    except Exception as e:
-        raise HTTPException(status_code=503, detail=str(e))
-
-
-@app.get(path="/graph_parameter")
-async def http_graph_inout_parameter(request: Request):
-    return service.graph_inout_schema()
-
-def parse_args():
-    parser = argparse.ArgumentParser(description="Start FastAPI server")
-    parser.add_argument("-m", type=str, default="http", help="Run mode, support http,flow,node")
-    parser.add_argument("-n", type=str, default="", help="Node ID for single node run")
-    parser.add_argument("-p", type=int, default=5000, help="HTTP server port")
-    parser.add_argument("-i", type=str, default="", help="Input JSON string for flow/node mode")
-    return parser.parse_args()
-
-
-def parse_input(input_str: str) -> Dict[str, Any]:
-    """Parse input string, support both JSON string and plain text"""
-    if not input_str:
-        return {"text": "你好"}
-
-    # Try to parse as JSON first
-    try:
-        return json.loads(input_str)
-    except json.JSONDecodeError:
-        # If not valid JSON, treat as plain text
-        return {"text": input_str}
-
-def start_http_server(port):
-    workers = 1
-    reload = False
-    if graph_helper.is_dev_env():
-        reload = True
-
-    logger.info(f"Start HTTP Server, Port: {port}, Workers: {workers}")
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=reload, workers=workers)
+def start_server(host='0.0.0.0', port=5000):
+    """启动开发服务器"""
+    import uvicorn
+    uvicorn.run(app, host=host, port=port)
 
 if __name__ == "__main__":
-    args = parse_args()
-    if args.m == "http":
-        start_http_server(args.p)
-    elif args.m == "flow":
-        payload = parse_input(args.i)
-        result = asyncio.run(service.run(payload))
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-    elif args.m == "node" and args.n:
-        payload = parse_input(args.i)
-        result = asyncio.run(service.run_node(args.n, payload))
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-    elif args.m == "agent":
-        agent_ctx = new_context(method="agent")
-        for chunk in service.stream(
-                {
-                    "type": "query",
-                    "session_id": "1",
-                    "message": "你好",
-                    "content": {
-                        "query": {
-                            "prompt": [
-                                {
-                                    "type": "text",
-                                    "content": {"text": "现在几点了？请调用工具获取当前时间"},
-                                }
-                            ]
-                        }
-                    },
-                },
-                run_config={"configurable": {"session_id": "1"}},
-                ctx=agent_ctx,
-        ):
-            print(chunk)
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-m', '--mode', default='http')
+    parser.add_argument('-p', '--port', type=int, default=5000)
+    args = parser.parse_args()
+    if args.mode == 'http':
+        start_server(host='0.0.0.0', port=args.port)

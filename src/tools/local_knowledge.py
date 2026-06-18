@@ -320,3 +320,58 @@ def get_info() -> dict:
         }
     except Exception as e:
         return {"type": "local", "error": str(e)}
+
+
+def get_all_documents(page: int = 1, page_size: int = 20) -> dict:
+    """获取所有文档（分页）"""
+    try:
+        collection = _get_chroma_collection()
+        offset = (page - 1) * page_size
+        results = collection.get(limit=page_size, offset=offset)
+        total = collection.count()
+
+        docs = []
+        for i in range(len(results["ids"])):
+            docs.append({
+                "id": results["ids"][i],
+                "content": results["documents"][i] if results["documents"] else "",
+                "metadata": results["metadatas"][i] if results["metadatas"] else {},
+                "source": (results["metadatas"][i] or {}).get("source", "unknown") if results["metadatas"] else "unknown"
+            })
+
+        return {"total": total, "page": page, "page_size": page_size, "documents": docs}
+    except Exception as e:
+        return {"total": 0, "page": page, "page_size": page_size, "documents": [], "error": str(e)}
+
+
+def delete_document(doc_id: str) -> dict:
+    """删除指定文档"""
+    try:
+        collection = _get_chroma_collection()
+        collection.delete(ids=[doc_id])
+        return {"success": True, "id": doc_id}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+def update_document(doc_id: str, content: str, source_name: str = None) -> dict:
+    """更新指定文档（重新计算向量）"""
+    try:
+        collection = _get_chroma_collection()
+        # 获取旧的 metadata
+        old = collection.get(ids=[doc_id])
+        if not old["ids"]:
+            return {"success": False, "error": "文档不存在"}
+
+        old_meta = (old["metadatas"] or [{}])[0] or {}
+        meta = {"source": source_name or old_meta.get("source", "unknown")}
+
+        # 重新计算向量
+        seg_text = _segment(content)
+        vec = _get_vectorizer()
+        embedding = vec.transform([seg_text]).toarray()[0].tolist()
+
+        collection.update(ids=[doc_id], embeddings=[embedding], documents=[content], metadatas=[meta])
+        return {"success": True, "id": doc_id}
+    except Exception as e:
+        return {"success": False, "error": str(e)}

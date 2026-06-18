@@ -1111,3 +1111,199 @@ function toggleTodo(el) {
         doneEl.textContent = done;
     }
 }
+
+// ==================== 知识库 CRUD ====================
+
+let kbCurrentPage = 1;
+let kbTotalPages = 1;
+
+function openKnowledgeModal() {
+    document.getElementById('knowledgeModal').style.display = 'flex';
+    kbLoadList();
+}
+
+function closeKnowledgeModal() {
+    document.getElementById('knowledgeModal').style.display = 'none';
+}
+
+async function kbLoadList(page) {
+    if (page) kbCurrentPage = page;
+    const tbody = document.getElementById('kbTableBody');
+    tbody.innerHTML = '<tr><td colspan="4" class="kb-empty">加载中...</td></tr>';
+    
+    try {
+        const resp = await fetch(`/api/knowledge/list?page=${kbCurrentPage}&page_size=15`);
+        const data = await resp.json();
+        
+        const docs = data.documents || [];
+        document.getElementById('kbCount').textContent = `共 ${data.total} 条`;
+        
+        const totalPages = Math.max(1, Math.ceil(data.total / 15));
+        kbTotalPages = totalPages;
+        
+        if (docs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="kb-empty">知识库为空，点击"+ 新增知识"添加</td></tr>';
+            document.getElementById('kbPagination').innerHTML = '';
+            return;
+        }
+        
+        let html = '';
+        docs.forEach((doc, i) => {
+            const idx = (kbCurrentPage - 1) * 15 + i + 1;
+            const source = doc.metadata?.source_name || doc.source || '未命名';
+            const content = doc.content || doc.document || '';
+            const id = doc.id || doc.doc_id || '';
+            html += `<tr>
+                <td>${idx}</td>
+                <td>${escapeHtml(source)}</td>
+                <td>${escapeHtml(content)}</td>
+                <td>
+                    <div class="kb-actions">
+                        <button class="kb-edit-btn" onclick="kbEditDoc('${escapeHtml(id)}', '${escapeHtml(source)}', '${escapeHtml(content.replace(/'/g, "\\'"))}')">编辑</button>
+                        <button class="kb-del-btn" onclick="kbDeleteDoc('${escapeHtml(id)}')">删除</button>
+                    </div>
+                </td>
+            </tr>`;
+        });
+        tbody.innerHTML = html;
+        
+        // 分页
+        let pgHtml = '';
+        pgHtml += `<button onclick="kbLoadList(${kbCurrentPage - 1})" ${kbCurrentPage <= 1 ? 'disabled' : ''}>&lt; 上一页</button>`;
+        pgHtml += `<span>第 ${kbCurrentPage}/${totalPages} 页</span>`;
+        pgHtml += `<button onclick="kbLoadList(${kbCurrentPage + 1})" ${kbCurrentPage >= totalPages ? 'disabled' : ''}>下一页 &gt;</button>`;
+        document.getElementById('kbPagination').innerHTML = pgHtml;
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="4" class="kb-empty">加载失败，请刷新重试</td></tr>';
+    }
+}
+
+async function kbSearch() {
+    const q = document.getElementById('kbSearchInput').value.trim();
+    const tbody = document.getElementById('kbTableBody');
+    
+    if (!q) {
+        kbLoadList(1);
+        return;
+    }
+    
+    tbody.innerHTML = '<tr><td colspan="4" class="kb-empty">搜索中...</td></tr>';
+    
+    try {
+        const resp = await fetch(`/api/knowledge/search?q=${encodeURIComponent(q)}&top_k=20`);
+        const data = await resp.json();
+        
+        const results = data.results || [];
+        document.getElementById('kbCount').textContent = `搜索 ${results.length} 条`;
+        document.getElementById('kbPagination').innerHTML = '';
+        
+        if (results.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="kb-empty">未找到匹配内容</td></tr>';
+            return;
+        }
+        
+        let html = '';
+        results.forEach((r, i) => {
+            const source = r.source || '搜索结果';
+            const content = r.content || '';
+            html += `<tr>
+                <td>${i + 1}</td>
+                <td>${escapeHtml(source)}</td>
+                <td>${escapeHtml(content)}</td>
+                <td><span style="color:var(--accent-cyan);font-size:12px;">匹配度 ${(r.score * 100).toFixed(0)}%</span></td>
+            </tr>`;
+        });
+        tbody.innerHTML = html;
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="4" class="kb-empty">搜索失败</td></tr>';
+    }
+}
+
+function kbShowAdd() {
+    document.getElementById('kbEditTitle').textContent = '➕ 新增知识';
+    document.getElementById('kbEditId').value = '';
+    document.getElementById('kbEditSource').value = '';
+    document.getElementById('kbEditContent').value = '';
+    document.getElementById('kbEditModal').style.display = 'flex';
+}
+
+function kbEditDoc(id, source, content) {
+    document.getElementById('kbEditTitle').textContent = '✏️ 编辑知识';
+    document.getElementById('kbEditId').value = id;
+    document.getElementById('kbEditSource').value = decodeHtml(source);
+    document.getElementById('kbEditContent').value = decodeHtml(content);
+    document.getElementById('kbEditModal').style.display = 'flex';
+}
+
+function kbCloseEdit() {
+    document.getElementById('kbEditModal').style.display = 'none';
+}
+
+async function kbSaveEdit(event) {
+    event.preventDefault();
+    const id = document.getElementById('kbEditId').value;
+    const source = document.getElementById('kbEditSource').value.trim() || '用户手动添加';
+    const content = document.getElementById('kbEditContent').value.trim();
+    
+    if (!content) {
+        alert('请输入内容');
+        return;
+    }
+    
+    try {
+        let resp;
+        if (id) {
+            resp = await fetch('/api/knowledge/update', {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({id, content, source})
+            });
+        } else {
+            resp = await fetch('/api/knowledge/add', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({content, source})
+            });
+        }
+        const result = await resp.json();
+        if (result.success) {
+            kbCloseEdit();
+            kbLoadList(1);
+        } else {
+            alert('保存失败: ' + (result.error || '未知错误'));
+        }
+    } catch (e) {
+        alert('保存失败: ' + e.message);
+    }
+}
+
+async function kbDeleteDoc(id) {
+    if (!confirm('确认删除该条知识？')) return;
+    
+    try {
+        const resp = await fetch('/api/knowledge/delete', {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id})
+        });
+        const result = await resp.json();
+        if (result.success) {
+            kbLoadList(1);
+        } else {
+            alert('删除失败: ' + (result.error || '未知错误'));
+        }
+    } catch (e) {
+        alert('删除失败: ' + e.message);
+    }
+}
+
+// ========== 工具函数 ==========
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function decodeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+}

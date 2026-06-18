@@ -316,6 +316,11 @@
                                 <span class="status-label">最后更新</span>
                                 <span class="status-text" id="lastUpdate">16:20</span>
                             </div>
+                            <div class="status-row" style="margin-top:8px;border-top:1px solid var(--border-color);padding-top:8px;">
+                                <button class="kb-btn" onclick="openKnowledgeModal()">
+                                    <span class="icon">📚</span> 向量知识库
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -985,6 +990,70 @@
             </div>
             <div class="modal-footer">
                 <button class="form-confirm-btn" onclick="quickAction('report')">🤖 AI 生成决策报告</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 向量知识库弹窗 -->
+    <div id="knowledgeModal" class="modal-overlay" style="display:none;">
+        <div class="modal-container kb-modal">
+            <div class="modal-header">
+                <h3>📚 向量知识库</h3>
+                <div class="modal-search-bar">
+                    <input type="text" id="kbSearchInput" placeholder="搜索知识库..." onkeydown="if(event.key==='Enter') kbSearch()">
+                    <button onclick="kbSearch()" class="search-btn">🔍</button>
+                </div>
+                <button onclick="closeKnowledgeModal()" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="kb-toolbar">
+                    <span class="kb-count" id="kbCount">共 0 条</span>
+                    <button class="kb-add-btn" onclick="kbShowAdd()">+ 新增知识</button>
+                    <button class="kb-refresh-btn" onclick="kbLoadList()">🔄 刷新</button>
+                </div>
+                <div class="kb-table-wrapper">
+                    <table class="kb-table">
+                        <thead>
+                            <tr>
+                                <th style="width:50px;">序号</th>
+                                <th style="width:150px;">知识点来源</th>
+                                <th>内容</th>
+                                <th style="width:140px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="kbTableBody">
+                            <tr><td colspan="4" class="kb-empty">加载中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="kb-pagination" id="kbPagination"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 知识库编辑/新增弹窗 -->
+    <div id="kbEditModal" class="modal-overlay" style="display:none;">
+        <div class="modal-container kb-edit-modal">
+            <div class="modal-header">
+                <h3 id="kbEditTitle">新增知识</h3>
+                <button onclick="kbCloseEdit()" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="kbEditForm" onsubmit="kbSaveEdit(event)">
+                    <input type="hidden" id="kbEditId">
+                    <div class="form-group">
+                        <label>知识点来源</label>
+                        <input type="text" id="kbEditSource" placeholder="如：排班规则、保供电规则" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>内容</label>
+                        <textarea id="kbEditContent" rows="8" placeholder="请输入知识内容..." class="form-input" required></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" onclick="kbCloseEdit()" class="form-cancel-btn">取消</button>
+                        <button type="submit" class="form-confirm-btn">保存</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

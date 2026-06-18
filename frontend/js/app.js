@@ -1151,7 +1151,7 @@ async function kbLoadList(page) {
         let html = '';
         docs.forEach((doc, i) => {
             const idx = (kbCurrentPage - 1) * 15 + i + 1;
-            const source = doc.metadata?.source || doc.source || '未命名';
+            const source = (doc.metadata && doc.metadata.source) || doc.source || '未命名';
             const content = doc.content || doc.document || '';
             const id = doc.id || doc.doc_id || '';
             // 截断过长内容，保留前100字符

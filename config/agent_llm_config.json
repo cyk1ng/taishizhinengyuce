@@ -51,6 +51,7 @@
     "generate_risk_alert_report",
     "check_daily_risks",
     "search_knowledge",
+    "import_knowledge",
     "assess_situation_awareness",
     "generate_situation_report",
     "get_situation_dashboard"

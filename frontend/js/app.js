@@ -1150,17 +1150,23 @@ async function kbLoadList(page) {
         let html = '';
         docs.forEach((doc, i) => {
             const idx = (kbCurrentPage - 1) * 15 + i + 1;
-            const source = doc.metadata?.source_name || doc.source || '未命名';
+            const source = doc.metadata?.source || doc.source || '未命名';
             const content = doc.content || doc.document || '';
             const id = doc.id || doc.doc_id || '';
+            // 截断过长内容，保留前100字符
+            const shortContent = content.length > 100 ? content.substring(0, 100) + '...' : content;
+            // 安全转义 onclick 参数（处理单引号）
+            const safeId = escapeHtml(id).replace(/'/g, "\\'");
+            const safeSource = escapeHtml(source).replace(/'/g, "\\'");
+            const safeContent = escapeHtml(content).replace(/'/g, "\\'");
             html += `<tr>
                 <td>${idx}</td>
                 <td>${escapeHtml(source)}</td>
-                <td>${escapeHtml(content)}</td>
+                <td title="${escapeHtml(content.substring(0, 300))}">${escapeHtml(shortContent)}</td>
                 <td>
                     <div class="kb-actions">
-                        <button class="kb-edit-btn" onclick="kbEditDoc('${escapeHtml(id)}', '${escapeHtml(source)}', '${escapeHtml(content.replace(/'/g, "\\'"))}')">编辑</button>
-                        <button class="kb-del-btn" onclick="kbDeleteDoc('${escapeHtml(id)}')">删除</button>
+                        <button class="kb-edit-btn" onclick="kbEditDoc('${safeId}', '${safeSource}', '${safeContent}')">编辑</button>
+                        <button class="kb-del-btn" onclick="kbDeleteDoc('${safeId}')">删除</button>
                     </div>
                 </td>
             </tr>`;
@@ -1206,10 +1212,11 @@ async function kbSearch() {
         results.forEach((r, i) => {
             const source = r.source || '搜索结果';
             const content = r.content || '';
+            const shortContent = content.length > 100 ? content.substring(0, 100) + '...' : content;
             html += `<tr>
                 <td>${i + 1}</td>
                 <td>${escapeHtml(source)}</td>
-                <td>${escapeHtml(content)}</td>
+                <td title="${escapeHtml(content.substring(0, 300))}">${escapeHtml(shortContent)}</td>
                 <td><span style="color:var(--accent-cyan);font-size:12px;">匹配度 ${(r.score * 100).toFixed(0)}%</span></td>
             </tr>`;
         });

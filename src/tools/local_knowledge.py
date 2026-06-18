@@ -110,6 +110,7 @@ def _get_chroma_collection():
         import chromadb
         os.makedirs(KB_DIR, exist_ok=True)
         _chroma_client = chromadb.PersistentClient(path=KB_DIR)
+        is_new = False
         try:
             _chroma_collection = _chroma_client.get_collection("coze_doc_knowledge")
         except Exception:
@@ -117,7 +118,66 @@ def _get_chroma_collection():
                 "coze_doc_knowledge",
                 metadata={"hnsw:space": "cosine"}
             )
+            is_new = True
+        
+        # 首次创建时自动播种默认数据
+        if is_new:
+            _auto_seed(_chroma_collection)
     return _chroma_collection
+
+
+def _auto_seed(collection):
+    """首次运行时自动从种子文件导入默认知识库"""
+    seed_path = os.path.join(KB_DIR, "seed_data.json")
+    if not os.path.exists(seed_path):
+        logger.warning(f"种子文件不存在: {seed_path}，跳过自动播种")
+        return
+    
+    try:
+        with open(seed_path, "r", encoding="utf-8") as f:
+            entries = json.load(f)
+        
+        if not entries:
+            return
+        
+        logger.info(f"自动播种: 加载 {len(entries)} 条默认知识条目...")
+        
+        # 准备训练数据
+        all_texts = [e["content"] for e in entries if e.get("content")]
+        all_ids = [e["id"] for e in entries if e.get("id")]
+        all_sources = [e["source"] for e in entries if e.get("source")]
+        
+        if not all_texts:
+            return
+        
+        # 分词并训练向量化器
+        global _vectorizer
+        _vectorizer = _get_vectorizer(force_rebuild=True)
+        segs = [_segment(t) for t in all_texts]
+        _vectorizer.fit(segs)
+        _save_vectorizer()
+        
+        # 生成向量
+        all_embeddings = _embed_texts(all_texts)
+        if not all_embeddings or len(all_embeddings) != len(all_texts):
+            logger.error("自动播种: 向量生成失败")
+            return
+        
+        # 分批存入
+        batch_size = 100
+        for i in range(0, len(all_texts), batch_size):
+            end = min(i + batch_size, len(all_texts))
+            collection.add(
+                ids=all_ids[i:end],
+                embeddings=all_embeddings[i:end],
+                documents=all_texts[i:end],
+                metadatas=[{"source": s, "summary": t[:120].replace('\n',' ').strip(), "index": idx}
+                          for idx, (s, t) in enumerate(zip(all_sources[i:end], all_texts[i:end]))]
+            )
+        
+        logger.info(f"自动播种完成: {len(all_texts)} 条")
+    except Exception as e:
+        logger.error(f"自动播种失败: {e}")
 
 
 def _chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[dict]:

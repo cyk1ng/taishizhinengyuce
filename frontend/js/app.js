@@ -1116,7 +1116,7 @@ function toggleTodo(el) {
 
 let kbCurrentPage = 1;
 let kbTotalPages = 1;
-const KB_API_BASE = 'http://localhost:5000/api/knowledge';
+const KB_API_BASE = '/api/knowledge';
 
 function openKnowledgeModal() {
     document.getElementById('knowledgeModal').style.display = 'flex';

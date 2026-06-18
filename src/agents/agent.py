@@ -109,6 +109,8 @@ from tools.weather_manager import (
     get_weather_adjustments,
     collect_historical_workload
 )
+# 导入知识库搜索工具
+from tools.knowledge_search import search_knowledge
 
 
 logger = logging.getLogger(__name__)
@@ -213,6 +215,7 @@ def build_agent(ctx=None):
         'manual_adjust_weather': manual_adjust_weather,
         'get_weather_adjustments': get_weather_adjustments,
         'collect_historical_workload': collect_historical_workload,
+        'search_knowledge': search_knowledge,
     }
     tool_names = cfg.get("tools", [])
     tools = [_tool_map[name] for name in tool_names if name in _tool_map]

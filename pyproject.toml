@@ -34,6 +34,7 @@ dependencies = [
     # 图像处理
     "opencv-python-headless>=4.10.0",
     "python-pptx",
+    "coze-coding-dev-sdk",
 ]
 
 [tool.uv]

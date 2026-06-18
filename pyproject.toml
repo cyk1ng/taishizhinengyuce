@@ -34,6 +34,10 @@ dependencies = [
     # 图像处理
     "opencv-python-headless>=4.10.0",
     "python-pptx",
+    # 本地向量知识库
+    "chromadb>=1.5.0",
+    "scikit-learn>=1.0.0",
+    "jieba>=0.42.0",
 ]
 
 [tool.uv]

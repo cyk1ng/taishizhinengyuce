@@ -1116,6 +1116,7 @@ function toggleTodo(el) {
 
 let kbCurrentPage = 1;
 let kbTotalPages = 1;
+const KB_API_BASE = 'http://localhost:5000/api/knowledge';
 
 function openKnowledgeModal() {
     document.getElementById('knowledgeModal').style.display = 'flex';
@@ -1132,7 +1133,7 @@ async function kbLoadList(page) {
     tbody.innerHTML = '<tr><td colspan="4" class="kb-empty">加载中...</td></tr>';
     
     try {
-        const resp = await fetch(`/api/knowledge/list?page=${kbCurrentPage}&page_size=15`);
+        const resp = await fetch(`${KB_API_BASE}/list?page=${kbCurrentPage}&page_size=15`);
         const data = await resp.json();
         
         const docs = data.documents || [];
@@ -1196,7 +1197,7 @@ async function kbSearch() {
     tbody.innerHTML = '<tr><td colspan="4" class="kb-empty">搜索中...</td></tr>';
     
     try {
-        const resp = await fetch(`/api/knowledge/search?q=${encodeURIComponent(q)}&top_k=20`);
+        const resp = await fetch(`${KB_API_BASE}/search?q=${encodeURIComponent(q)}&top_k=20`);
         const data = await resp.json();
         
         const results = data.results || [];
@@ -1260,13 +1261,13 @@ async function kbSaveEdit(event) {
     try {
         let resp;
         if (id) {
-            resp = await fetch('/api/knowledge/update', {
+            resp = await fetch(`${KB_API_BASE}/update`, {
                 method: 'PUT',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({id, content, source})
             });
         } else {
-            resp = await fetch('/api/knowledge/add', {
+            resp = await fetch(`${KB_API_BASE}/add`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({content, source})
@@ -1288,7 +1289,7 @@ async function kbDeleteDoc(id) {
     if (!confirm('确认删除该条知识？')) return;
     
     try {
-        const resp = await fetch('/api/knowledge/delete', {
+        const resp = await fetch(`${KB_API_BASE}/delete`, {
             method: 'DELETE',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({id})

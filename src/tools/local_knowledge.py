@@ -1,41 +1,115 @@
 """
-本地向量知识库 - 数据存储在 assets/knowledge/ 目录下
-使用 ChromaDB + EmbeddingClient 实现
+本地向量知识库 - 完全本地离线运行
+- 分词：jieba（中文）
+- 向量化：TF-IDF（scikit-learn）
+- 存储：ChromaDB（本地持久化）
+- 无任何云端依赖
 """
 
 import os
 import json
 import hashlib
 import logging
+import pickle
+import re
+import numpy as np
 from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# 知识库存储路径
 KB_DIR = os.path.join(os.getenv("COZE_WORKSPACE_PATH", "/workspace/projects"), "assets", "knowledge")
+VECTORIZER_PATH = os.path.join(KB_DIR, "vectorizer.pkl")
 
-# 延迟导入（避免启动时加载全部依赖）
-_embedding_client = None
-_chroma_client = None
 _chroma_collection = None
+_vectorizer = None
 
 
-def _get_embedding_client():
-    global _embedding_client
-    if _embedding_client is None:
-        from coze_coding_dev_sdk import EmbeddingClient
-        _embedding_client = EmbeddingClient()
-    return _embedding_client
+def _get_vectorizer(force_rebuild: bool = False):
+    """获取/创建 TF-IDF 向量化器（本地，无需云端）"""
+    global _vectorizer
+    
+    # 不需要重建：优先从本地加载，其次用全局缓存
+    if not force_rebuild:
+        if os.path.exists(VECTORIZER_PATH):
+            try:
+                with open(VECTORIZER_PATH, "rb") as f:
+                    _vectorizer = pickle.load(f)
+                logger.debug(f"从本地加载向量化器，词汇量: {len(_vectorizer.get_feature_names_out())}")
+                return _vectorizer
+            except Exception as e:
+                logger.warning(f"加载本地向量化器失败，将重建: {e}")
+        if _vectorizer is not None:
+            try:
+                _ = _vectorizer.get_feature_names_out()
+                return _vectorizer
+            except Exception:
+                pass  # 未训练，继续重建
+    
+    # 需要重建：创建新的
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    _vectorizer = TfidfVectorizer(
+        max_features=5000,
+        analyzer="word",
+        token_pattern=r'(?u)\b\w+\b',
+        ngram_range=(1, 2),
+    )
+    return _vectorizer
+
+
+def _save_vectorizer():
+    """保存向量化器到本地"""
+    global _vectorizer
+    if _vectorizer is not None:
+        os.makedirs(KB_DIR, exist_ok=True)
+        with open(VECTORIZER_PATH, "wb") as f:
+            pickle.dump(_vectorizer, f)
+
+
+def _segment(text: str) -> str:
+    """jieba 分词，返回空格分隔的词汇"""
+    import jieba
+    return " ".join(jieba.lcut(text))
+
+
+def _embed_text(text: str) -> list[float]:
+    """本地生成文本向量（TF-IDF）"""
+    vec = _get_vectorizer()
+    seg = _segment(text)
+    
+    # 训练时：如果向量化器还没fit，先fit
+    try:
+        X = vec.transform([seg])
+    except Exception:
+        # 向量化器未训练，用该文本初始化
+        vec.fit([seg])
+        _save_vectorizer()
+        X = vec.transform([seg])
+    
+    return X.toarray()[0].tolist()
+
+
+def _embed_texts(texts: list[str]) -> list[list[float]]:
+    """批量生成文本向量（本地）"""
+    vec = _get_vectorizer()
+    segs = [_segment(t) for t in texts]
+    
+    try:
+        X = vec.transform(segs)
+    except Exception:
+        vec.fit(segs)
+        _save_vectorizer()
+        X = vec.transform(segs)
+    
+    return X.toarray().tolist()
 
 
 def _get_chroma_collection():
     """获取 ChromaDB 集合（持久化到本地）"""
-    global _chroma_client, _chroma_collection
+    global _chroma_collection
     if _chroma_collection is None:
         import chromadb
         os.makedirs(KB_DIR, exist_ok=True)
         _chroma_client = chromadb.PersistentClient(path=KB_DIR)
-        # 获取或创建集合
         try:
             _chroma_collection = _chroma_client.get_collection("coze_doc_knowledge")
         except Exception:
@@ -48,8 +122,6 @@ def _get_chroma_collection():
 
 def _chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[dict]:
     """按段落和长度分割文本为chunks"""
-    import re
-    
     # 先按 ## 标题分割（Markdown章节）
     sections = re.split(r'(?=^## )', text, flags=re.MULTILINE)
     
@@ -59,14 +131,9 @@ def _chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[dic
         if not section:
             continue
         
-        # 如果章节内容较短，直接作为一个chunk
         if len(section) <= chunk_size:
-            # 取前120字符作为摘要
             summary = section[:120].replace('\n', ' ').strip()
-            chunks.append({
-                "text": section,
-                "summary": summary[:120]
-            })
+            chunks.append({"text": section, "summary": summary[:120]})
         else:
             # 较长的章节按句子分割
             sentences = re.split(r'(?<=[。！？\n])\s*', section)
@@ -85,91 +152,137 @@ def _chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[dic
     return chunks
 
 
+def _reset_collection():
+    """删除并重建集合（用于向量维度变化时）"""
+    global _chroma_collection
+    try:
+        import chromadb
+        _chroma_collection = None
+        client = chromadb.PersistentClient(path=KB_DIR)
+        try:
+            client.delete_collection("coze_doc_knowledge")
+        except Exception:
+            pass
+        _chroma_collection = client.create_collection(
+            "coze_doc_knowledge",
+            metadata={"hnsw:space": "cosine"}
+        )
+        return _chroma_collection
+    except Exception as e:
+        logger.error(f"重建集合失败: {e}")
+        return _get_chroma_collection()
+
+
 def import_document(content: str, source_name: str = "unknown") -> dict:
-    """导入文档到本地知识库"""
-    ec = _get_embedding_client()
+    """导入文档到本地知识库（完全本地运行）
+    注：每次导入会重建整个向量空间，确保维度一致
+    """
     collection = _get_chroma_collection()
     
-    # 分块
     chunks = _chunk_text(content)
-    
     if not chunks:
         return {"code": -1, "msg": "文档内容为空", "count": 0}
     
-    texts = [c["text"] for c in chunks]
-    summaries = [c["summary"] for c in chunks]
+    new_texts = [c["text"] for c in chunks]
+    new_summaries = [c["summary"] for c in chunks]
     
-    # 逐条生成向量（embed_texts 返回的是单条合并向量）
-    embeddings = []
-    for i, text in enumerate(texts):
+    # === 读取已有文档 + 新增文档 ===
+    all_texts = []
+    all_ids = []
+    all_metadatas = []
+    
+    # 先读取已有
+    existing_count = collection.count()
+    if existing_count > 0:
         try:
-            emb = ec.embed_text(text)
-            embeddings.append(emb)
-        except Exception as e:
-            logger.error(f"第{i}条向量生成失败: {e}")
-            continue
+            existing = collection.get(include=["documents", "metadatas"])
+            if existing and existing.get("documents"):
+                for i, doc in enumerate(existing["documents"]):
+                    if doc:
+                        all_texts.append(doc)
+                        all_ids.append(existing["ids"][i])
+                        meta = existing["metadatas"][i] if existing["metadatas"] else {}
+                        all_metadatas.append(meta)
+        except Exception:
+            pass
     
-    if not embeddings:
-        return {"code": -2, "msg": "向量全部生成失败", "count": 0}
-    
-    # 取成功生成的文本
-    texts = texts[:len(embeddings)]
-    summaries = summaries[:len(embeddings)]
-    
-    # 生成唯一ID
-    ids = []
-    for i, text in enumerate(texts):
+    # 再追加新增
+    for i, text in enumerate(new_texts):
         unique = f"{source_name}_{i}_{hashlib.md5(text.encode()).hexdigest()[:8]}"
-        ids.append(unique)
+        # 去重
+        if unique not in all_ids:
+            all_texts.append(text)
+            all_ids.append(unique)
+            all_metadatas.append({"source": source_name, "summary": new_summaries[i][:120], "index": i})
     
-    metadatas = [
-        {"source": source_name, "summary": summaries[i][:120], "index": i}
-        for i in range(len(texts))
-    ]
+    if len(all_texts) == existing_count:
+        return {"code": 0, "msg": "文档已存在，无新增内容", "count": 0}
     
-    # 分批存入 ChromaDB（每批100条）
+    # 分词
+    all_segs = []
+    for text in all_texts:
+        try:
+            all_segs.append(_segment(text))
+        except Exception:
+            all_segs.append("")
+    
+    # 训练向量化器
+    global _vectorizer
+    _vectorizer = _get_vectorizer(force_rebuild=True)
+    try:
+        _vectorizer.fit(all_segs)
+        _save_vectorizer()
+    except Exception as e:
+        logger.error(f"向量化器训练失败: {e}")
+        return {"code": -2, "msg": f"向量化器初始化失败: {e}"}
+    
+    # 生成向量
+    all_embeddings = _embed_texts(all_texts)
+    if not all_embeddings:
+        return {"code": -2, "msg": "向量生成失败", "count": 0}
+    
+    # 重建集合
+    collection = _reset_collection()
+    
+    # 分批存入
     batch_size = 100
     total = 0
-    for i in range(0, len(texts), batch_size):
-        end = min(i + batch_size, len(texts))
+    for i in range(0, len(all_texts), batch_size):
+        end = min(i + batch_size, len(all_texts))
         collection.add(
-            ids=ids[i:end],
-            embeddings=embeddings[i:end],
-            documents=texts[i:end],
-            metadatas=metadatas[i:end]
+            ids=all_ids[i:end],
+            embeddings=all_embeddings[i:end],
+            documents=all_texts[i:end],
+            metadatas=all_metadatas[i:end]
         )
         total += (end - i)
     
     return {"code": 0, "msg": "导入成功", "count": total}
 
 
-def search_knowledge(query: str, top_k: int = 3, min_score: float = 0.3) -> list[dict]:
-    """搜索本地知识库"""
-    ec = _get_embedding_client()
+def search_knowledge(query: str, top_k: int = 3, min_score: float = 0.1) -> list[dict]:
+    """搜索本地知识库（完全本地运行）"""
     collection = _get_chroma_collection()
     
-    # 生成查询向量
     try:
-        query_emb = ec.embed_text(query)
+        query_emb = _embed_text(query)
     except Exception as e:
         logger.error(f"查询向量生成失败: {e}")
         return []
     
-    # 搜索
     results = collection.query(
         query_embeddings=[query_emb],
-        n_results=top_k * 2,  # 多取一些，按分数过滤
+        n_results=top_k * 2,
         include=["documents", "metadatas", "distances"]
     )
     
     if not results["ids"] or not results["ids"][0]:
         return []
     
-    # 转换为统一格式（distance越小越相似，转为score=1-distance）
     output = []
     for i in range(len(results["ids"][0])):
         distance = results["distances"][0][i] if results["distances"] else 0
-        score = 1.0 - distance  # cosine distance → similarity
+        score = 1.0 - distance
         if score < min_score:
             continue
         output.append({
@@ -196,11 +309,14 @@ def get_info() -> dict:
     """获取知识库信息"""
     try:
         count = count_documents()
+        has_vec = os.path.exists(VECTORIZER_PATH)
         return {
             "type": "local",
-            "path": KB_DIR,
-            "chunk_count": count,
-            "collection": "coze_doc_knowledge"
+            "engine": "chromadb + tfidf + jieba",
+            "documents": count,
+            "storage_path": KB_DIR,
+            "has_vectorizer": has_vec,
+            "cloud_dependency": "none"
         }
     except Exception as e:
-        return {"type": "local", "path": KB_DIR, "error": str(e)}
+        return {"type": "local", "error": str(e)}

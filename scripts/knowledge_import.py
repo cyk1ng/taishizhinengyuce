@@ -50,10 +50,11 @@ def cmd_info():
     info = get_info()
     count = count_documents()
     print(f"📚 本地知识库信息")
-    print(f"  类型: {info.get('type', '?')}")
-    print(f"  路径: {info.get('path', '?')}")
+    print(f"  类型: {info.get('type', 'local')}")
+    print(f"  引擎: {info.get('engine', 'chromadb + tfidf + jieba')}")
     print(f"  知识片段数: {count}")
-    print(f"  集合: {info.get('collection', '?')}")
+    print(f"  存储路径: {info.get('storage_path', '/workspace/projects/assets/knowledge')}")
+    print(f"  云端依赖: {info.get('cloud_dependency', 'none')}")
 
 
 def main():

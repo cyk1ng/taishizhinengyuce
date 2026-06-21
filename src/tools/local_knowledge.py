@@ -19,8 +19,9 @@ logger = logging.getLogger(__name__)
 
 _workspace = os.getenv("COZE_WORKSPACE_PATH")
 if not _workspace:
-    # 用户本地 Windows 环境：从当前文件位置推断项目根目录
-    _workspace = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # 用户本地环境（如 Windows）：从文件位置推断项目根目录
+    # __file__ = src/tools/local_knowledge.py → 往上一级 src/tools → 往上一级 src → 往上一级 项目根
+    _workspace = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 KB_DIR = os.path.join(_workspace, "assets", "knowledge")
 VECTORIZER_PATH = os.path.join(KB_DIR, "vectorizer.pkl")
 

@@ -120,8 +120,11 @@ def _get_chroma_collection():
             )
             is_new = True
         
-        # 首次创建时自动播种默认数据
+        # 首次创建 或 集合为空时自动播种默认数据
         if is_new:
+            _auto_seed(_chroma_collection)
+        elif _chroma_collection.count() == 0:
+            logger.info("知识库为空，尝试自动播种种子数据...")
             _auto_seed(_chroma_collection)
     return _chroma_collection
 

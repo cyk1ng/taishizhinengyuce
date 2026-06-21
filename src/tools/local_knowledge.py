@@ -17,7 +17,11 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-KB_DIR = os.path.join(os.getenv("COZE_WORKSPACE_PATH", "/workspace/projects"), "assets", "knowledge")
+_workspace = os.getenv("COZE_WORKSPACE_PATH")
+if not _workspace:
+    # 用户本地 Windows 环境：从当前文件位置推断项目根目录
+    _workspace = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+KB_DIR = os.path.join(_workspace, "assets", "knowledge")
 VECTORIZER_PATH = os.path.join(KB_DIR, "vectorizer.pkl")
 
 _chroma_collection = None

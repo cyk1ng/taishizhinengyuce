@@ -1159,7 +1159,7 @@ async function kbLoadList(page) {
             // 安全转义 onclick 参数（处理单引号）
             const safeId = escapeHtml(id).replace(/'/g, "\\'");
             const safeSource = escapeHtml(source).replace(/'/g, "\\'");
-            const safeContent = escapeHtml(content).replace(/'/g, "\\'");
+            const safeContent = escapeHtml(content).replace(/'/g, "\\'").replace(/\n/g, "\\n").replace(/\r/g, "\\r");
             html += `<tr>
                 <td>${idx}</td>
                 <td>${escapeHtml(source)}</td>

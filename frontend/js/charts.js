@@ -1486,13 +1486,24 @@ function applyFallbackData() {
 }
 
 /**
+ * 根据当前时间获取默认班次
+ */
+function getDefaultShiftByTime() {
+    const hour = new Date().getHours();
+    if (hour >= 0 && hour < 8) return '夜班';
+    if (hour >= 8 && hour < 16) return '早班';
+    return '晚班';
+}
+
+/**
  * 显示值班人员详情弹窗
  */
 async function showStaffDetail() {
-    // 重置班次选择，默认选中早班
-    currentShift = '早班';
+    // 根据当前时间自动选中对应班次
+    const defaultShift = getDefaultShiftByTime();
+    currentShift = defaultShift;
     document.querySelectorAll('.shift-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.shift === '早班');
+        btn.classList.toggle('active', btn.dataset.shift === defaultShift);
     });
     
     await loadStaffData(currentTeam);

@@ -1370,10 +1370,12 @@ let staffState = {
  * 降级假数据（后端不可用时自动使用）
  */
 const FALLBACK_STAFF_DATA = {
+    on_duty_team_name: 'A班',
     teams: [
         {
             record_id: 'fallback_A',
             team_name: 'A班', shift_type: '早班',
+            schedule_status: 'Y',
             on_duty_time: '08:00', off_duty_time: '16:00',
             on_duty_count: 4,
             on_duty_personnel: [
@@ -1382,21 +1384,13 @@ const FALLBACK_STAFF_DATA = {
                 { id: 'U102', name: '王明', role: '值班人员', team: 'A班', type: 'core', status: 'on-duty' },
                 { id: 'U103', name: '刘洋', role: '值班人员', team: 'A班', type: 'core', status: 'on-duty' }
             ]
-        },
-        {
-            record_id: 'fallback_B',
-            team_name: 'B班', shift_type: '中班',
-            on_duty_time: '16:00', off_duty_time: '24:00',
-            on_duty_count: 4,
-            on_duty_personnel: [
-                { id: 'U002', name: '陈静', role: '值班长', team: 'B班', type: 'core', status: 'on-duty' },
-                { id: 'U201', name: '赵磊', role: '值班人员', team: 'B班', type: 'core', status: 'on-duty' },
-                { id: 'U202', name: '孙杰', role: '值班人员', team: 'B班', type: 'core', status: 'on-duty' },
-                { id: 'U203', name: '林峰', role: '值班人员', team: 'B班', type: 'core', status: 'on-duty' }
-            ]
         }
     ],
     restingPersonnel: [
+        { id: 'U002', name: '陈静', role: '值班长', team: 'B班', status: 'rest' },
+        { id: 'U201', name: '赵磊', role: '值班人员', team: 'B班', status: 'rest' },
+        { id: 'U202', name: '孙杰', role: '值班人员', team: 'B班', status: 'rest' },
+        { id: 'U203', name: '林峰', role: '值班人员', team: 'B班', status: 'rest' },
         { id: 'U003', name: '周涛', role: '值班长', team: 'C班', status: 'rest' },
         { id: 'U301', name: '吴鹏', role: '值班人员', team: 'C班', status: 'rest' },
         { id: 'U302', name: '黄海', role: '值班人员', team: 'C班', status: 'rest' },
@@ -1410,13 +1404,11 @@ const FALLBACK_STAFF_DATA = {
         { id: 'U502', name: '周杰', role: '值班人员', team: 'E班', status: 'rest' },
         { id: 'U503', name: '吴昊', role: '值班人员', team: 'E班', status: 'rest' },
         { id: 'U006', name: '杨帆', role: '值班长', team: 'F班', status: 'rest' },
-        { id: 'U601', name: '韩冰', role: '值班人员', team: 'F班', status: 'rest' },
-        { id: 'U602', name: '杨柳', role: '值班人员', team: 'F班', status: 'rest' },
-        { id: 'U603', name: '赵雪', role: '值班人员', team: 'F班', status: 'rest' }
+        { id: 'U601', name: '陈蓉', role: '值班人员', team: 'F班', status: 'rest' },
+        { id: 'U602', name: '刘涛', role: '值班人员', team: 'F班', status: 'rest' },
+        { id: 'U603', name: '周丽', role: '值班人员', team: 'F班', status: 'rest' }
     ]
-};
-
-/**
+};/**
  * 从后端加载值班人员数据
  * 如果后端不可用，自动降级使用假数据
  */
@@ -1429,6 +1421,7 @@ async function loadStaffData(teamName = '') {
         if (result.success && result.data && result.data.teams && result.data.teams.length > 0) {
             staffState.date = result.data.date || dateStr;
             staffState.teams = result.data.teams || [];
+            staffState.onDutyTeamName = result.data.on_duty_team_name || '';
             staffState.restingPersonnel = result.data.resting_personnel || [];
             staffState.restingCount = result.data.resting_count || 0;
             staffState.loaded = true;
@@ -1449,7 +1442,11 @@ async function loadStaffData(teamName = '') {
  */
 function applyFallbackData() {
     staffState.date = new Date().toISOString().slice(0, 10);
-    staffState.teams = FALLBACK_STAFF_DATA.teams.map(t => ({...t, on_duty_personnel: [...t.on_duty_personnel]}));
+    staffState.teams = FALLBACK_STAFF_DATA.teams.map(t => ({
+        ...t,
+        on_duty_personnel: [...t.on_duty_personnel]
+    }));
+    staffState.onDutyTeamName = FALLBACK_STAFF_DATA.on_duty_team_name || 'A班';
     staffState.restingPersonnel = [...FALLBACK_STAFF_DATA.restingPersonnel];
     staffState.restingCount = staffState.restingPersonnel.length;
     staffState.loaded = true;
@@ -1512,7 +1509,7 @@ function renderStaffList() {
     const allOnDutyIds = new Set(allOnDutyStaff.map(p => p.id));
     
     // 判断当前选中的班组是否在值
-    const isCurrentTeamOnDuty = dutyTeam !== null && dutyTeam.team_name === currentTeam;
+    const isCurrentTeamOnDuty = dutyTeam !== null && dutyTeam.team_name === currentTeam && dutyTeam.schedule_status === 'Y';
     
     let onDutyStaff = [];
     let restingStaff = [];

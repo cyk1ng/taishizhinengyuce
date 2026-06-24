@@ -874,113 +874,95 @@ def get_staff_detail(team_name: str = "", date_str: str = "") -> str:
         all_teams = ScheduleDataProvider.get_teams()
         records = ScheduleDataProvider.get_records(target_date, target_date)
 
-        # 找当值班组的排班记录（在值状态）
+        # 找出在值的班组
         on_duty_records = [r for r in records if r.schedule_status == "Y"]
+        on_duty_team_name = on_duty_records[0].team_name if on_duty_records else ""
+        on_duty_record = on_duty_records[0] if on_duty_records else None
 
-        if team_name:
-            on_duty_records = [r for r in on_duty_records if r.team_name == team_name]
+        # 全局在值人员 ID 集合
+        on_duty_ids = set()
+        if on_duty_record:
+            if on_duty_record.team_leader_id:
+                on_duty_ids.add(on_duty_record.team_leader_id)
+            for uid in on_duty_record.person_id_list:
+                on_duty_ids.add(uid)
+            for uid in on_duty_record.temp_person_id_list:
+                on_duty_ids.add(uid)
 
-        # 构建响应数据
+        # 遍历所有排班记录，构建 teams_data
         teams_data = []
         seen_teams = set()
-        for rec in on_duty_records:
+        for rec in records:
             if rec.team_name in seen_teams:
                 continue
             seen_teams.add(rec.team_name)
 
-            # 当值人员（核心 + 临时）
             on_duty_personnel = []
-            if rec.team_leader_id and rec.team_leader_name:
-                on_duty_personnel.append({
-                    "id": rec.team_leader_id,
-                    "name": rec.team_leader_name,
-                    "role": "值班长",
-                    "team": rec.team_name,
-                    "type": "core",
-                    "status": "on-duty"
-                })
-            # 核心值班人员
-            ids = rec.person_id_list
-            names = rec.person_name_list
-            for i, uid in enumerate(ids):
-                name = names[i] if i < len(names) else f"人员{uid}"
-                on_duty_personnel.append({
-                    "id": uid,
-                    "name": name,
-                    "role": "值班人员",
-                    "team": rec.team_name,
-                    "type": "core",
-                    "status": "on-duty"
-                })
-            # 临时借调人员
-            for uid, name in zip(rec.temp_person_id_list, rec.temp_person_name_list):
-                # 查找此人所属的原始班组
-                home_team = rec.team_name  # 默认
-                for t in all_teams:
-                    if uid == t.team_leader_id or uid in t.person_id_list:
-                        home_team = t.team_name
-                        break
-                on_duty_personnel.append({
-                    "id": uid,
-                    "name": name,
-                    "role": "临时值班人员",
-                    "team": home_team,
-                    "type": "temp",
-                    "status": "on-duty"
-                })
+            if rec.schedule_status == "Y":
+                # 在值：核心成员 + 临时借调
+                if rec.team_leader_id and rec.team_leader_name:
+                    on_duty_personnel.append({
+                        "id": rec.team_leader_id, "name": rec.team_leader_name,
+                        "role": "值班长", "team": rec.team_name,
+                        "type": "core", "status": "on-duty"
+                    })
+                for i, uid in enumerate(rec.person_id_list):
+                    name = rec.person_name_list[i] if i < len(rec.person_name_list) else f"人员{uid}"
+                    on_duty_personnel.append({
+                        "id": uid, "name": name,
+                        "role": "值班人员", "team": rec.team_name,
+                        "type": "core", "status": "on-duty"
+                    })
+                for uid, name in zip(rec.temp_person_id_list, rec.temp_person_name_list):
+                    home_team = rec.team_name
+                    for t in all_teams:
+                        if uid == t.team_leader_id or uid in t.person_id_list:
+                            home_team = t.team_name
+                            break
+                    on_duty_personnel.append({
+                        "id": uid, "name": name,
+                        "role": "临时值班人员", "team": home_team,
+                        "type": "temp", "status": "on-duty"
+                    })
 
             teams_data.append({
                 "record_id": rec.record_id,
                 "team_name": rec.team_name,
                 "shift_type": detect_shift_type(rec.on_duty_time),
+                "schedule_status": rec.schedule_status,
                 "on_duty_time": rec.on_duty_time.strftime("%H:%M") if rec.on_duty_time else "",
                 "off_duty_time": rec.off_duty_time.strftime("%H:%M") if rec.off_duty_time else "",
                 "on_duty_count": len(on_duty_personnel),
                 "on_duty_personnel": on_duty_personnel
             })
 
-        # 计算休息人员（所有班组中不在当前当值排班中的人）
-        on_duty_ids = set()
-        for td in teams_data:
-            for p in td["on_duty_personnel"]:
-                on_duty_ids.add(p["id"])
-
+        # 休息人员：所有班组中不在在值排班中的人
         resting_personnel = []
         for t in all_teams:
-            # 值班长
             if t.team_leader_id and t.team_leader_id not in on_duty_ids:
                 resting_personnel.append({
-                    "id": t.team_leader_id,
-                    "name": t.team_leader_name,
-                    "role": "值班长",
-                    "team": t.team_name,
-                    "status": "rest"
+                    "id": t.team_leader_id, "name": t.team_leader_name,
+                    "role": "值班长", "team": t.team_name, "status": "rest"
                 })
                 on_duty_ids.add(t.team_leader_id)
-            # 其他人员
             for uid, name in zip(t.person_id_list, t.person_name_list):
                 if uid not in on_duty_ids:
                     resting_personnel.append({
-                        "id": uid,
-                        "name": name,
-                        "role": "值班人员",
-                        "team": t.team_name,
-                        "status": "rest"
+                        "id": uid, "name": name,
+                        "role": "值班人员", "team": t.team_name, "status": "rest"
                     })
                     on_duty_ids.add(uid)
 
         return json.dumps({
             "code": 0,
             "date": target_date.strftime("%Y-%m-%d"),
+            "on_duty_team_name": on_duty_team_name,
             "teams": teams_data,
             "resting_personnel": resting_personnel,
             "resting_count": len(resting_personnel)
         }, ensure_ascii=False)
-
     except Exception as e:
         return json.dumps({"code": 1, "error": str(e)}, ensure_ascii=False)
-
-
 @tool
 def add_temp_personnel(
     record_id: str = "",

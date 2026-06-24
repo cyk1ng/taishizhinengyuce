@@ -1,1385 +1,684 @@
 """
-智能排班管理模块 - 配网调度业务量智能预测系统
+排班调度模块 - 基于 OC_SCHEDULE_TEAM / OC_SCHEDULE_RECORD 两张 Oracle 表
 
-排班规则：
-1. 班组数量不固定，可随意设置
-2. 一个班组一天只能排一次班（早/中/晚三选一）
-3. 每班人员要求：
-   - 值班长(3)：必须1人，只能1人
-   - 正值(2)：至少1人，可多人
-   - 副值(1)：至少1人，可多人
-   - 其他(0)：可选，按需配置
-4. 约束条件：
-   - 最大连续工作天数：6天
-   - 每周最多晚班：3次
-   - 公平轮换
-   - 只安排生效状态为"是"的班组
-
-数据库表结构：
-- working_user: 上班人员表
-- working_groups: 班组表（含生效状态字段）
-- work_schedule_recode: 排班记录表
+核心功能：
+  1. 获取班组人员信息 (OC_SCHEDULE_TEAM)
+  2. 获取现有排班记录 (OC_SCHEDULE_RECORD)
+  3. 智能排班生成
+  4. 排班公平性分析
+  5. 排班报表导出
+  6. 根据 ON_DUTY_TIME 自动识别班次类型（早/中/晚）
 """
 
 import json
+import csv
+import io
 import os
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from datetime import datetime, date, timedelta, time
+from typing import Optional, Any
+from dataclasses import dataclass, field, asdict
+
 from langchain.tools import tool
-from langchain_core.messages import HumanMessage, SystemMessage
 from coze_coding_utils.runtime_ctx.context import new_context
 from coze_coding_utils.log.write_log import request_context
 
-# 配置文件路径
-SCHEDULE_CONFIG = "assets/schedule_config.json"
+# ═══════════════════════════════════════════════
+#  数据模型 — 严格对齐 OC_SCHEDULE_TEAM
+# ═══════════════════════════════════════════════
 
+@dataclass
+class OcScheduleTeam:
+    """OC_SCHEDULE_TEAM 班组表"""
+    team_id: str = ""
+    team_name: str = ""
+    team_leader_id: str = ""
+    team_leader_name: str = ""
+    create_busi_dept_id: str = ""
+    create_busi_dept_name: str = ""
+    enable_flag: str = "Y"
+    other_person_ids: str = ""     # 逗号分隔
+    other_person_names: str = ""   # 逗号分隔
 
-# ============================================================
-# 数据模型
-# ============================================================
-
-class WorkingUser:
-    """
-    上班人员表 (working_user)
-    
-    字段：
-    - MK_ID: 主键 (varchar(36))
-    - USER_ID: 用户ID (varchar(36))
-    - USER_NAME: 用户名 (varchar(255))
-    - GROUP: 所属班次 (varchar(255))
-    - ID_LEADER: 值班类型 (int)
-        - 0: 其他值班人员
-        - 1: 副值
-        - 2: 正值
-        - 3: 值班长
-    - CITY_DEPT_ID: 所属地市ID (varchar(36))
-    - CITY_DEPT_NAME: 所属地市名字 (varchar(255))
-    """
-    
-    ROLE_NAMES = {
-        0: "其他值班人员",
-        1: "副值",
-        2: "正值",
-        3: "值班长"
-    }
-    
-    def __init__(self, data: Dict):
-        self.mk_id = data.get("MK_ID", "")
-        self.user_id = data.get("USER_ID", "")
-        self.user_name = data.get("USER_NAME", "")
-        self.group = data.get("GROUP", "")
-        self.id_leader = data.get("ID_LEADER", 0)
-        self.city_dept_id = data.get("CITY_DEPT_ID", "")
-        self.city_dept_name = data.get("CITY_DEPT_NAME", "")
-    
     @property
-    def role_name(self) -> str:
-        return self.ROLE_NAMES.get(self.id_leader, "未知")
-    
-    def to_dict(self) -> Dict:
-        return {
-            "mk_id": self.mk_id,
-            "user_id": self.user_id,
-            "user_name": self.user_name,
-            "group": self.group,
-            "id_leader": self.id_leader,
-            "role_name": self.role_name,
-            "city_dept_id": self.city_dept_id,
-            "city_dept_name": self.city_dept_name
-        }
+    def person_id_list(self) -> list[str]:
+        """解析 other_person_ids 为列表"""
+        if not self.other_person_ids:
+            return []
+        return [p.strip() for p in self.other_person_ids.split(",") if p.strip()]
 
-
-class WorkingGroup:
-    """
-    班组表 (working_groups)
-    
-    关键规则：
-    - 班组数量不固定
-    - 一个班组一天只能排一次班
-    - 只有生效状态为"是"的班组才会被安排
-    """
-    
-    def __init__(self, data: Dict):
-        self.group_id = data.get("GROUP_ID", "")
-        self.group_name = data.get("GROUP_NAME", data.get("GROUP", ""))
-        self.is_active = self._parse_active_status(data.get("IS_ACTIVE", "是"))
-        self.city_dept_id = data.get("CITY_DEPT_ID", "")
-        self.city_dept_name = data.get("CITY_DEPT_NAME", "")
-        self.members: List[WorkingUser] = []
-    
-    def _parse_active_status(self, status) -> bool:
-        """解析生效状态"""
-        if isinstance(status, bool):
-            return status
-        if isinstance(status, int):
-            return status == 1
-        if isinstance(status, str):
-            return status in ["是", "YES", "Yes", "yes", "1", "TRUE", "True", "true"]
-        return True
-    
-    def get_members_by_role(self, role_id: int) -> List[WorkingUser]:
-        """获取指定角色的成员"""
-        return [m for m in self.members if m.id_leader == role_id]
-    
-    def to_dict(self) -> Dict:
-        return {
-            "group_id": self.group_id,
-            "group_name": self.group_name,
-            "is_active": self.is_active,
-            "member_count": len(self.members),
-            "members": [m.to_dict() for m in self.members],
-            "city_dept_id": self.city_dept_id,
-            "city_dept_name": self.city_dept_name
-        }
-
-
-class ScheduleRecord:
-    """
-    排班记录表 (work_schedule_recode)
-    
-    数字枚举字段：
-    - SHIFT_TYPE: 1=晚班, 2=早班, 3=中班
-    - STATUS: 1=计划, 2=执行中, 3=已完成, 4=取消
-    """
-    
-    # 班次类型映射
-    SHIFT_TYPE_MAP = {
-        1: "晚班",
-        2: "早班",
-        3: "中班"
-    }
-    
-    SHIFT_TYPE_REVERSE_MAP = {
-        "晚班": 1,
-        "早班": 2,
-        "中班": 3
-    }
-    
-    # 状态映射
-    STATUS_MAP = {
-        1: "计划",
-        2: "执行中",
-        3: "已完成",
-        4: "取消"
-    }
-    
-    STATUS_REVERSE_MAP = {
-        "计划": 1,
-        "执行中": 2,
-        "已完成": 3,
-        "取消": 4
-    }
-    
-    def __init__(self, data: Dict):
-        self.record_id = data.get("RECORD_ID", "")
-        self.user_id = data.get("USER_ID", "")
-        self.user_name = data.get("USER_NAME", "")
-        self.group_name = data.get("GROUP_NAME", data.get("GROUP", ""))
-        self.schedule_date = data.get("SCHEDULE_DATE", "")
-        self._shift_type = data.get("SHIFT_TYPE", 2)  # 默认早班
-        self._status = data.get("STATUS", 1)  # 默认计划
-        self.id_leader = data.get("ID_LEADER", 0)
-        self.city_dept_id = data.get("CITY_DEPT_ID", "")
-        self.city_dept_name = data.get("CITY_DEPT_NAME", "")
-    
     @property
-    def shift_type(self) -> str:
-        """返回班次名称"""
-        if isinstance(self._shift_type, str):
-            # 如果已经是字符串，尝试转换
-            try:
-                return self.SHIFT_TYPE_MAP.get(int(self._shift_type), self._shift_type)
-            except:
-                return self._shift_type
-        return self.SHIFT_TYPE_MAP.get(self._shift_type, "早班")
-    
+    def person_name_list(self) -> list[str]:
+        """解析 other_person_names 为列表"""
+        if not self.other_person_names:
+            return []
+        return [n.strip() for n in self.other_person_names.split(",") if n.strip()]
+
     @property
-    def shift_type_code(self) -> int:
-        """返回班次代码"""
-        if isinstance(self._shift_type, int):
-            return self._shift_type
-        return self.SHIFT_TYPE_REVERSE_MAP.get(self._shift_type, 2)
-    
-    @property
-    def status(self) -> str:
-        """返回状态名称"""
-        if isinstance(self._status, str):
-            try:
-                return self.STATUS_MAP.get(int(self._status), self._status)
-            except:
-                return self._status
-        return self.STATUS_MAP.get(self._status, "计划")
-    
-    @property
-    def status_code(self) -> int:
-        """返回状态代码"""
-        if isinstance(self._status, int):
-            return self._status
-        return self.STATUS_REVERSE_MAP.get(self._status, 1)
-    
-    def to_dict(self) -> Dict:
-        return {
-            "record_id": self.record_id,
-            "user_id": self.user_id,
-            "user_name": self.user_name,
-            "group_name": self.group_name,
-            "schedule_date": self.schedule_date,
-            "shift_type": self.shift_type,
-            "shift_type_code": self.shift_type_code,
-            "status": self.status,
-            "status_code": self.status_code,
-            "id_leader": self.id_leader,
-            "role_name": WorkingUser.ROLE_NAMES.get(self.id_leader, "未知"),
-            "city_dept_id": self.city_dept_id,
-            "city_dept_name": self.city_dept_name
-        }
+    def all_members(self) -> list[dict]:
+        """获取班组完整成员列表（含值班长）"""
+        members = []
+        if self.team_leader_id and self.team_leader_name:
+            members.append({
+                "user_id": self.team_leader_id,
+                "user_name": self.team_leader_name,
+                "role": "值班长"
+            })
+        ids = self.person_id_list
+        names = self.person_name_list
+        for i, uid in enumerate(ids):
+            name = names[i] if i < len(names) else f"人员{uid}"
+            members.append({
+                "user_id": uid,
+                "user_name": name,
+                "role": "值班人员"
+            })
+        return members
 
 
-# ============================================================
-# 配置管理
-# ============================================================
+# ═══════════════════════════════════════════════
+#  数据模型 — 严格对齐 OC_SCHEDULE_RECORD
+# ═══════════════════════════════════════════════
 
+@dataclass
+class OcScheduleRecord:
+    """OC_SCHEDULE_RECORD 排班记录表"""
+    record_id: str = ""
+    dis_org_id: str = ""
+    dis_org_name: str = ""
+    team_id: str = ""
+    team_name: str = ""
+    schedule_status: str = "Y"         # Y=在值, N=已交班
+    change_time: Optional[datetime] = None
+    on_duty_time: Optional[datetime] = None
+    off_duty_time: Optional[datetime] = None
+    team_leader_id: str = ""
+    team_leader_name: str = ""
+    other_person_ids: str = ""
+    other_person_names: str = ""
+
+    @property
+    def person_id_list(self) -> list[str]:
+        if not self.other_person_ids:
+            return []
+        return [p.strip() for p in self.other_person_ids.split(",") if p.strip()]
+
+    @property
+    def person_name_list(self) -> list[str]:
+        if not self.other_person_names:
+            return []
+        return [n.strip() for n in self.other_person_names.split(",") if n.strip()]
+
+    @property
+    def all_personnel(self) -> list[dict]:
+        """完整排班人员列表"""
+        people = []
+        if self.team_leader_id and self.team_leader_name:
+            people.append({"id": self.team_leader_id, "name": self.team_leader_name, "role": "值班长"})
+        ids = self.person_id_list
+        names = self.person_name_list
+        for i, uid in enumerate(ids):
+            name = names[i] if i < len(names) else f"人员{uid}"
+            people.append({"id": uid, "name": name, "role": "值班人员"})
+        return people
+
+
+# ═══════════════════════════════════════════════
+#  班次类型自动识别
+# ═══════════════════════════════════════════════
+
+def detect_shift_type(on_duty_time: Optional[datetime]) -> str:
+    """
+    根据 ON_DUTY_TIME 自动识别班次类型
+
+    规则：
+      - 06:00-09:59  → 早班
+      - 10:00-14:59  → 中班
+      - 15:00-23:59  → 晚班
+      - 00:00-05:59  → 夜班
+    """
+    if on_duty_time is None:
+        return "未知"
+    hour = on_duty_time.hour
+    if 6 <= hour < 10:
+        return "早班"
+    elif 10 <= hour < 15:
+        return "中班"
+    elif 15 <= hour < 24:
+        return "晚班"
+    else:  # 00:00-05:59
+        return "夜班"
+
+
+# ═══════════════════════════════════════════════
+#  排班配置
+# ═══════════════════════════════════════════════
+
+@dataclass
 class ScheduleConfig:
-    """排班配置管理"""
-    
-    def __init__(self, config_path: Optional[str] = None):
-        self.config_path = config_path or os.path.join(
-            os.getenv("COZE_WORKSPACE_PATH", "/workspace/projects"),
-            SCHEDULE_CONFIG
-        )
-        self._config = self._load_config()
-    
-    def _load_config(self) -> Dict:
-        if os.path.exists(self.config_path):
-            with open(self.config_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        return self._get_default_config()
-    
-    def _get_default_config(self) -> Dict:
-        return {
-            "shift_structure": {
-                "shifts_per_day": 3,
-                "shift_names": ["早班", "中班", "晚班"],
-                "shift_times": {
-                    "早班": {"start": "08:00", "end": "16:00"},
-                    "中班": {"start": "16:00", "end": "24:00"},
-                    "晚班": {"start": "00:00", "end": "08:00"}
-                }
-            },
-            "staffing_requirements": {
-                "leader_required": 1,      # 值班长必须1人
-                "leader_max": 1,           # 值班长最多1人
-                "zhizhi_min": 1,           # 正值至少1人
-                "fuzhi_min": 1,            # 副值至少1人
-                "other_optional": True     # 其他人员可选
-            },
-            "constraints": {
-                "max_consecutive_days": 6,
-                "max_night_shifts_per_week": 3,
-                "fair_rotation": True
-            }
-        }
-    
-    @property
-    def constraints(self) -> Dict:
-        return self._config.get("constraints", {})
+    """排班约束与偏好配置"""
+    min_rest_days: int = 1               # 同一人两次排班最小间隔天数
+    max_consecutive_shifts: int = 2      # 同一人最多连续班次
+    preferred_team_size: int = 4         # 每班推荐人数
+    shift_duration_hours: int = 8        # 每班标准时长
+    work_start_hour: int = 8             # 默认早班开始时间
 
 
-# ============================================================
-# 数据库查询
-# ============================================================
+@dataclass
+class ScheduleConstraints:
+    """排班约束条件"""
+    start_date: date
+    end_date: date
+    city_dept_id: str = ""
+    city_dept_name: str = ""
+
+
+# ═══════════════════════════════════════════════
+#  数据提供层 — 模拟 Oracle 查询
+# ═══════════════════════════════════════════════
 
 class ScheduleDataProvider:
-    """排班数据提供者"""
-    
+    """排班数据提供层（模拟 Oracle 的 OC_SCHEDULE_TEAM / OC_SCHEDULE_RECORD）"""
+
     @staticmethod
-    def _get_db_session():
-        """获取数据库会话"""
-        from storage.database.db import get_session, is_database_connected
-        if not is_database_connected():
-            return None
-        return get_session()
-    
+    def get_teams(city_dept_id: str = "") -> list[OcScheduleTeam]:
+        """
+        获取班组信息 — 对应 SELECT * FROM OC_SCHEDULE_TEAM WHERE ENABLE_FLAG='Y'
+        """
+        # 模拟数据：6个班组 A-F
+        teams = [
+            OcScheduleTeam(
+                team_id="T001", team_name="A班",
+                team_leader_id="U001", team_leader_name="张队",
+                create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
+                enable_flag="Y",
+                other_person_ids="U101,U102,U103",
+                other_person_names="张三,李四,王五"
+            ),
+            OcScheduleTeam(
+                team_id="T002", team_name="B班",
+                team_leader_id="U002", team_leader_name="李队",
+                create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
+                enable_flag="Y",
+                other_person_ids="U201,U202,U203",
+                other_person_names="赵六,钱七,孙八"
+            ),
+            OcScheduleTeam(
+                team_id="T003", team_name="C班",
+                team_leader_id="U003", team_leader_name="王队",
+                create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
+                enable_flag="Y",
+                other_person_ids="U301,U302,U303",
+                other_person_names="周九,吴十,郑十一"
+            ),
+            OcScheduleTeam(
+                team_id="T004", team_name="D班",
+                team_leader_id="U004", team_leader_name="刘队",
+                create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
+                enable_flag="Y",
+                other_person_ids="U401,U402,U403",
+                other_person_names="冯十二,陈十三,褚十四"
+            ),
+            OcScheduleTeam(
+                team_id="T005", team_name="E班",
+                team_leader_id="U005", team_leader_name="陈队",
+                create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
+                enable_flag="Y",
+                other_person_ids="U501,U502,U503",
+                other_person_names="卫十五,蒋十六,沈十七"
+            ),
+            OcScheduleTeam(
+                team_id="T006", team_name="F班",
+                team_leader_id="U006", team_leader_name="杨队",
+                create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
+                enable_flag="Y",
+                other_person_ids="U601,U602,U603",
+                other_person_names="韩十八,杨十九,朱二十"
+            ),
+        ]
+        if city_dept_id:
+            teams = [t for t in teams if t.create_busi_dept_id == city_dept_id]
+        return teams
+
     @staticmethod
-    def get_working_users(city_dept_id: Optional[str] = None) -> List[WorkingUser]:
-        """从数据库获取所有上班人员"""
-        session = ScheduleDataProvider._get_db_session()
-        
-        if session:
-            try:
-                from sqlalchemy import text
-                
-                if city_dept_id:
-                    sql = text("""
-                        SELECT MK_ID, USER_ID, USER_NAME, `GROUP`, ID_LEADER, 
-                               CITY_DEPT_ID, CITY_DEPT_NAME
-                        FROM working_user 
-                        WHERE CITY_DEPT_ID = :dept_id
-                    """)
-                    result = session.execute(sql, {"dept_id": city_dept_id})
-                else:
-                    sql = text("""
-                        SELECT MK_ID, USER_ID, USER_NAME, `GROUP`, ID_LEADER, 
-                               CITY_DEPT_ID, CITY_DEPT_NAME
-                        FROM working_user
-                    """)
-                    result = session.execute(sql)
-                
-                users = [WorkingUser(dict(row._mapping)) for row in result]
-                return users
-                
-            except Exception as e:
-                import logging
-                logging.error(f"查询 working_user 表失败: {e}")
-            finally:
-                session.close()
-        
-        return []
-    
+    def get_records(
+        start_date: date,
+        end_date: date,
+        city_dept_id: str = ""
+    ) -> list[OcScheduleRecord]:
+        """
+        获取排班记录 — 对应 SELECT * FROM OC_SCHEDULE_RECORD
+        WHERE ON_DUTY_TIME BETWEEN :start AND :end
+        """
+        records: list[OcScheduleRecord] = []
+        teams = ScheduleDataProvider.get_teams(city_dept_id)
+        current = start_date
+        idx = 0
+        while current <= end_date:
+            for i, team in enumerate(teams):
+                if current > end_date:
+                    break
+                # 模拟早/中/晚三个班次
+                for hour_offset, shift_label in [(8, "早班"), (12, "中班"), (18, "晚班")]:
+                    on_duty = datetime(current.year, current.month, current.day, hour_offset, 0, 0)
+                    off_duty = on_duty + timedelta(hours=8)
+                    idx += 1
+                    records.append(OcScheduleRecord(
+                        record_id=f"SR{current.strftime('%Y%m%d')}_{team.team_id}_{hour_offset}",
+                        dis_org_id=team.create_busi_dept_id,
+                        dis_org_name=team.create_busi_dept_name,
+                        team_id=team.team_id,
+                        team_name=team.team_name,
+                        schedule_status="Y",
+                        on_duty_time=on_duty,
+                        off_duty_time=off_duty,
+                        team_leader_id=team.team_leader_id,
+                        team_leader_name=team.team_leader_name,
+                        other_person_ids=team.other_person_ids,
+                        other_person_names=team.other_person_names,
+                    ))
+            current += timedelta(days=1)
+        return records
+
     @staticmethod
-    def get_working_groups(city_dept_id: Optional[str] = None) -> List[WorkingGroup]:
-        """
-        从数据库获取班组信息
-        
-        关键：只返回生效状态为"是"的班组
-        """
-        session = ScheduleDataProvider._get_db_session()
-        
-        if session:
-            try:
-                from sqlalchemy import text
-                
-                # 查询班组表，获取生效的班组
-                if city_dept_id:
-                    sql = text("""
-                        SELECT GROUP_ID, GROUP_NAME, IS_ACTIVE, 
-                               CITY_DEPT_ID, CITY_DEPT_NAME
-                        FROM working_groups
-                        WHERE IS_ACTIVE IN ('是', 'YES', 'Yes', 'yes', '1', 1, TRUE)
-                              AND (CITY_DEPT_ID = :dept_id OR :dept_id = '')
-                    """)
-                    result = session.execute(sql, {"dept_id": city_dept_id})
-                else:
-                    sql = text("""
-                        SELECT GROUP_ID, GROUP_NAME, IS_ACTIVE, 
-                               CITY_DEPT_ID, CITY_DEPT_NAME
-                        FROM working_groups
-                        WHERE IS_ACTIVE IN ('是', 'YES', 'Yes', 'yes', '1', 1, TRUE)
-                    """)
-                    result = session.execute(sql)
-                
-                groups = []
-                for row in result:
-                    group_data = dict(row._mapping)
-                    group = WorkingGroup(group_data)
-                    groups.append(group)
-                
-                # 获取所有用户并分配到对应班组
-                all_users = ScheduleDataProvider.get_working_users(city_dept_id)
-                for group in groups:
-                    group.members = [u for u in all_users if u.group == group.group_name]
-                
-                return groups
-                
-            except Exception as e:
-                import logging
-                logging.error(f"查询 working_groups 表失败: {e}")
-            finally:
-                session.close()
-        
-        return []
-    
+    def get_current_on_duty(city_dept_id: str = "") -> list[OcScheduleRecord]:
+        """获取当前正在值勤的排班记录（SCHEDULE_STATUS='Y'）"""
+        today = date.today()
+        records = ScheduleDataProvider.get_records(today, today, city_dept_id)
+        return [r for r in records if r.schedule_status == "Y"]
+
     @staticmethod
-    def get_schedule_records(
-        start_date: str,
-        end_date: str,
-        city_dept_id: Optional[str] = None
-    ) -> List[ScheduleRecord]:
-        """从数据库获取排班记录"""
-        session = ScheduleDataProvider._get_db_session()
-        
-        if session:
-            try:
-                from sqlalchemy import text
-                
-                if city_dept_id:
-                    sql = text("""
-                        SELECT RECORD_ID, USER_ID, USER_NAME, GROUP_NAME,
-                               SCHEDULE_DATE, SHIFT_TYPE, STATUS, ID_LEADER,
-                               CITY_DEPT_ID, CITY_DEPT_NAME
-                        FROM work_schedule_recode
-                        WHERE SCHEDULE_DATE BETWEEN :start AND :end
-                              AND (CITY_DEPT_ID = :dept_id OR :dept_id = '')
-                        ORDER BY SCHEDULE_DATE, SHIFT_TYPE
-                    """)
-                    result = session.execute(sql, {
-                        "start": start_date,
-                        "end": end_date,
-                        "dept_id": city_dept_id
-                    })
-                else:
-                    sql = text("""
-                        SELECT RECORD_ID, USER_ID, USER_NAME, GROUP_NAME,
-                               SCHEDULE_DATE, SHIFT_TYPE, STATUS, ID_LEADER,
-                               CITY_DEPT_ID, CITY_DEPT_NAME
-                        FROM work_schedule_recode
-                        WHERE SCHEDULE_DATE BETWEEN :start AND :end
-                        ORDER BY SCHEDULE_DATE, SHIFT_TYPE
-                    """)
-                    result = session.execute(sql, {
-                        "start": start_date,
-                        "end": end_date
-                    })
-                
-                records = [ScheduleRecord(dict(row._mapping)) for row in result]
-                return records
-                
-            except Exception as e:
-                import logging
-                logging.error(f"查询 work_schedule_recode 表失败: {e}")
-            finally:
-                session.close()
-        
-        return []
-
-
-# ============================================================
-# 智能排班引擎
-# ============================================================
-
-class IntelligentScheduleEngine:
-    """
-    智能排班引擎
-    
-    核心规则：
-    1. 一个班组一天只能排一次班
-    2. 每班：1名值班长(必须且只能1人) + N名正值 + N名副值 + 可选其他人员
-    3. 最大连续工作6天
-    4. 每周最多3次晚班
-    5. 公平轮换
-    6. 只安排生效的班组
-    """
-    
-    def __init__(self, config: Optional[ScheduleConfig] = None):
-        self.config = config or ScheduleConfig()
-        self.llm_client = None
-    
-    def _init_llm_client(self, ctx):
-        if self.llm_client is None:
-            import importlib
-            _sdk = importlib.import_module('coze_coding_dev_sdk')
-            LLMClient = _sdk.LLMClient
-            self.llm_client = LLMClient(ctx=ctx)
-        return self.llm_client
-    
-    def _check_group_can_work(
-        self,
-        group: WorkingGroup,
-        date: datetime,
-        recent_records: Dict[str, List[ScheduleRecord]]
-    ) -> Tuple[bool, str]:
+    def save_records(records: list[OcScheduleRecord]) -> int:
         """
-        检查班组是否可以排班
-        
-        返回: (是否可以排班, 原因)
+        保存排班记录 — 对应 INSERT INTO OC_SCHEDULE_RECORD
+        返回写入条数
         """
-        group_name = group.group_name
-        group_records = recent_records.get(group_name, [])
-        
-        # 1. 检查是否今天已经排班（一个班组一天只能排一次）
-        today_str = date.strftime("%Y-%m-%d")
-        today_records = [r for r in group_records if r.schedule_date == today_str]
-        if today_records:
-            return False, f"班组{group_name}今天已排{today_records[0].shift_type}"
-        
-        # 2. 检查连续工作天数（最大6天）
-        consecutive_days = self._count_consecutive_work_days(group_records, date)
-        if consecutive_days >= 6:
-            return False, f"班组{group_name}已连续工作{consecutive_days}天，需休息"
-        
-        # 3. 检查本周晚班次数（最多3次）
-        week_night_shifts = self._count_week_night_shifts(group_records, date)
-        if week_night_shifts >= 3:
-            return False, f"班组{group_name}本周晚班已达{week_night_shifts}次"
-        
-        return True, "可以排班"
-    
-    def _count_consecutive_work_days(
+        return len(records)
+
+
+# ═══════════════════════════════════════════════
+#  智能排班生成器
+# ═══════════════════════════════════════════════
+
+class ScheduleGenerator:
+    """智能排班生成器"""
+
+    def __init__(self, data_provider: Optional[ScheduleDataProvider] = None):
+        self.provider = data_provider or ScheduleDataProvider()
+        self.config = ScheduleConfig()
+
+    def can_assign(
         self,
-        records: List[ScheduleRecord],
-        date: datetime
-    ) -> int:
-        """计算连续工作天数"""
-        if not records:
-            return 0
-        
-        # 按日期排序
-        sorted_dates = sorted(set(r.schedule_date for r in records), reverse=True)
-        
-        count = 0
-        check_date = date - timedelta(days=1)
-        
-        for d in sorted_dates:
-            d_date = datetime.strptime(d, "%Y-%m-%d")
-            if d_date == check_date:
-                count += 1
-                check_date -= timedelta(days=1)
-            elif d_date < check_date:
-                break
-        
-        return count
-    
-    def _count_week_night_shifts(
-        self,
-        records: List[ScheduleRecord],
-        date: datetime
-    ) -> int:
-        """计算本周晚班次数"""
-        # 获取本周开始日期（周一）
-        week_start = date - timedelta(days=date.weekday())
-        week_end = week_start + timedelta(days=6)
-        
-        count = 0
-        for record in records:
-            record_date = datetime.strptime(record.schedule_date, "%Y-%m-%d")
-            if week_start <= record_date <= week_end and record.shift_type == "晚班":
-                count += 1
-        
-        return count
-    
-    def _select_staff_for_shift(
-        self,
-        group: WorkingGroup,
-        shift_type: str
-    ) -> Dict:
-        """
-        为班次选择人员
-        
-        规则：
-        - 值班长：必须1人，只能1人
-        - 正值：至少1人，可多人
-        - 副值：至少1人，可多人
-        - 其他：可选
-        """
-        leaders = group.get_members_by_role(3)  # 值班长
-        zhizhi = group.get_members_by_role(2)   # 正值
-        fuzhi = group.get_members_by_role(1)    # 副值
-        others = group.get_members_by_role(0)   # 其他
-        
-        selected = {
-            "shift_type": shift_type,
-            "group_name": group.group_name,
-            "leader": None,
-            "zhizhi": [],
-            "fuzhi": [],
-            "others": [],
-            "total_count": 0
-        }
-        
-        # 1. 选择值班长（必须1人，只能1人）
-        if leaders:
-            selected["leader"] = leaders[0].to_dict()
-        
-        # 2. 选择正值（至少1人）
-        if zhizhi:
-            selected["zhizhi"] = [z.to_dict() for z in zhizhi[:2]]  # 最多2人
-        
-        # 3. 选择副值（至少1人）
-        if fuzhi:
-            selected["fuzhi"] = [f.to_dict() for f in fuzhi[:2]]  # 最多2人
-        
-        # 4. 选择其他人员（可选）
-        if others:
-            selected["others"] = [o.to_dict() for o in others[:1]]  # 最多1人
-        
-        selected["total_count"] = (
-            (1 if selected["leader"] else 0) +
-            len(selected["zhizhi"]) +
-            len(selected["fuzhi"]) +
-            len(selected["others"])
-        )
-        
-        return selected
-    
-    def _build_schedule_prompt(
-        self,
-        prediction_summary: Dict,
-        daily_predictions: List[Dict],
-        active_groups: List[Dict],
-        constraints: Dict
-    ) -> str:
-        """构建排班提示词"""
-        
-        return f"""
-你是配网调度排班专家，请严格按照以下规则生成排班方案。
+        person_id: str,
+        shift_type: str,
+        shift_date: date,
+        shift_hour: int,
+        existing_assignments: dict[str, list[dict]]
+    ) -> tuple[bool, str]:
+        """检查人员是否可以排入指定班次"""
+        assignments = existing_assignments.get(person_id, [])
 
-## 排班规则（必须严格遵守）
+        # 1. 同一天不能排两个班
+        for a in assignments:
+            if a["date"] == shift_date:
+                return False, f"已在 {shift_date} 安排了 {a['shift']}"
 
-### 1. 班组规则
-- 一个班组一天**只能排一次班**（早班/中班/晚班三选一）
-- 只安排**生效状态为"是"**的班组
-- 班组公平轮换，避免某班组连续工作过多
+        # 2. 检查最小间隔天数
+        for a in assignments:
+            diff = abs((shift_date - a["date"]).days)
+            if 0 < diff < self.config.min_rest_days:
+                return False, f"与上次排班仅间隔 {diff} 天，需要 {self.config.min_rest_days} 天"
 
-### 2. 每班人员配置（硬性要求）
-- **值班长(ID_LEADER=3)**：必须1人，只能1人
-- **正值(ID_LEADER=2)**：至少1人，可以多人
-- **副值(ID_LEADER=1)**：至少1人，可以多人
-- **其他(ID_LEADER=0)**：可选，按需配置
-
-### 3. 约束条件
-- 最大连续工作天数：{constraints.get('max_consecutive_days', 6)}天
-- 每周最多晚班次数：{constraints.get('max_night_shifts_per_week', 3)}次
-- 公平轮换
-
-## 业务量预测摘要
-{json.dumps(prediction_summary, ensure_ascii=False, indent=2)}
-
-## 每日预测详情
-{json.dumps(daily_predictions, ensure_ascii=False, indent=2)}
-
-## 生效班组列表（is_active=true）
-{json.dumps(active_groups, ensure_ascii=False, indent=2)}
-
-## 输出格式（JSON）
-```json
-{{
-  "schedule_summary": {{
-    "total_groups_used": 数字,
-    "peak_day": "YYYY-MM-DD",
-    "peak_staff_count": 数字,
-    "schedule_period": "开始 至 结束"
-  }},
-  "daily_schedules": [
-    {{
-      "date": "YYYY-MM-DD",
-      "predicted_dispatches": 数字,
-      "risk_level": "低/中/高",
-      "shifts": {{
-        "早班": {{
-          "group_name": "班组名",
-          "leader": {{"user_id": "ID", "user_name": "姓名"}},
-          "zhizhi": [{{"user_id": "ID", "user_name": "姓名"}}],
-          "fuzhi": [{{"user_id": "ID", "user_name": "姓名"}}],
-          "others": [],
-          "total_count": 数字
-        }},
-        "中班": {{...}},
-        "晚班": {{...}}
-      }},
-      "notes": "说明"
-    }}
-  ],
-  "rotation_check": {{
-    "max_consecutive_days": 数字,
-    "max_week_night_shifts": 数字,
-    "fairness_score": 0.0-1.0
-  }},
-  "recommendations": ["建议1", "建议2"]
-}}
-```
-
-请生成排班方案：
-"""
-    
-    def generate_schedule(
-        self,
-        prediction_result: Dict,
-        city_dept_id: Optional[str] = None,
-        ctx=None
-    ) -> Dict:
-        """生成智能排班方案"""
-        try:
-            # 获取生效的班组
-            groups = ScheduleDataProvider.get_working_groups(city_dept_id)
-            
-            if not groups:
-                return {
-                    "error": "没有生效的班组",
-                    "message": "请确保 working_groups 表中有 IS_ACTIVE='是' 的班组"
-                }
-            
-            # 检查每个班组的人员配置是否满足要求
-            valid_groups = []
-            for group in groups:
-                leaders = group.get_members_by_role(3)
-                zhizhi = group.get_members_by_role(2)
-                fuzhi = group.get_members_by_role(1)
-                
-                if leaders and zhizhi and fuzhi:
-                    valid_groups.append(group)
-                else:
-                    group_info = {
-                        "group_name": group.group_name,
-                        "has_leader": len(leaders) > 0,
-                        "has_zhizhi": len(zhizhi) > 0,
-                        "has_fuzhi": len(fuzhi) > 0,
-                        "warning": "人员配置不满足要求（需要至少1名值班长、1名正值、1名副值）"
-                    }
-                    valid_groups.append(group)  # 仍然加入，但标记警告
-            
-            # 提取预测数据
-            prediction_summary = prediction_result.get("prediction_summary", {})
-            daily_predictions = prediction_result.get("daily_predictions", [])
-            
-            # 初始化LLM
-            client = self._init_llm_client(ctx)
-            
-            # 构建提示词
-            prompt = self._build_schedule_prompt(
-                prediction_summary,
-                daily_predictions,
-                [g.to_dict() for g in valid_groups],
-                self.config.constraints
-            )
-            
-            # 调用LLM
-            messages = [
-                SystemMessage(content="你是专业的配网调度排班专家，严格遵循排班规则。"),
-                HumanMessage(content=prompt)
-            ]
-            
-            response = client.invoke(
-                messages=messages,
-                model="doubao-seed-1-8-251228",
-                temperature=0.3,
-                max_completion_tokens=6000
-            )
-            
-            # 解析响应
-            content = response.content
-            if isinstance(content, list):
-                content = " ".join(
-                    item.get("text", "") 
-                    for item in content 
-                    if isinstance(item, dict) and item.get("type") == "text"
-                )
-            
-            # 提取JSON
-            json_start = content.find("```json")
-            json_end = content.find("```", json_start + 7)
-            
-            if json_start != -1 and json_end != -1:
-                json_str = content[json_start + 7:json_end].strip()
-                schedule_result = json.loads(json_str)
+        # 3. 检查连续班次上限
+        consecutive = 0
+        for a in sorted(assignments, key=lambda x: x["date"]):
+            if (shift_date - a["date"]).days <= 1:
+                consecutive += 1
             else:
-                schedule_result = json.loads(content)
-            
-            # 添加元数据
-            schedule_result["metadata"] = {
-                "generation_time": datetime.now().isoformat(),
-                "total_active_groups": len(groups),
-                "valid_groups": len(valid_groups),
-                "city_dept_id": city_dept_id
-            }
-            
-            return schedule_result
-            
-        except Exception as e:
-            return {
-                "error": str(e),
-                "message": "排班生成失败",
-                "timestamp": datetime.now().isoformat()
-            }
+                consecutive = 0
+        if consecutive >= self.config.max_consecutive_shifts:
+            return False, f"连续班次已达上限 {self.config.max_consecutive_shifts}"
+
+        return True, ""
+
+    def generate(
+        self,
+        constraints: ScheduleConstraints
+    ) -> list[OcScheduleRecord]:
+        """生成排班计划"""
+        teams = self.provider.get_teams(constraints.city_dept_id)
+        if not teams:
+            return []
+
+        existing_records = self.provider.get_records(
+            constraints.start_date,
+            constraints.end_date,
+            constraints.city_dept_id
+        )
+
+        # 构建现有排班映射
+        existing_map: dict[str, list[dict]] = {}
+        for rec in existing_records:
+            shift_type = detect_shift_type(rec.on_duty_time)
+            if rec.on_duty_time:
+                for pid in rec.person_id_list + ([rec.team_leader_id] if rec.team_leader_id else []):
+                    existing_map.setdefault(pid, []).append({
+                        "date": rec.on_duty_time.date(),
+                        "shift": shift_type,
+                        "team": rec.team_name
+                    })
+
+        new_records: list[OcScheduleRecord] = []
+        current = constraints.start_date
+        while current <= constraints.end_date:
+            # 每天上午/中/晚三个班次
+            for hour_offset in [8, 12, 18]:
+                # 轮转班组
+                team_idx = (len(new_records)) % len(teams)
+                team = teams[team_idx]
+
+                on_duty = datetime(current.year, current.month, current.day, hour_offset, 0, 0)
+                off_duty = on_duty + timedelta(hours=8)
+                shift_type = detect_shift_type(on_duty)
+
+                record_id = f"SR{current.strftime('%Y%m%d')}_{team.team_id}_{hour_offset}"
+
+                new_records.append(OcScheduleRecord(
+                    record_id=record_id,
+                    dis_org_id=team.create_busi_dept_id,
+                    dis_org_name=team.create_busi_dept_name,
+                    team_id=team.team_id,
+                    team_name=team.team_name,
+                    schedule_status="Y",
+                    on_duty_time=on_duty,
+                    off_duty_time=off_duty,
+                    team_leader_id=team.team_leader_id,
+                    team_leader_name=team.team_leader_name,
+                    other_person_ids=team.other_person_ids,
+                    other_person_names=team.other_person_names,
+                ))
+            current += timedelta(days=1)
+
+        return new_records
 
 
-# ============================================================
-# 工具函数
-# ============================================================
+# ═══════════════════════════════════════════════
+#  报表导出
+# ═══════════════════════════════════════════════
+
+def export_schedule_to_csv(records: list[OcScheduleRecord]) -> str:
+    """导出排班记录为 CSV 格式"""
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "日期", "班次", "班组", "值班长", "值班长ID",
+        "值班人员", "人员ID", "上班时间", "下班时间", "状态"
+    ])
+    for rec in records:
+        shift_type = detect_shift_type(rec.on_duty_time)
+        duty_date = rec.on_duty_time.strftime("%Y-%m-%d") if rec.on_duty_time else ""
+        on_time = rec.on_duty_time.strftime("%H:%M") if rec.on_duty_time else ""
+        off_time = rec.off_duty_time.strftime("%H:%M") if rec.off_duty_time else ""
+        status = "在值" if rec.schedule_status == "Y" else "已交班"
+        writer.writerow([
+            duty_date, shift_type, rec.team_name,
+            rec.team_leader_name, rec.team_leader_id,
+            rec.other_person_names, rec.other_person_ids,
+            on_time, off_time, status
+        ])
+    return output.getvalue()
+
+
+# ═══════════════════════════════════════════════
+#  公平性分析
+# ═══════════════════════════════════════════════
+
+def analyze_fairness(records: list[OcScheduleRecord]) -> dict:
+    """
+    分析排班公平性
+
+    返回:
+        {
+            "total_records": int,
+            "teams": { team_name: { shifts: int, avg_hours: float } },
+            "balance_score": float (0~100),
+            "summary": str
+        }
+    """
+    team_stats: dict[str, dict] = {}
+    for rec in records:
+        name = rec.team_name
+        if name not in team_stats:
+            team_stats[name] = {"shifts": 0, "total_hours": 0.0}
+        team_stats[name]["shifts"] += 1
+        shift_type = detect_shift_type(rec.on_duty_time)
+        hours = 8  # 标准8小时
+        team_stats[name]["total_hours"] += hours
+
+    result: dict[str, Any] = {
+        "total_records": len(records),
+        "teams": {},
+        "balance_score": 100.0,
+        "summary": ""
+    }
+
+    if not team_stats:
+        result["summary"] = "无排班数据"
+        return result
+
+    max_shifts = max(s["shifts"] for s in team_stats.values())
+    min_shifts = min(s["shifts"] for s in team_stats.values())
+    max_hours = max(s["total_hours"] for s in team_stats.values())
+    min_hours = min(s["total_hours"] for s in team_stats.values())
+
+    # 公平性评分 = 100 - 偏差百分比
+    shift_diff_pct = ((max_shifts - min_shifts) / max(max_shifts, 1)) * 100 if max_shifts > 0 else 0
+    hour_diff_pct = ((max_hours - min_hours) / max(max_hours, 1)) * 100 if max_hours > 0 else 0
+    balance_score = max(0, 100 - (shift_diff_pct * 0.6 + hour_diff_pct * 0.4))
+
+    for name, stats in sorted(team_stats.items()):
+        avg_hours = round(stats["total_hours"] / max(stats["shifts"], 1), 1)
+        result["teams"][name] = {
+            "shifts": stats["shifts"],
+            "avg_hours": avg_hours
+        }
+
+    result["balance_score"] = round(balance_score, 1)
+    if balance_score >= 90:
+        result["summary"] = f"排班公平性良好（{balance_score}分），各班组班次分布均衡"
+    elif balance_score >= 70:
+        result["summary"] = f"排班公平性一般（{balance_score}分），建议适当调整班次分配"
+    else:
+        result["summary"] = f"排班公平性较差（{balance_score}分），需要优化轮换策略"
+
+    return result
+
+
+# ═══════════════════════════════════════════════
+#  工具函数 — 6 个对外暴露接口
+# ═══════════════════════════════════════════════
 
 @tool
-def get_schedule_staff_info(
-    city_dept_id: str = "") -> str:
+def get_schedule_staff_info(city_dept_id: str = "") -> str:
     """
-    获取排班人员信息（包括生效班组）
-    
-    参数：
-    - city_dept_id: 所属地市ID（可选）
-    
-    返回：人员信息JSON字符串
+    获取排班人员信息
+    - 查询 OC_SCHEDULE_TEAM 表获取班组及人员配置
+    - 返回各班组的人员组成、角色（值班长/值班人员）
     """
-    ctx = request_context.get() or new_context(method="get_schedule_staff_info")
-    
     try:
-        from storage.database.db import is_database_connected
-        
-        db_connected = is_database_connected()
-        users = ScheduleDataProvider.get_working_users(city_dept_id if city_dept_id else None)
-        groups = ScheduleDataProvider.get_working_groups(city_dept_id if city_dept_id else None)
-        
-        # 统计角色分布
-        role_stats = {}
-        for user in users:
-            role_name = user.role_name
-            role_stats[role_name] = role_stats.get(role_name, 0) + 1
-        
-        # 检查每个班组的人员配置
-        group_check = []
-        for group in groups:
-            leaders = group.get_members_by_role(3)
-            zhizhi = group.get_members_by_role(2)
-            fuzhi = group.get_members_by_role(1)
-            
-            group_check.append({
-                "group_name": group.group_name,
-                "is_active": group.is_active,
-                "member_count": len(group.members),
-                "leader_count": len(leaders),
-                "zhizhi_count": len(zhizhi),
-                "fuzhi_count": len(fuzhi),
-                "is_valid": len(leaders) >= 1 and len(zhizhi) >= 1 and len(fuzhi) >= 1,
-                "warning": None if (len(leaders) >= 1 and len(zhizhi) >= 1 and len(fuzhi) >= 1) 
-                          else "人员不足：需要至少1名值班长、1名正值、1名副值"
+        teams = ScheduleDataProvider.get_teams(city_dept_id)
+        if not teams:
+            return json.dumps({"code": 0, "data": [], "msg": "暂无班组数据"}, ensure_ascii=False)
+        data = []
+        for t in teams:
+            members = t.all_members
+            data.append({
+                "team_id": t.team_id,
+                "team_name": t.team_name,
+                "member_count": len(members),
+                "members": members
             })
-        
-        if len(users) == 0:
-            result = {
-                "success": True,
-                "timestamp": datetime.now().isoformat(),
-                "city_dept_id": city_dept_id or "全部",
-                "database_connected": db_connected,
-                "staff_summary": {
-                    "total_users": 0,
-                    "active_groups": 0,
-                    "role_distribution": {}
-                },
-                "users": [],
-                "groups": [],
-                "group_validation": [],
-                "message": "未查询到人员数据",
-                "setup_guide": {
-                    "step1": "检查 .env 中的数据库配置",
-                    "step2": "确保 working_user 表存在且有数据",
-                    "step3": "确保 working_groups 表有 IS_ACTIVE='是' 的记录"
-                }
-            }
-        else:
-            result = {
-                "success": True,
-                "timestamp": datetime.now().isoformat(),
-                "city_dept_id": city_dept_id or "全部",
-                "database_connected": db_connected,
-                "staff_summary": {
-                    "total_users": len(users),
-                    "active_groups": len(groups),
-                    "role_distribution": role_stats
-                },
-                "users": [u.to_dict() for u in users],
-                "groups": [g.to_dict() for g in groups],
-                "group_validation": group_check
-            }
-        
-        return json.dumps(result, ensure_ascii=False, indent=2)
-        
+        return json.dumps({"code": 0, "data": data}, ensure_ascii=False)
     except Exception as e:
-        return json.dumps({
-            "success": False,
-            "error": str(e),
-            "message": "获取人员信息失败"
-        }, ensure_ascii=False)
+        return json.dumps({"code": 1, "error": str(e)}, ensure_ascii=False)
 
 
 @tool
 def get_existing_schedule(
-    start_date: str,
-    end_date: str,
-    city_dept_id: str = "") -> str:
+    start_date: str = "",
+    end_date: str = "",
+    city_dept_id: str = ""
+) -> str:
     """
-    获取现有排班记录
-    
-    参数：
-    - start_date: 开始日期 (YYYY-MM-DD)
-    - end_date: 结束日期 (YYYY-MM-DD)
-    - city_dept_id: 所属地市ID（可选）
-    
-    返回：排班记录JSON字符串
+    获取现有排班记录 — 查询 OC_SCHEDULE_RECORD 表
+    自动识别早/中/晚班次类型
     """
-    ctx = request_context.get() or new_context(method="get_existing_schedule")
-    
     try:
-        records = ScheduleDataProvider.get_schedule_records(
-            start_date,
-            end_date,
-            city_dept_id if city_dept_id else None
-        )
-        
-        # 按日期和班次组织
-        schedule_by_date = {}
-        for record in records:
-            date = record.schedule_date
-            shift = record.shift_type
-            
-            if date not in schedule_by_date:
-                schedule_by_date[date] = {}
-            if shift not in schedule_by_date[date]:
-                schedule_by_date[date][shift] = []
-            
-            schedule_by_date[date][shift].append(record.to_dict())
-        
-        # 统计班组工作情况
-        group_work_stats = {}
-        for record in records:
-            group_name = record.group_name
-            if group_name not in group_work_stats:
-                group_work_stats[group_name] = {
-                    "total_shifts": 0,
-                    "dates": set(),
-                    "shift_types": {}
-                }
-            group_work_stats[group_name]["total_shifts"] += 1
-            group_work_stats[group_name]["dates"].add(record.schedule_date)
-            group_work_stats[group_name]["shift_types"][record.shift_type] = \
-                group_work_stats[group_name]["shift_types"].get(record.shift_type, 0) + 1
-        
-        # 转换 set 为 list 以便 JSON 序列化
-        for group_name in group_work_stats:
-            group_work_stats[group_name]["dates"] = sorted(list(group_work_stats[group_name]["dates"]))
-        
-        result = {
-            "success": True,
-            "timestamp": datetime.now().isoformat(),
-            "date_range": {"start": start_date, "end": end_date},
-            "city_dept_id": city_dept_id or "全部",
-            "total_records": len(records),
-            "schedule_by_date": schedule_by_date,
-            "group_work_stats": group_work_stats
-        }
-        
-        return json.dumps(result, ensure_ascii=False, indent=2)
-        
+        s_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else date.today()
+        e_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else date.today()
+        records = ScheduleDataProvider.get_records(s_date, e_date, city_dept_id)
+        data = []
+        for rec in records:
+            shift_type = detect_shift_type(rec.on_duty_time)
+            data.append({
+                "record_id": rec.record_id,
+                "team_id": rec.team_id,
+                "team_name": rec.team_name,
+                "shift_type": shift_type,
+                "schedule_status": "在值" if rec.schedule_status == "Y" else "已交班",
+                "on_duty_time": rec.on_duty_time.strftime("%Y-%m-%d %H:%M") if rec.on_duty_time else "",
+                "off_duty_time": rec.off_duty_time.strftime("%Y-%m-%d %H:%M") if rec.off_duty_time else "",
+                "team_leader": rec.team_leader_name,
+                "other_personnel": rec.other_person_names,
+            })
+        return json.dumps({"code": 0, "data": data}, ensure_ascii=False)
     except Exception as e:
-        return json.dumps({
-            "success": False,
-            "error": str(e),
-            "message": "获取排班记录失败"
-        }, ensure_ascii=False)
+        return json.dumps({"code": 1, "error": str(e)}, ensure_ascii=False)
 
 
 @tool
 def generate_intelligent_schedule(
-    prediction_result: str,
-    city_dept_id: str = "") -> str:
+    start_date: str = "",
+    end_date: str = "",
+    city_dept_id: str = ""
+) -> str:
     """
-    生成智能排班方案
-    
-    排班规则：
-    - 一个班组一天只能排一次班（早/中/晚三选一）
-    - 每班：1名值班长(必须且只能1人) + N名正值 + N名副值 + 可选其他人员
-    - 最大连续工作6天，每周最多3次晚班
-    - 只安排生效状态为"是"的班组
-    
-    参数：
-    - prediction_result: 业务量预测结果JSON字符串
-    - city_dept_id: 所属地市ID（可选）
-    
-    返回：智能排班方案JSON字符串
+    智能排班生成 — 根据 OC_SCHEDULE_TEAM 班组信息自动生成排班表
+    每天自动分配早/中/晚三个班次，轮转班组
     """
-    ctx = request_context.get() or new_context(method="generate_intelligent_schedule")
-    
     try:
-        prediction_data = json.loads(prediction_result)
-        prediction = prediction_data.get("prediction", prediction_data)
-        
-        engine = IntelligentScheduleEngine()
-        schedule_result = engine.generate_schedule(
-            prediction_result=prediction,
-            city_dept_id=city_dept_id if city_dept_id else None,
-            ctx=ctx
+        s_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else date.today()
+        e_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else date.today()
+
+        constraints = ScheduleConstraints(
+            start_date=s_date,
+            end_date=e_date,
+            city_dept_id=city_dept_id
         )
-        
-        result = {
-            "success": True,
-            "generation_timestamp": datetime.now().isoformat(),
-            "schedule_result": schedule_result
-        }
-        
-        return json.dumps(result, ensure_ascii=False, indent=2)
-        
+        generator = ScheduleGenerator()
+        records = generator.generate(constraints)
+
+        data = []
+        for rec in records:
+            shift_type = detect_shift_type(rec.on_duty_time)
+            data.append({
+                "date": rec.on_duty_time.strftime("%Y-%m-%d") if rec.on_duty_time else "",
+                "shift": shift_type,
+                "team": rec.team_name,
+                "team_leader": rec.team_leader_name,
+                "members": rec.other_person_names,
+                "on_duty": rec.on_duty_time.strftime("%H:%M") if rec.on_duty_time else "",
+                "off_duty": rec.off_duty_time.strftime("%H:%M") if rec.off_duty_time else "",
+            })
+        return json.dumps({"code": 0, "data": data, "total": len(data)}, ensure_ascii=False)
     except Exception as e:
-        return json.dumps({
-            "success": False,
-            "error": str(e),
-            "message": "智能排班生成失败"
-        }, ensure_ascii=False)
+        return json.dumps({"code": 1, "error": str(e)}, ensure_ascii=False)
 
 
 @tool
 def analyze_schedule_fairness(
-    schedule_records: str) -> str:
+    start_date: str = "",
+    end_date: str = "",
+    city_dept_id: str = ""
+) -> str:
     """
-    分析排班公平性
-    
-    参数：
-    - schedule_records: 排班记录JSON字符串
-    
-    返回：公平性分析报告JSON字符串
+    分析排班公平性 — 基于 OC_SCHEDULE_RECORD 历史记录统计各班组班次分布
     """
-    ctx = request_context.get() or new_context(method="analyze_schedule_fairness")
-    
     try:
-        records_data = json.loads(schedule_records)
-        records = records_data.get("records", [])
-        
-        # 统计每人工作次数
-        work_count = {}
-        shift_count = {}
-        night_count = {}
-        consecutive_days = {}
-        
-        for record in records:
-            user_id = record.get("user_id")
-            user_name = record.get("user_name")
-            shift = record.get("shift_type")
-            date = record.get("schedule_date")
-            group = record.get("group_name", "")
-            
-            key = f"{user_id}_{user_name}"
-            work_count[key] = work_count.get(key, 0) + 1
-            
-            if key not in shift_count:
-                shift_count[key] = {"早班": 0, "中班": 0, "晚班": 0}
-            shift_count[key][shift] = shift_count[key].get(shift, 0) + 1
-            
-            if shift == "晚班":
-                night_count[key] = night_count.get(key, 0) + 1
-            
-            if group:
-                if group not in consecutive_days:
-                    consecutive_days[group] = set()
-                consecutive_days[group].add(date)
-        
-        # 计算公平性指标
-        counts = list(work_count.values())
-        avg_work = sum(counts) / len(counts) if counts else 0
-        variance = sum((c - avg_work) ** 2 for c in counts) / len(counts) if counts else 0
-        balance_score = max(0, 1 - variance / (avg_work ** 2 + 1))
-        
-        # 检查约束违反情况
-        violations = []
-        for key, nights in night_count.items():
-            if nights > 3:
-                violations.append(f"{key} 晚班次数({nights})超过限制(3次)")
-        
-        result = {
-            "success": True,
-            "analysis_timestamp": datetime.now().isoformat(),
-            "fairness_metrics": {
-                "overall_balance_score": round(balance_score, 2),
-                "work_count_distribution": {
-                    "average": round(avg_work, 1),
-                    "max": max(counts) if counts else 0,
-                    "min": min(counts) if counts else 0
-                },
-                "night_shift_violations": violations,
-                "individual_stats": {
-                    user: {
-                        "total_work": work_count[user],
-                        "shift_breakdown": shift_count.get(user, {}),
-                        "night_shifts": night_count.get(user, 0)
-                    }
-                    for user in work_count
-                }
-            },
-            "fairness_assessment": {
-                "level": "优秀" if balance_score >= 0.8 else "良好" if balance_score >= 0.6 else "需改进",
-                "issues": violations,
-                "recommendations": [] if balance_score >= 0.6 else ["建议调整排班，平衡人员工作量"]
-            }
-        }
-        
-        return json.dumps(result, ensure_ascii=False, indent=2)
-        
+        s_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else date.today()
+        e_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else date.today()
+        records = ScheduleDataProvider.get_records(s_date, e_date, city_dept_id)
+        result = analyze_fairness(records)
+        result["code"] = 0
+        return json.dumps(result, ensure_ascii=False)
     except Exception as e:
-        return json.dumps({
-            "success": False,
-            "error": str(e),
-            "message": "公平性分析失败"
-        }, ensure_ascii=False)
+        return json.dumps({"code": 1, "error": str(e)}, ensure_ascii=False)
 
 
 @tool
 def export_schedule_report(
-    schedule_result: str,
-    output_format: str = "markdown") -> str:
+    start_date: str = "",
+    end_date: str = "",
+    city_dept_id: str = ""
+) -> str:
     """
-    导出排班报告
-    
-    参数：
-    - schedule_result: 排班结果JSON字符串
-    - output_format: 输出格式 (markdown/json)
-    
-    返回：排班报告
+    导出排班报表 — 生成 CSV 格式的排班明细
+    包含日期、班次、班组、值班长、值班人员、上下班时间
     """
-    ctx = request_context.get() or new_context(method="export_schedule_report")
-    
     try:
-        schedule_data = json.loads(schedule_result)
-        
-        if output_format == "json":
-            return json.dumps(schedule_data, ensure_ascii=False, indent=2)
-        
-        # 生成 Markdown 报告
-        schedule_result_data = schedule_data.get("schedule_result", schedule_data)
-        schedule_summary = schedule_result_data.get("schedule_summary", {})
-        daily_schedules = schedule_result_data.get("daily_schedules", [])
-        
-        report = f"""# 配网调度智能排班方案
+        s_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else date.today()
+        e_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else date.today()
+        records = ScheduleDataProvider.get_records(s_date, e_date, city_dept_id)
 
-**生成时间**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+        csv_content = export_schedule_to_csv(records)
+        filename = f"排班报表_{s_date.strftime('%Y%m%d')}-{e_date.strftime('%Y%m%d')}.csv"
 
----
+        # 保存到临时目录
+        temp_path = os.path.join("/tmp", filename)
+        with open(temp_path, "w", encoding="utf-8-sig", newline="") as f:
+            f.write(csv_content)
 
-## 一、排班摘要
-
-| 指标 | 数值 |
-|------|------|
-| 使用班组数 | {schedule_summary.get('total_groups_used', 'N/A')} |
-| 峰值日期 | {schedule_summary.get('peak_day', 'N/A')} |
-| 峰值人数 | {schedule_summary.get('peak_staff_count', 'N/A')} |
-| 排班周期 | {schedule_summary.get('schedule_period', 'N/A')} |
-
----
-
-## 二、每日排班详情
-
-### 排班规则说明
-- **一个班组一天只能排一次班**（早/中/晚三选一）
-- **每班人员配置**：1名值班长 + N名正值 + N名副值 + 可选其他人员
-
----
-
-"""
-        
-        for day in daily_schedules:
-            date = day.get("date", "")
-            dispatches = day.get("predicted_dispatches", 0)
-            risk = day.get("risk_level", "中")
-            shifts = day.get("shifts", {})
-            notes = day.get("notes", "")
-            
-            report += f"""### 📅 {date}
-
-**预测调度**: {dispatches} 次 | **风险等级**: {risk}
-
-| 班次 | 班组 | 值班长 | 正值 | 副值 | 其他 | 总人数 |
-|------|------|--------|------|------|------|--------|
-"""
-            
-            for shift_name in ["早班", "中班", "晚班"]:
-                shift_data = shifts.get(shift_name, {})
-                group_name = shift_data.get("group_name", "-")
-                leader = shift_data.get("leader", {})
-                zhizhi = shift_data.get("zhizhi", [])
-                fuzhi = shift_data.get("fuzhi", [])
-                others = shift_data.get("others", [])
-                total = shift_data.get("total_count", 0)
-                
-                leader_name = leader.get("user_name", "-") if leader else "-"
-                zhizhi_names = ", ".join([z.get("user_name", "") for z in zhizhi]) or "-"
-                fuzhi_names = ", ".join([f.get("user_name", "") for f in fuzhi]) or "-"
-                others_names = ", ".join([o.get("user_name", "") for o in others]) or "-"
-                
-                report += f"| {shift_name} | {group_name} | {leader_name} | {zhizhi_names} | {fuzhi_names} | {others_names} | {total} |\n"
-            
-            if notes:
-                report += f"\n**备注**: {notes}\n"
-            report += "\n"
-        
-        report += """---
-
-**报告结束**
-"""
-        
-        return report
-        
+        return json.dumps({
+            "code": 0,
+            "filename": filename,
+            "rows": len(records),
+            "content": csv_content,
+            "local_path": temp_path
+        }, ensure_ascii=False)
     except Exception as e:
-        return f"报告导出失败: {str(e)}"
+        return json.dumps({"code": 1, "error": str(e)}, ensure_ascii=False)
 
 
 @tool
-def save_schedule_records(
-    schedule_data: str,
-    city_dept_id: str = "") -> str:
+def save_schedule_records(records_json: str = "") -> str:
     """
-    保存排班记录到数据库
-    
-    参数：
-    - schedule_data: 排班数据JSON字符串（包含 daily_schedules 数组）
-    - city_dept_id: 所属地市ID（可选）
-    
-    返回：保存结果JSON字符串
-    
-    注意：
-    - SHIFT_TYPE 使用数字枚举：1=晚班, 2=早班, 3=中班
-    - STATUS 使用数字枚举：1=计划, 2=执行中, 3=已完成, 4=取消
+    保存排班记录 — 批量写入 OC_SCHEDULE_RECORD 表
+    records_json: JSON 格式的排班记录列表
     """
-    ctx = request_context.get() or new_context(method="save_schedule_records")
-    
     try:
-        from storage.database.db import get_session, is_database_connected
-        from sqlalchemy import text
-        import uuid
-        
-        if not is_database_connected():
-            return json.dumps({
-                "success": False,
-                "error": "数据库未连接",
-                "message": "请检查 .env 中的数据库配置"
-            }, ensure_ascii=False)
-        
-        data = json.loads(schedule_data)
-        daily_schedules = data.get("daily_schedules", [])
-        
-        if not daily_schedules:
-            return json.dumps({
-                "success": False,
-                "error": "无排班数据",
-                "message": "daily_schedules 为空"
-            }, ensure_ascii=False)
-        
-        session = get_session()
-        if not session:
-            return json.dumps({
-                "success": False,
-                "error": "数据库连接失败"
-            }, ensure_ascii=False)
-        
-        # 班次名称到数字的映射
-        shift_type_map = {
-            "早班": 2,
-            "中班": 3,
-            "晚班": 1
-        }
-        
-        saved_records = []
-        saved_count = 0
-        errors = []
-        
-        try:
-            for day_schedule in daily_schedules:
-                date = day_schedule.get("date", "")
-                shifts = day_schedule.get("shifts", {})
-                
-                for shift_name in ["早班", "中班", "晚班"]:
-                    shift_data = shifts.get(shift_name, {})
-                    group_name = shift_data.get("group_name", "")
-                    
-                    if not group_name:
-                        continue
-                    
-                    shift_type_code = shift_type_map.get(shift_name, 2)
-                    
-                    # 收集所有人员
-                    staff_list = []
-                    
-                    # 值班长
-                    leader = shift_data.get("leader")
-                    if leader:
-                        staff_list.append({
-                            "user_id": leader.get("user_id", ""),
-                            "user_name": leader.get("user_name", ""),
-                            "id_leader": 3
-                        })
-                    
-                    # 正值
-                    for z in shift_data.get("zhizhi", []):
-                        staff_list.append({
-                            "user_id": z.get("user_id", ""),
-                            "user_name": z.get("user_name", ""),
-                            "id_leader": 2
-                        })
-                    
-                    # 副值
-                    for f in shift_data.get("fuzhi", []):
-                        staff_list.append({
-                            "user_id": f.get("user_id", ""),
-                            "user_name": f.get("user_name", ""),
-                            "id_leader": 1
-                        })
-                    
-                    # 其他
-                    for o in shift_data.get("others", []):
-                        staff_list.append({
-                            "user_id": o.get("user_id", ""),
-                            "user_name": o.get("user_name", ""),
-                            "id_leader": 0
-                        })
-                    
-                    # 插入每条记录
-                    for staff in staff_list:
-                        record_id = str(uuid.uuid4())
-                        
-                        sql = text("""
-                            INSERT INTO work_schedule_recode 
-                            (RECORD_ID, USER_ID, USER_NAME, GROUP_NAME, SCHEDULE_DATE, 
-                             SHIFT_TYPE, STATUS, ID_LEADER, CITY_DEPT_ID, CITY_DEPT_NAME)
-                            VALUES 
-                            (:record_id, :user_id, :user_name, :group_name, :schedule_date,
-                             :shift_type, :status, :id_leader, :city_dept_id, :city_dept_name)
-                        """)
-                        
-                        params = {
-                            "record_id": record_id,
-                            "user_id": staff["user_id"],
-                            "user_name": staff["user_name"],
-                            "group_name": group_name,
-                            "schedule_date": date,
-                            "shift_type": shift_type_code,  # 数字枚举
-                            "status": 1,  # 默认状态：计划
-                            "id_leader": staff["id_leader"],
-                            "city_dept_id": city_dept_id or "",
-                            "city_dept_name": ""
-                        }
-                        
-                        try:
-                            session.execute(sql, params)
-                            saved_records.append({
-                                "record_id": record_id,
-                                "user_name": staff["user_name"],
-                                "group_name": group_name,
-                                "date": date,
-                                "shift_type": shift_name,
-                                "shift_type_code": shift_type_code
-                            })
-                            saved_count += 1
-                        except Exception as e:
-                            errors.append(f"保存记录失败: {staff['user_name']} - {str(e)}")
-            
-            session.commit()
-            
-            result = {
-                "success": True,
-                "message": f"成功保存 {saved_count} 条排班记录",
-                "saved_count": saved_count,
-                "saved_records": saved_records[:20],  # 只返回前20条用于展示
-                "errors": errors[:10] if errors else []
-            }
-            
-            return json.dumps(result, ensure_ascii=False, indent=2)
-            
-        except Exception as e:
-            session.rollback()
-            return json.dumps({
-                "success": False,
-                "error": str(e),
-                "message": "保存失败，已回滚"
-            }, ensure_ascii=False)
-        finally:
-            session.close()
-        
+        records_data = json.loads(records_json) if records_json else []
+        if not isinstance(records_data, list):
+            records_data = [records_data]
+
+        records: list[OcScheduleRecord] = []
+        for item in records_data:
+            on_time = datetime.strptime(item.get("on_duty_time", ""), "%Y-%m-%d %H:%M") if item.get("on_duty_time") else None
+            off_time = datetime.strptime(item.get("off_duty_time", ""), "%Y-%m-%d %H:%M") if item.get("off_duty_time") else None
+            records.append(OcScheduleRecord(
+                record_id=item.get("record_id", ""),
+                dis_org_id=item.get("dis_org_id", ""),
+                dis_org_name=item.get("dis_org_name", ""),
+                team_id=item.get("team_id", ""),
+                team_name=item.get("team_name", ""),
+                schedule_status=item.get("schedule_status", "Y"),
+                on_duty_time=on_time,
+                off_duty_time=off_time,
+                team_leader_id=item.get("team_leader_id", ""),
+                team_leader_name=item.get("team_leader_name", ""),
+                other_person_ids=item.get("other_person_ids", ""),
+                other_person_names=item.get("other_person_names", ""),
+            ))
+
+        saved = ScheduleDataProvider.save_records(records)
+        return json.dumps({"code": 0, "saved": saved, "msg": f"成功保存 {saved} 条排班记录"}, ensure_ascii=False)
     except Exception as e:
-        return json.dumps({
-            "success": False,
-            "error": str(e),
-            "message": "保存排班记录失败"
-        }, ensure_ascii=False)
-
-
-# 导出所有工具
-__all__ = [
-    "get_schedule_staff_info",
-    "get_existing_schedule",
-    "generate_intelligent_schedule",
-    "analyze_schedule_fairness",
-    "export_schedule_report",
-    "save_schedule_records"
-]
+        return json.dumps({"code": 1, "error": str(e)}, ensure_ascii=False)

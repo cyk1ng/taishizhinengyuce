@@ -95,6 +95,9 @@ class OcScheduleRecord:
     team_leader_name: str = ""
     other_person_ids: str = ""
     other_person_names: str = ""
+    # 跨班组临时借调人员（不改变其所属班组）
+    temp_person_ids: str = ""
+    temp_person_names: str = ""
 
     @property
     def person_id_list(self) -> list[str]:
@@ -109,17 +112,104 @@ class OcScheduleRecord:
         return [n.strip() for n in self.other_person_names.split(",") if n.strip()]
 
     @property
+    def temp_person_id_list(self) -> list[str]:
+        """解析临时借调人员 ID"""
+        if not self.temp_person_ids:
+            return []
+        return [p.strip() for p in self.temp_person_ids.split(",") if p.strip()]
+
+    @property
+    def temp_person_name_list(self) -> list[str]:
+        """解析临时借调人员姓名"""
+        if not self.temp_person_names:
+            return []
+        return [n.strip() for n in self.temp_person_names.split(",") if n.strip()]
+
+    @property
     def all_personnel(self) -> list[dict]:
-        """完整排班人员列表"""
+        """完整排班人员列表（核心成员 + 临时借调人员）"""
         people = []
+        # 值班长
         if self.team_leader_id and self.team_leader_name:
-            people.append({"id": self.team_leader_id, "name": self.team_leader_name, "role": "值班长"})
+            people.append({
+                "id": self.team_leader_id,
+                "name": self.team_leader_name,
+                "role": "值班长",
+                "type": "core"
+            })
+        # 核心值班人员
         ids = self.person_id_list
         names = self.person_name_list
         for i, uid in enumerate(ids):
             name = names[i] if i < len(names) else f"人员{uid}"
-            people.append({"id": uid, "name": name, "role": "值班人员"})
+            people.append({
+                "id": uid,
+                "name": name,
+                "role": "值班人员",
+                "type": "core"
+            })
+        # 临时借调人员
+        temp_ids = self.temp_person_id_list
+        temp_names = self.temp_person_name_list
+        for i, uid in enumerate(temp_ids):
+            name = temp_names[i] if i < len(temp_names) else f"临时人员{uid}"
+            people.append({
+                "id": uid,
+                "name": name,
+                "role": "临时值班人员",
+                "type": "temp"
+            })
         return people
+
+    def add_temp_person(self, person_id: str, person_name: str) -> None:
+        """添加临时借调人员"""
+        existing_ids = self.temp_person_id_list
+        if person_id in existing_ids:
+            return  # 已存在，不重复添加
+        existing_ids.append(person_id)
+        existing_names = self.temp_person_name_list
+        existing_names.append(person_name)
+        self.temp_person_ids = ",".join(existing_ids)
+        self.temp_person_names = ",".join(existing_names)
+
+    def remove_temp_person(self, person_id: str) -> bool:
+        """移除临时借调人员，返回是否成功移除"""
+        existing_ids = self.temp_person_id_list
+        if person_id not in existing_ids:
+            return False
+        idx = existing_ids.index(person_id)
+        existing_names = self.temp_person_name_list
+        existing_ids.pop(idx)
+        if idx < len(existing_names):
+            existing_names.pop(idx)
+        self.temp_person_ids = ",".join(existing_ids)
+        self.temp_person_names = ",".join(existing_names)
+        return True
+
+    def clear_temp_personnel(self) -> int:
+        """清空所有临时借调人员，返回清空人数"""
+        count = len(self.temp_person_id_list)
+        self.temp_person_ids = ""
+        self.temp_person_names = ""
+        return count
+
+    def end_shift(self) -> dict:
+        """
+        交班操作：
+        1. 设置 schedule_status = 'N'
+        2. 记录交班时间
+        3. 自动清除临时借调人员
+        返回交班摘要
+        """
+        cleared = self.clear_temp_personnel()
+        self.schedule_status = "N"
+        self.change_time = datetime.now()
+        return {
+            "team_name": self.team_name,
+            "cleared_temp": cleared,
+            "change_time": self.change_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "msg": f"{self.team_name}已交班，清除{cleared}名临时借调人员"
+        }
 
 
 # ═══════════════════════════════════════════════
@@ -169,6 +259,26 @@ class ScheduleConstraints:
     city_dept_name: str = ""
 
 
+def get_all_teams() -> list[dict]:
+    """获取所有班组信息（供API使用）"""
+    teams = ScheduleDataProvider.get_teams()
+    result = []
+    for t in teams:
+        result.append({
+            "team_id": t.team_id,
+            "team_name": t.team_name,
+            "team_leader_id": t.team_leader_id,
+            "team_leader_name": t.team_leader_name,
+            "members": [
+                {"id": t.team_leader_id, "name": t.team_leader_name, "role": "值班长"}
+            ] + [
+                {"id": uid, "name": name, "role": "值班人员"}
+                for uid, name in zip(t.person_id_list, t.person_name_list)
+            ]
+        })
+    return result
+
+
 # ═══════════════════════════════════════════════
 #  数据提供层 — 模拟 Oracle 查询
 # ═══════════════════════════════════════════════
@@ -176,86 +286,34 @@ class ScheduleConstraints:
 class ScheduleDataProvider:
     """排班数据提供层（模拟 Oracle 的 OC_SCHEDULE_TEAM / OC_SCHEDULE_RECORD）"""
 
-    @staticmethod
-    def get_teams(city_dept_id: str = "") -> list[OcScheduleTeam]:
-        """
-        获取班组信息 — 对应 SELECT * FROM OC_SCHEDULE_TEAM WHERE ENABLE_FLAG='Y'
-        """
-        # 模拟数据：6个班组 A-F
-        teams = [
-            OcScheduleTeam(
-                team_id="T001", team_name="A班",
-                team_leader_id="U001", team_leader_name="张队",
-                create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
-                enable_flag="Y",
-                other_person_ids="U101,U102,U103",
-                other_person_names="张三,李四,王五"
-            ),
-            OcScheduleTeam(
-                team_id="T002", team_name="B班",
-                team_leader_id="U002", team_leader_name="李队",
-                create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
-                enable_flag="Y",
-                other_person_ids="U201,U202,U203",
-                other_person_names="赵六,钱七,孙八"
-            ),
-            OcScheduleTeam(
-                team_id="T003", team_name="C班",
-                team_leader_id="U003", team_leader_name="王队",
-                create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
-                enable_flag="Y",
-                other_person_ids="U301,U302,U303",
-                other_person_names="周九,吴十,郑十一"
-            ),
-            OcScheduleTeam(
-                team_id="T004", team_name="D班",
-                team_leader_id="U004", team_leader_name="刘队",
-                create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
-                enable_flag="Y",
-                other_person_ids="U401,U402,U403",
-                other_person_names="冯十二,陈十三,褚十四"
-            ),
-            OcScheduleTeam(
-                team_id="T005", team_name="E班",
-                team_leader_id="U005", team_leader_name="陈队",
-                create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
-                enable_flag="Y",
-                other_person_ids="U501,U502,U503",
-                other_person_names="卫十五,蒋十六,沈十七"
-            ),
-            OcScheduleTeam(
-                team_id="T006", team_name="F班",
-                team_leader_id="U006", team_leader_name="杨队",
-                create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
-                enable_flag="Y",
-                other_person_ids="U601,U602,U603",
-                other_person_names="韩十八,杨十九,朱二十"
-            ),
-        ]
-        if city_dept_id:
-            teams = [t for t in teams if t.create_busi_dept_id == city_dept_id]
-        return teams
+    # 内存中的排班记录存储（用于支持跨班组临时借调的修改操作）
+    _record_store: dict[str, OcScheduleRecord] = {}
 
     @staticmethod
-    def get_records(
-        start_date: date,
-        end_date: date,
-        city_dept_id: str = ""
-    ) -> list[OcScheduleRecord]:
-        """
-        获取排班记录 — 对应 SELECT * FROM OC_SCHEDULE_RECORD
-        WHERE ON_DUTY_TIME BETWEEN :start AND :end
-        """
+    def _ensure_record_store():
+        """确保内存存储已初始化（延迟加载）"""
+        if not ScheduleDataProvider._record_store:
+            # 生成最近 7 天的排班记录作为初始数据
+            today = date.today()
+            start = today - timedelta(days=3)
+            end = today + timedelta(days=4)
+            records = ScheduleDataProvider._generate_mock_records(start, end)
+            for r in records:
+                ScheduleDataProvider._record_store[r.record_id] = r
+
+    @staticmethod
+    def _generate_mock_records(start_date: date, end_date: date) -> list[OcScheduleRecord]:
+        """生成模拟排班记录"""
         records: list[OcScheduleRecord] = []
-        teams = ScheduleDataProvider.get_teams(city_dept_id)
+        teams = ScheduleDataProvider._get_mock_teams_data()
         current = start_date
         idx = 0
         while current <= end_date:
             for i, team in enumerate(teams):
                 if current > end_date:
                     break
-                # 模拟早/中/晚三个班次
-                for hour_offset, shift_label in [(8, "早班"), (12, "中班"), (18, "晚班")]:
+                # 早/中/晚三个班次（按用户确定的上班时间）
+                for hour_offset in [8, 12, 18]:
                     on_duty = datetime(current.year, current.month, current.day, hour_offset, 0, 0)
                     off_duty = on_duty + timedelta(hours=8)
                     idx += 1
@@ -272,24 +330,135 @@ class ScheduleDataProvider:
                         team_leader_name=team.team_leader_name,
                         other_person_ids=team.other_person_ids,
                         other_person_names=team.other_person_names,
+                        temp_person_ids="",
+                        temp_person_names="",
                     ))
             current += timedelta(days=1)
         return records
 
     @staticmethod
+    def _get_mock_teams_data() -> list[OcScheduleTeam]:
+        """获取模拟班组数据"""
+        return [
+            OcScheduleTeam(
+                team_id="T001", team_name="A班",
+                team_leader_id="U001", team_leader_name="张伟",
+                create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
+                enable_flag="Y",
+                other_person_ids="U101,U102,U103",
+                other_person_names="李强,王明,刘洋"
+            ),
+            OcScheduleTeam(
+                team_id="T002", team_name="B班",
+                team_leader_id="U002", team_leader_name="陈静",
+                create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
+                enable_flag="Y",
+                other_person_ids="U201,U202,U203",
+                other_person_names="赵磊,孙杰,林峰"
+            ),
+            OcScheduleTeam(
+                team_id="T003", team_name="C班",
+                team_leader_id="U003", team_leader_name="周涛",
+                create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
+                enable_flag="Y",
+                other_person_ids="U301,U302,U303",
+                other_person_names="吴鹏,黄海,徐达"
+            ),
+            OcScheduleTeam(
+                team_id="T004", team_name="D班",
+                team_leader_id="U004", team_leader_name="郑华",
+                create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
+                enable_flag="Y",
+                other_person_ids="U401,U402,U403",
+                other_person_names="钱勇,王芳,李娜"
+            ),
+            OcScheduleTeam(
+                team_id="T005", team_name="E班",
+                team_leader_id="U005", team_leader_name="张强",
+                create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
+                enable_flag="Y",
+                other_person_ids="U501,U502,U503",
+                other_person_names="赵敏,周杰,吴昊"
+            ),
+            OcScheduleTeam(
+                team_id="T006", team_name="F班",
+                team_leader_id="U006", team_leader_name="杨帆",
+                create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
+                enable_flag="Y",
+                other_person_ids="U601,U602,U603",
+                other_person_names="韩冰,杨柳,赵雪"
+            ),
+        ]
+
+    @staticmethod
+    def get_teams(city_dept_id: str = "") -> list[OcScheduleTeam]:
+        """
+        获取班组信息 — 对应 SELECT * FROM OC_SCHEDULE_TEAM WHERE ENABLE_FLAG='Y'
+        """
+        teams = ScheduleDataProvider._get_mock_teams_data()
+        if city_dept_id:
+            teams = [t for t in teams if t.create_busi_dept_id == city_dept_id]
+        return teams
+
+    @staticmethod
+    def get_records(
+        start_date: date,
+        end_date: date,
+        city_dept_id: str = ""
+    ) -> list[OcScheduleRecord]:
+        """
+        获取排班记录 — 从内存存储中查询
+        """
+        ScheduleDataProvider._ensure_record_store()
+        result = []
+        for rec in ScheduleDataProvider._record_store.values():
+            if rec.on_duty_time and start_date <= rec.on_duty_time.date() <= end_date:
+                if not city_dept_id or rec.dis_org_id == city_dept_id:
+                    result.append(rec)
+        # 按时间排序
+        result.sort(key=lambda r: (r.on_duty_time or datetime.min, r.team_name or ""))
+        return result
+
+    @staticmethod
     def get_current_on_duty(city_dept_id: str = "") -> list[OcScheduleRecord]:
         """获取当前正在值勤的排班记录（SCHEDULE_STATUS='Y'）"""
         today = date.today()
-        records = ScheduleDataProvider.get_records(today, today, city_dept_id)
-        return [r for r in records if r.schedule_status == "Y"]
+        return ScheduleDataProvider.get_records(today, today, city_dept_id)
+
+    @staticmethod
+    def get_record_by_id(record_id: str) -> Optional[OcScheduleRecord]:
+        """根据 record_id 获取排班记录"""
+        ScheduleDataProvider._ensure_record_store()
+        return ScheduleDataProvider._record_store.get(record_id)
+
+    @staticmethod
+    def update_record(record: OcScheduleRecord) -> bool:
+        """更新内存中的排班记录"""
+        ScheduleDataProvider._ensure_record_store()
+        if record.record_id in ScheduleDataProvider._record_store:
+            ScheduleDataProvider._record_store[record.record_id] = record
+            return True
+        return False
 
     @staticmethod
     def save_records(records: list[OcScheduleRecord]) -> int:
         """
-        保存排班记录 — 对应 INSERT INTO OC_SCHEDULE_RECORD
-        返回写入条数
+        保存排班记录 — 写入内存存储
         """
-        return len(records)
+        ScheduleDataProvider._ensure_record_store()
+        count = 0
+        for rec in records:
+            ScheduleDataProvider._record_store[rec.record_id] = rec
+            count += 1
+        return count
+
+    @staticmethod
+    def get_team_by_name(team_name: str) -> Optional[OcScheduleTeam]:
+        """根据班组名称查找班组"""
+        for t in ScheduleDataProvider._get_mock_teams_data():
+            if t.team_name == team_name:
+                return t
+        return None
 
 
 # ═══════════════════════════════════════════════
@@ -673,9 +842,270 @@ def save_schedule_records(records_json: str = "") -> str:
                 team_leader_name=item.get("team_leader_name", ""),
                 other_person_ids=item.get("other_person_ids", ""),
                 other_person_names=item.get("other_person_names", ""),
+                temp_person_ids=item.get("temp_person_ids", ""),
+                temp_person_names=item.get("temp_person_names", ""),
             ))
 
         saved = ScheduleDataProvider.save_records(records)
         return json.dumps({"code": 0, "saved": saved, "msg": f"成功保存 {saved} 条排班记录"}, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"code": 1, "error": str(e)}, ensure_ascii=False)
+
+
+# ═══════════════════════════════════════════════
+#  跨班组临时借调管理 — 新增 4 个工具
+# ═══════════════════════════════════════════════
+
+@tool
+def get_staff_detail(team_name: str = "", date_str: str = "") -> str:
+    """
+    获取值班人员详情 — 返回当值人员和休息人员列表
+    - team_name: 班组名称（如 A班, B班），为空则返回所有班组
+    - date_str: 日期（YYYY-MM-DD），为空则默认今天
+    """
+    try:
+        target_date = datetime.strptime(date_str, "%Y-%m-%d").date() if date_str else date.today()
+        all_teams = ScheduleDataProvider.get_teams()
+        records = ScheduleDataProvider.get_records(target_date, target_date)
+
+        # 找当值班组的排班记录（在值状态）
+        on_duty_records = [r for r in records if r.schedule_status == "Y"]
+
+        if team_name:
+            on_duty_records = [r for r in on_duty_records if r.team_name == team_name]
+
+        # 构建响应数据
+        teams_data = []
+        seen_teams = set()
+        for rec in on_duty_records:
+            if rec.team_name in seen_teams:
+                continue
+            seen_teams.add(rec.team_name)
+
+            # 当值人员（核心 + 临时）
+            on_duty_personnel = []
+            if rec.team_leader_id and rec.team_leader_name:
+                on_duty_personnel.append({
+                    "id": rec.team_leader_id,
+                    "name": rec.team_leader_name,
+                    "role": "值班长",
+                    "team": rec.team_name,
+                    "type": "core",
+                    "status": "on-duty"
+                })
+            # 核心值班人员
+            ids = rec.person_id_list
+            names = rec.person_name_list
+            for i, uid in enumerate(ids):
+                name = names[i] if i < len(names) else f"人员{uid}"
+                on_duty_personnel.append({
+                    "id": uid,
+                    "name": name,
+                    "role": "值班人员",
+                    "team": rec.team_name,
+                    "type": "core",
+                    "status": "on-duty"
+                })
+            # 临时借调人员
+            for uid, name in zip(rec.temp_person_id_list, rec.temp_person_name_list):
+                # 查找此人所属的原始班组
+                home_team = rec.team_name  # 默认
+                for t in all_teams:
+                    if uid == t.team_leader_id or uid in t.person_id_list:
+                        home_team = t.team_name
+                        break
+                on_duty_personnel.append({
+                    "id": uid,
+                    "name": name,
+                    "role": "临时值班人员",
+                    "team": home_team,
+                    "type": "temp",
+                    "status": "on-duty"
+                })
+
+            teams_data.append({
+                "record_id": rec.record_id,
+                "team_name": rec.team_name,
+                "shift_type": detect_shift_type(rec.on_duty_time),
+                "on_duty_time": rec.on_duty_time.strftime("%H:%M") if rec.on_duty_time else "",
+                "off_duty_time": rec.off_duty_time.strftime("%H:%M") if rec.off_duty_time else "",
+                "on_duty_count": len(on_duty_personnel),
+                "on_duty_personnel": on_duty_personnel
+            })
+
+        # 计算休息人员（所有班组中不在当前当值排班中的人）
+        on_duty_ids = set()
+        for td in teams_data:
+            for p in td["on_duty_personnel"]:
+                on_duty_ids.add(p["id"])
+
+        resting_personnel = []
+        for t in all_teams:
+            # 值班长
+            if t.team_leader_id and t.team_leader_id not in on_duty_ids:
+                resting_personnel.append({
+                    "id": t.team_leader_id,
+                    "name": t.team_leader_name,
+                    "role": "值班长",
+                    "team": t.team_name,
+                    "status": "rest"
+                })
+                on_duty_ids.add(t.team_leader_id)
+            # 其他人员
+            for uid, name in zip(t.person_id_list, t.person_name_list):
+                if uid not in on_duty_ids:
+                    resting_personnel.append({
+                        "id": uid,
+                        "name": name,
+                        "role": "值班人员",
+                        "team": t.team_name,
+                        "status": "rest"
+                    })
+                    on_duty_ids.add(uid)
+
+        return json.dumps({
+            "code": 0,
+            "date": target_date.strftime("%Y-%m-%d"),
+            "teams": teams_data,
+            "resting_personnel": resting_personnel,
+            "resting_count": len(resting_personnel)
+        }, ensure_ascii=False)
+
+    except Exception as e:
+        return json.dumps({"code": 1, "error": str(e)}, ensure_ascii=False)
+
+
+@tool
+def add_temp_personnel(
+    record_id: str = "",
+    person_id: str = "",
+    person_name: str = "",
+    home_team_name: str = ""
+) -> str:
+    """
+    跨班组临时借调 — 将其他班组休息人员加入当前当值班组作为临时值班人员
+    - record_id: 目标排班记录ID
+    - person_id: 人员ID
+    - person_name: 人员姓名
+    - home_team_name: 人员所属原始班组（仅用于记录，不改变）
+    """
+    try:
+        if not record_id or not person_id:
+            return json.dumps({"code": 1, "error": "缺少 record_id 或 person_id"}, ensure_ascii=False)
+
+        record = ScheduleDataProvider.get_record_by_id(record_id)
+        if not record:
+            return json.dumps({"code": 1, "error": f"未找到排班记录: {record_id}"}, ensure_ascii=False)
+
+        if record.schedule_status != "Y":
+            return json.dumps({"code": 1, "error": f"{record.team_name} 已交班，无法添加人员"}, ensure_ascii=False)
+
+        # 检查此人是否已是核心成员
+        if person_id in record.person_id_list or person_id == record.team_leader_id:
+            return json.dumps({
+                "code": 0,
+                "msg": f"{person_name} 已是 {record.team_name} 核心成员，无需临时借调"
+            }, ensure_ascii=False)
+
+        # 检查是否已临时加入
+        if person_id in record.temp_person_id_list:
+            return json.dumps({
+                "code": 0,
+                "msg": f"{person_name} 已是 {record.team_name} 临时值班人员"
+            }, ensure_ascii=False)
+
+        record.add_temp_person(person_id, person_name)
+        ScheduleDataProvider.update_record(record)
+
+        return json.dumps({
+            "code": 0,
+            "msg": f"已将 {person_name}（{home_team_name}）临时加入 {record.team_name} 作为值班人员",
+            "record_id": record_id,
+            "team_name": record.team_name,
+            "temp_person_ids": record.temp_person_ids,
+            "temp_person_names": record.temp_person_names
+        }, ensure_ascii=False)
+
+    except Exception as e:
+        return json.dumps({"code": 1, "error": str(e)}, ensure_ascii=False)
+
+
+@tool
+def remove_temp_personnel(
+    record_id: str = "",
+    person_id: str = ""
+) -> str:
+    """
+    移除临时值班人员 — 将临时借调人员从当值班组中移除（设为休息）
+    - record_id: 排班记录ID
+    - person_id: 人员ID
+    """
+    try:
+        if not record_id or not person_id:
+            return json.dumps({"code": 1, "error": "缺少 record_id 或 person_id"}, ensure_ascii=False)
+
+        record = ScheduleDataProvider.get_record_by_id(record_id)
+        if not record:
+            return json.dumps({"code": 1, "error": f"未找到排班记录: {record_id}"}, ensure_ascii=False)
+
+        if record.schedule_status != "Y":
+            return json.dumps({"code": 1, "error": f"{record.team_name} 已交班"}, ensure_ascii=False)
+
+        # 查找人员姓名
+        person_name = person_id
+        temp_names = record.temp_person_name_list
+        temp_ids = record.temp_person_id_list
+        if person_id in temp_ids:
+            idx = temp_ids.index(person_id)
+            person_name = temp_names[idx] if idx < len(temp_names) else person_id
+
+        removed = record.remove_temp_person(person_id)
+        if not removed:
+            return json.dumps({
+                "code": 0,
+                "msg": f"{person_name} 不是 {record.team_name} 的临时值班人员"
+            }, ensure_ascii=False)
+
+        ScheduleDataProvider.update_record(record)
+
+        return json.dumps({
+            "code": 0,
+            "msg": f"已将 {person_name} 从 {record.team_name} 临时值班人员中移除，设为休息",
+            "record_id": record_id,
+            "team_name": record.team_name
+        }, ensure_ascii=False)
+
+    except Exception as e:
+        return json.dumps({"code": 1, "error": str(e)}, ensure_ascii=False)
+
+
+@tool
+def end_shift(record_id: str = "") -> str:
+    """
+    交班操作 — 结束当前班次，自动清除所有临时借调人员
+    - record_id: 排班记录ID
+    """
+    try:
+        if not record_id:
+            return json.dumps({"code": 1, "error": "缺少 record_id"}, ensure_ascii=False)
+
+        record = ScheduleDataProvider.get_record_by_id(record_id)
+        if not record:
+            return json.dumps({"code": 1, "error": f"未找到排班记录: {record_id}"}, ensure_ascii=False)
+
+        if record.schedule_status != "Y":
+            return json.dumps({"code": 0, "msg": f"{record.team_name} 已是交班状态"}, ensure_ascii=False)
+
+        shift_result = record.end_shift()
+        ScheduleDataProvider.update_record(record)
+
+        return json.dumps({
+            "code": 0,
+            "msg": shift_result["msg"],
+            "team_name": shift_result["team_name"],
+            "cleared_temp": shift_result["cleared_temp"],
+            "change_time": shift_result["change_time"]
+        }, ensure_ascii=False)
+
     except Exception as e:
         return json.dumps({"code": 1, "error": str(e)}, ensure_ascii=False)

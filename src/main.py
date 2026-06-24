@@ -26,6 +26,14 @@ from coze_coding_utils.log.config import LOG_LEVEL
 from coze_coding_utils.error.classifier import ErrorClassifier, classify_error
 from coze_coding_utils.helper.stream_runner import AgentStreamRunner, WorkflowStreamRunner,agent_stream_handler,workflow_stream_handler, RunOpt
 from tools.local_knowledge import search_knowledge, import_document, get_all_documents, delete_document, update_document, count_documents, get_info
+from tools.scheduling import (
+    get_staff_detail as tool_get_staff_detail,
+    add_temp_personnel as tool_add_temp_personnel,
+    remove_temp_personnel as tool_remove_temp_personnel,
+    end_shift as tool_end_shift,
+    get_all_teams,
+    ScheduleDataProvider,
+)
 
 setup_logging(
     log_file=LOG_FILE,
@@ -879,6 +887,95 @@ async def knowledge_info():
         return get_info()
     except Exception as e:
         return {"type": "local", "error": str(e)}
+
+
+# ═══════════════════════════════════════════════
+#  值班人员管理 API
+# ═══════════════════════════════════════════════
+
+@app.get("/api/staff/teams")
+async def api_get_teams():
+    """获取所有班组信息"""
+    try:
+        teams = get_all_teams()
+        return {"success": True, "data": teams}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/staff/detail")
+async def api_get_staff_detail(team_name: str = "", date_str: str = ""):
+    """
+    获取值班人员详情
+    - team_name: 班组名称（可选）
+    - date_str: 日期 YYYY-MM-DD（可选，默认今天）
+    """
+    try:
+        result = json.loads(tool_get_staff_detail(team_name=team_name, date_str=date_str))
+        if result.get("code") == 0:
+            return {"success": True, "data": result}
+        return {"success": False, "error": result.get("error", "获取失败")}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/staff/temp/add")
+async def api_add_temp_personnel(request: Request):
+    """
+    跨班组临时借调 — 添加临时值班人员
+    Body: { record_id, person_id, person_name, home_team_name }
+    """
+    try:
+        body = await request.json()
+        result = json.loads(tool_add_temp_personnel(
+            record_id=body.get("record_id", ""),
+            person_id=body.get("person_id", ""),
+            person_name=body.get("person_name", ""),
+            home_team_name=body.get("home_team_name", ""),
+        ))
+        if result.get("code") == 0:
+            return {"success": True, "data": result, "msg": result.get("msg", "")}
+        return {"success": False, "error": result.get("error", "添加失败")}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/staff/temp/remove")
+async def api_remove_temp_personnel(request: Request):
+    """
+    移除临时值班人员
+    Body: { record_id, person_id }
+    """
+    try:
+        body = await request.json()
+        result = json.loads(tool_remove_temp_personnel(
+            record_id=body.get("record_id", ""),
+            person_id=body.get("person_id", ""),
+        ))
+        if result.get("code") == 0:
+            return {"success": True, "data": result, "msg": result.get("msg", "")}
+        return {"success": False, "error": result.get("error", "移除失败")}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/staff/end_shift")
+async def api_end_shift(request: Request):
+    """
+    交班操作 — 结束班次，自动清除临时人员
+    Body: { record_id }
+    """
+    try:
+        body = await request.json()
+        result = json.loads(tool_end_shift(
+            record_id=body.get("record_id", ""),
+        ))
+        if result.get("code") == 0:
+            return {"success": True, "data": result, "msg": result.get("msg", "")}
+        return {"success": False, "error": result.get("error", "交班失败")}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 
 # 前端 HTML 文件路由（必须放在最后，避免拦截API路由）
 @app.get("/{file_name:path}")

@@ -17,7 +17,7 @@ def search_knowledge(query: str, top_k: int = 3) -> str:
     ctx = request_context.get() or new_context(method="search_knowledge")
     
     try:
-        from src.tools.local_knowledge import search_knowledge as local_search
+        from tools.local_knowledge import search_knowledge as local_search
         results = local_search(query=query, top_k=top_k)
     except Exception as e:
         logger.error(f"知识库搜索失败: {e}")
@@ -44,7 +44,7 @@ def import_knowledge(text: str, source_name: str = "用户导入") -> str:
     ctx = request_context.get() or new_context(method="import_knowledge")
     
     try:
-        from src.tools.local_knowledge import import_document
+        from tools.local_knowledge import import_document
         result = import_document(text, source_name=source_name)
         if result["code"] == 0:
             return f"✅ 导入成功！共导入 {result['count']} 个知识片段，来源: {source_name}"

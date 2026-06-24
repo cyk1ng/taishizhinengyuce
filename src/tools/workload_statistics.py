@@ -570,18 +570,19 @@ class WorkloadDatabase:
         try:
             from sqlalchemy import text
             
-            # 从排班记录表获取当前时段的当值人数
+            # 从 OC_SCHEDULE_RECORD 获取当前时段的当值人数
             sql = text("""
-                SELECT COUNT(DISTINCT USER_ID) as staff_count
-                FROM work_schedule_recode
-                WHERE SCHEDULE_DATE = CURDATE()
-                  AND STATUS IN (1, 2)
-                  AND HOUR(NOW()) >= CASE SHIFT_TYPE 
-                                      WHEN 1 THEN 0 WHEN 2 THEN 8 WHEN 3 THEN 16 
-                                  END
-                  AND HOUR(NOW()) < CASE SHIFT_TYPE 
-                                      WHEN 1 THEN 8 WHEN 2 THEN 16 WHEN 3 THEN 24 
-                                  END
+                SELECT SUM(
+                    1 + CASE 
+                        WHEN OTHER_PERSON_IDS IS NOT NULL AND OTHER_PERSON_IDS != ''
+                        THEN LENGTH(OTHER_PERSON_IDS) - LENGTH(REPLACE(OTHER_PERSON_IDS, ',', '')) + 1
+                        ELSE 0
+                    END
+                ) as staff_count
+                FROM OC_SCHEDULE_RECORD
+                WHERE SCHEDULE_STATUS = 'Y'
+                  AND ON_DUTY_TIME <= NOW()
+                  AND (OFF_DUTY_TIME IS NULL OR OFF_DUTY_TIME > NOW())
             """)
             result = session.execute(sql)
             row = result.fetchone()
@@ -611,16 +612,22 @@ class WorkloadDatabase:
             from sqlalchemy import text
             
             sql = text("""
-                SELECT COUNT(DISTINCT USER_ID) as staff_count
-                FROM work_schedule_recode
-                WHERE SCHEDULE_DATE = :target_date
-                  AND STATUS IN (1, 2)
-                  AND :hour >= CASE SHIFT_TYPE 
-                                  WHEN 1 THEN 0 WHEN 2 THEN 8 WHEN 3 THEN 16 
-                              END
-                  AND :hour < CASE SHIFT_TYPE 
-                                  WHEN 1 THEN 8 WHEN 2 THEN 16 WHEN 3 THEN 24 
-                              END
+                SELECT SUM(
+                    1 + CASE 
+                        WHEN OTHER_PERSON_IDS IS NOT NULL AND OTHER_PERSON_IDS != ''
+                        THEN LENGTH(OTHER_PERSON_IDS) - LENGTH(REPLACE(OTHER_PERSON_IDS, ',', '')) + 1
+                        ELSE 0
+                    END
+                ) as staff_count
+                FROM OC_SCHEDULE_RECORD
+                WHERE SCHEDULE_STATUS = 'Y'
+                  AND TRUNC(ON_DUTY_TIME) = TO_DATE(:target_date, 'YYYY-MM-DD')
+                  AND :hour >= EXTRACT(HOUR FROM ON_DUTY_TIME)
+                  AND :hour < CASE 
+                      WHEN EXTRACT(HOUR FROM OFF_DUTY_TIME) < EXTRACT(HOUR FROM ON_DUTY_TIME)
+                      THEN EXTRACT(HOUR FROM OFF_DUTY_TIME) + 24
+                      ELSE EXTRACT(HOUR FROM OFF_DUTY_TIME)
+                  END
             """)
             result = session.execute(sql, {"target_date": target_date, "hour": hour})
             row = result.fetchone()

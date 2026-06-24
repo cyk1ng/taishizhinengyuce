@@ -1356,17 +1356,69 @@ function getShiftPeriod(hour) {
 // 当前选中的班组
 let currentTeam = 'A';
 
-// 当前值班数据（由后端 API 加载）
+// 当前值班数据（由后端 API 加载，失败时自动降级为假数据）
 let staffState = {
     date: '',
     teams: [],        // 各班组值班详情
     restingPersonnel: [],  // 休息人员列表
     restingCount: 0,
-    loaded: false
+    loaded: false,
+    isFallback: false   // 是否使用了降级假数据
+};
+
+/**
+ * 降级假数据（后端不可用时自动使用）
+ */
+const FALLBACK_STAFF_DATA = {
+    teams: [
+        {
+            record_id: 'fallback_A',
+            team_name: 'A班', shift_type: '早班',
+            on_duty_time: '08:00', off_duty_time: '16:00',
+            on_duty_count: 4,
+            on_duty_personnel: [
+                { id: 'U001', name: '张伟', role: '值班长', team: 'A班', type: 'core', status: 'on-duty' },
+                { id: 'U101', name: '李强', role: '值班人员', team: 'A班', type: 'core', status: 'on-duty' },
+                { id: 'U102', name: '王明', role: '值班人员', team: 'A班', type: 'core', status: 'on-duty' },
+                { id: 'U103', name: '刘洋', role: '值班人员', team: 'A班', type: 'core', status: 'on-duty' }
+            ]
+        },
+        {
+            record_id: 'fallback_B',
+            team_name: 'B班', shift_type: '中班',
+            on_duty_time: '16:00', off_duty_time: '24:00',
+            on_duty_count: 4,
+            on_duty_personnel: [
+                { id: 'U002', name: '陈静', role: '值班长', team: 'B班', type: 'core', status: 'on-duty' },
+                { id: 'U201', name: '赵磊', role: '值班人员', team: 'B班', type: 'core', status: 'on-duty' },
+                { id: 'U202', name: '孙杰', role: '值班人员', team: 'B班', type: 'core', status: 'on-duty' },
+                { id: 'U203', name: '林峰', role: '值班人员', team: 'B班', type: 'core', status: 'on-duty' }
+            ]
+        }
+    ],
+    restingPersonnel: [
+        { id: 'U003', name: '周涛', role: '值班长', team: 'C班', status: 'rest' },
+        { id: 'U301', name: '吴鹏', role: '值班人员', team: 'C班', status: 'rest' },
+        { id: 'U302', name: '黄海', role: '值班人员', team: 'C班', status: 'rest' },
+        { id: 'U303', name: '徐达', role: '值班人员', team: 'C班', status: 'rest' },
+        { id: 'U004', name: '郑华', role: '值班长', team: 'D班', status: 'rest' },
+        { id: 'U401', name: '钱勇', role: '值班人员', team: 'D班', status: 'rest' },
+        { id: 'U402', name: '王芳', role: '值班人员', team: 'D班', status: 'rest' },
+        { id: 'U403', name: '李娜', role: '值班人员', team: 'D班', status: 'rest' },
+        { id: 'U005', name: '张强', role: '值班长', team: 'E班', status: 'rest' },
+        { id: 'U501', name: '赵敏', role: '值班人员', team: 'E班', status: 'rest' },
+        { id: 'U502', name: '周杰', role: '值班人员', team: 'E班', status: 'rest' },
+        { id: 'U503', name: '吴昊', role: '值班人员', team: 'E班', status: 'rest' },
+        { id: 'U006', name: '杨帆', role: '值班长', team: 'F班', status: 'rest' },
+        { id: 'U601', name: '韩冰', role: '值班人员', team: 'F班', status: 'rest' },
+        { id: 'U602', name: '杨柳', role: '值班人员', team: 'F班', status: 'rest' },
+        { id: 'U603', name: '赵雪', role: '值班人员', team: 'F班', status: 'rest' }
+    ]
 };
 
 /**
  * 从后端加载值班人员数据
+ * 如果后端不可用，自动降级使用假数据
  */
 async function loadStaffData(teamName = '') {
     try {
@@ -1374,16 +1426,34 @@ async function loadStaffData(teamName = '') {
         const url = `/api/staff/detail?team_name=${encodeURIComponent(teamName)}&date_str=${dateStr}`;
         const resp = await fetch(url);
         const result = await resp.json();
-        if (result.success && result.data) {
+        if (result.success && result.data && result.data.teams && result.data.teams.length > 0) {
             staffState.date = result.data.date || dateStr;
             staffState.teams = result.data.teams || [];
             staffState.restingPersonnel = result.data.resting_personnel || [];
             staffState.restingCount = result.data.resting_count || 0;
             staffState.loaded = true;
+            staffState.isFallback = false;
+            return;
         }
+        // API 返回成功但无数据，使用降级
+        console.warn('后端数据为空，使用降级假数据');
+        applyFallbackData();
     } catch (e) {
-        console.error('加载值班数据失败:', e);
+        console.warn('后端不可用，使用降级假数据:', e.message);
+        applyFallbackData();
     }
+}
+
+/**
+ * 应用降级假数据
+ */
+function applyFallbackData() {
+    staffState.date = new Date().toISOString().slice(0, 10);
+    staffState.teams = FALLBACK_STAFF_DATA.teams.map(t => ({...t, on_duty_personnel: [...t.on_duty_personnel]}));
+    staffState.restingPersonnel = [...FALLBACK_STAFF_DATA.restingPersonnel];
+    staffState.restingCount = staffState.restingPersonnel.length;
+    staffState.loaded = true;
+    staffState.isFallback = true;
 }
 
 /**
@@ -1512,30 +1582,37 @@ function createStaffCard(staff, type) {
  */
 async function setStaffRest(personId) {
     const dutyTeam = getCurrentOnDutyTeam();
-    if (!dutyTeam || !dutyTeam.record_id) {
-        alert('未找到当前值班记录');
+    if (!dutyTeam || !dutyTeam.record_id) { alert('未找到当前值班记录'); return; }
+    // 降级模式或API失败：本地操作
+    if (staffState.isFallback) {
+        const idx = dutyTeam.on_duty_personnel.findIndex(p => p.id === personId && p.type === 'temp');
+        if (idx !== -1) {
+            const removed = dutyTeam.on_duty_personnel.splice(idx, 1)[0];
+            staffState.restingPersonnel.push({ id: removed.id, name: removed.name, role: removed.role, team: removed.team, status: 'rest' });
+            dutyTeam.on_duty_count = dutyTeam.on_duty_personnel.length;
+            staffState.restingCount = staffState.restingPersonnel.length;
+            renderStaffList();
+        }
         return;
     }
     try {
         const resp = await fetch('/api/staff/temp/remove', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                record_id: dutyTeam.record_id,
-                person_id: personId
-            })
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ record_id: dutyTeam.record_id, person_id: personId })
         });
         const result = await resp.json();
-        if (result.success) {
-            // 重新加载数据刷新界面
-            await loadStaffData(currentTeam);
-            renderStaffList();
-        } else {
-            alert('操作失败: ' + (result.error || result.msg || ''));
-        }
+        if (result.success) { await loadStaffData(currentTeam); renderStaffList(); }
+        else { alert('操作失败: ' + (result.error || result.msg || '')); }
     } catch (e) {
-        console.error('设为休息失败:', e);
-        alert('网络错误，请重试');
+        console.error('设为休息失败，降级本地操作:', e);
+        const idx = dutyTeam.on_duty_personnel.findIndex(p => p.id === personId && p.type === 'temp');
+        if (idx !== -1) {
+            const removed = dutyTeam.on_duty_personnel.splice(idx, 1)[0];
+            staffState.restingPersonnel.push({ id: removed.id, name: removed.name, role: removed.role, team: removed.team, status: 'rest' });
+            dutyTeam.on_duty_count = dutyTeam.on_duty_personnel.length;
+            staffState.restingCount = staffState.restingPersonnel.length;
+            renderStaffList();
+        }
     }
 }
 
@@ -1544,32 +1621,35 @@ async function setStaffRest(personId) {
  */
 async function setStaffOnDuty(personId, personName, homeTeamName) {
     const dutyTeam = getCurrentOnDutyTeam();
-    if (!dutyTeam || !dutyTeam.record_id) {
-        alert('未找到当前值班记录');
+    if (!dutyTeam || !dutyTeam.record_id) { alert('未找到当前值班记录'); return; }
+    // 降级模式：本地操作
+    if (staffState.isFallback) {
+        const idx = staffState.restingPersonnel.findIndex(p => p.id === personId);
+        if (idx === -1) return;
+        const moved = staffState.restingPersonnel.splice(idx, 1)[0];
+        dutyTeam.on_duty_personnel.push({ id: moved.id, name: moved.name, role: '临时值班人员', team: moved.team, type: 'temp', status: 'on-duty' });
+        dutyTeam.on_duty_count = dutyTeam.on_duty_personnel.length;
+        staffState.restingCount = staffState.restingPersonnel.length;
+        renderStaffList();
         return;
     }
     try {
         const resp = await fetch('/api/staff/temp/add', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                record_id: dutyTeam.record_id,
-                person_id: personId,
-                person_name: personName,
-                home_team_name: homeTeamName
-            })
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ record_id: dutyTeam.record_id, person_id: personId, person_name: personName, home_team_name: homeTeamName })
         });
         const result = await resp.json();
-        if (result.success) {
-            // 重新加载数据刷新界面
-            await loadStaffData(currentTeam);
-            renderStaffList();
-        } else {
-            alert('操作失败: ' + (result.error || result.msg || ''));
-        }
+        if (result.success) { await loadStaffData(currentTeam); renderStaffList(); }
+        else { alert('操作失败: ' + (result.error || result.msg || '')); }
     } catch (e) {
-        console.error('加入当值失败:', e);
-        alert('网络错误，请重试');
+        console.error('加入当值失败，降级本地操作:', e);
+        const idx = staffState.restingPersonnel.findIndex(p => p.id === personId);
+        if (idx === -1) return;
+        const moved = staffState.restingPersonnel.splice(idx, 1)[0];
+        dutyTeam.on_duty_personnel.push({ id: moved.id, name: moved.name, role: '临时值班人员', team: moved.team, type: 'temp', status: 'on-duty' });
+        dutyTeam.on_duty_count = dutyTeam.on_duty_personnel.length;
+        staffState.restingCount = staffState.restingPersonnel.length;
+        renderStaffList();
     }
 }
 

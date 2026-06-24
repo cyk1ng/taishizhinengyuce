@@ -303,16 +303,19 @@ class ScheduleDataProvider:
 
     @staticmethod
     def _generate_mock_records(start_date: date, end_date: date) -> list[OcScheduleRecord]:
-        """生成模拟排班记录"""
+        """生成模拟排班记录 —— 每天仅一个班组在值，轮转"""
         records: list[OcScheduleRecord] = []
         teams = ScheduleDataProvider._get_mock_teams_data()
         current = start_date
         idx = 0
         while current <= end_date:
+            # 每天轮转一个班组在值（按日期索引选班组）
+            on_duty_team_idx = current.day % len(teams)
             for i, team in enumerate(teams):
                 if current > end_date:
                     break
-                # 早/中/晚三个班次（按用户确定的上班时间）
+                is_on_duty = (i == on_duty_team_idx)
+                # 早/中/晚三个班次
                 for hour_offset in [8, 12, 18]:
                     on_duty = datetime(current.year, current.month, current.day, hour_offset, 0, 0)
                     off_duty = on_duty + timedelta(hours=8)
@@ -323,7 +326,7 @@ class ScheduleDataProvider:
                         dis_org_name=team.create_busi_dept_name,
                         team_id=team.team_id,
                         team_name=team.team_name,
-                        schedule_status="Y",
+                        schedule_status="Y" if is_on_duty else "N",
                         on_duty_time=on_duty,
                         off_duty_time=off_duty,
                         team_leader_id=team.team_leader_id,
@@ -548,13 +551,16 @@ class ScheduleGenerator:
 
                 record_id = f"SR{current.strftime('%Y%m%d')}_{team.team_id}_{hour_offset}"
 
+                # 每天仅第一个班组在值，其余为已交班
+                is_on_duty = (len(new_records) % len(teams) == 0)
+
                 new_records.append(OcScheduleRecord(
                     record_id=record_id,
                     dis_org_id=team.create_busi_dept_id,
                     dis_org_name=team.create_busi_dept_name,
                     team_id=team.team_id,
                     team_name=team.team_name,
-                    schedule_status="Y",
+                    schedule_status="Y" if is_on_duty else "N",
                     on_duty_time=on_duty,
                     off_duty_time=off_duty,
                     team_leader_id=team.team_leader_id,

@@ -260,15 +260,19 @@
                     </div>
                 </div>
                 
-                <!-- 当值人员信息 -->
+                <!-- 当值班组信息 -->
                 <div class="card control-card" onclick="showStaffDetail()">
                     <div class="card-header">
                         <span class="icon">👥</span>
-                        <span class="title">当值人员</span>
+                        <span class="title">当值班组</span>
                         <span class="click-hint">点击查看详情</span>
                     </div>
                     <div class="card-body">
                         <div class="staff-info">
+                            <div class="staff-row">
+                                <span class="staff-label">班组</span>
+                                <span class="staff-value" id="onDutyTeamName">A班</span>
+                            </div>
                             <div class="staff-row">
                                 <span class="staff-label">当值人数</span>
                                 <span class="staff-value highlight" id="currentStaff">4人</span>
@@ -276,10 +280,6 @@
                             <div class="staff-row">
                                 <span class="staff-label">建议人数</span>
                                 <span class="staff-value" id="suggestedStaff">4人</span>
-                            </div>
-                            <div class="staff-row">
-                                <span class="staff-label">人员当量</span>
-                                <span class="staff-value" id="staffCapacity">5.2</span>
                             </div>
                             <div class="staff-row">
                                 <span class="staff-label">超负荷</span>

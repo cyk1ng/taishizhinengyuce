@@ -641,10 +641,11 @@ function updateWorkloadData(data) {
             const staffEl = document.getElementById('currentStaff');
             if (staffEl) staffEl.textContent = Math.round(totalStaff) + '人';
             
-            // 更新人员当量
-            const avgCapacity = hourlyData.reduce((sum, h) => sum + (h.staff_capacity || 0), 0) / 24 || 0;
-            const capacityEl = document.getElementById('staffCapacity');
-            if (capacityEl) capacityEl.textContent = avgCapacity.toFixed(1);
+            // 更新当值班组名称
+            if (data.on_duty_team_name) {
+                const teamEl = document.getElementById('onDutyTeamName');
+                if (teamEl) teamEl.textContent = data.on_duty_team_name;
+            }
             
             // 更新超负荷状态
             const overloadCount = summary.overload_count || 0;

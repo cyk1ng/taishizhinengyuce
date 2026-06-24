@@ -130,23 +130,20 @@ def detect_shift_type(on_duty_time: Optional[datetime]) -> str:
     """
     根据 ON_DUTY_TIME 自动识别班次类型
 
-    规则：
-      - 06:00-09:59  → 早班
-      - 10:00-14:59  → 中班
-      - 15:00-23:59  → 晚班
-      - 00:00-05:59  → 夜班
+    规则（按上班时间）：
+      - 06:00-11:59  → 早班（08:00-16:00）
+      - 12:00-19:59  → 中班（16:00-24:00）
+      - 20:00-05:59  → 晚班（00:00-08:00）
     """
     if on_duty_time is None:
         return "未知"
     hour = on_duty_time.hour
-    if 6 <= hour < 10:
+    if 6 <= hour < 12:
         return "早班"
-    elif 10 <= hour < 15:
+    elif 12 <= hour < 20:
         return "中班"
-    elif 15 <= hour < 24:
+    else:  # 20:00-23:59, 00:00-05:59
         return "晚班"
-    else:  # 00:00-05:59
-        return "夜班"
 
 
 # ═══════════════════════════════════════════════

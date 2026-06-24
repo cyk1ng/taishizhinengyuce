@@ -715,7 +715,16 @@
                 <button class="modal-close" onclick="closeModal('staffModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <!-- 班组选择器（固定在顶部） -->
+                <!-- 班次选择器（新增，在班组上方） -->
+                <div class="shift-selector">
+                    <span class="shift-label">班次：</span>
+                    <div class="shift-buttons" id="shiftButtons">
+                        <button class="shift-btn" data-shift="夜班" onclick="selectShift('夜班')">🌙 夜班 00:00-8:00</button>
+                        <button class="shift-btn active" data-shift="早班" onclick="selectShift('早班')">☀️ 早班 8:00-16:00</button>
+                        <button class="shift-btn" data-shift="晚班" onclick="selectShift('晚班')">🌆 晚班 16:00-24:00</button>
+                    </div>
+                </div>
+                <!-- 班组选择器 -->
                 <div class="team-selector">
                     <span class="team-label">当前班组：</span>
                     <div class="team-buttons" id="teamButtons">

@@ -1685,6 +1685,45 @@ body {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
+/* 班次选择器 */
+.shift-selector {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.shift-selector .shift-label {
+    font-size: 14px;
+    color: var(--text-secondary, #8892b0);
+    white-space: nowrap;
+    font-weight: 500;
+}
+.shift-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.shift-btn {
+    padding: 6px 18px;
+    border: 1px solid var(--border-color, #2d365c);
+    background: transparent;
+    color: var(--text-secondary, #8892b0);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.shift-btn:hover {
+    border-color: var(--accent-blue, #4a9eff);
+    color: var(--accent-blue, #4a9eff);
+}
+.shift-btn.active {
+    background: var(--accent-blue, #4a9eff);
+    border-color: var(--accent-blue, #4a9eff);
+    color: #fff;
+}
+
 /* 人员列表容器（可滚动） */
 .staff-lists-container {
     flex: 1;

@@ -1506,8 +1506,8 @@ async function showStaffDetail() {
 }
 
 /**
- * 更新弹窗中的当值班组信息栏
- * 根据当前选中的班次显示对应的班组信息
+ * 更新弹窗中的信息栏
+ * 显示当前选中的班组信息
  */
 function updateOnDutyInfoBar() {
     const teamEl = document.getElementById('modalOnDutyTeam');
@@ -1516,16 +1516,8 @@ function updateOnDutyInfoBar() {
     if (!teamEl || !timeEl || !shiftEl) return;
     
     const teams = staffState.teams || [];
-    
-    // 根据当前选中的班次找到对应的班组
-    let targetTeam = null;
-    if (currentShift) {
-        targetTeam = teams.find(t => t.shift_type === currentShift);
-    }
-    // 如果没找到或没选班次，找在值班组
-    if (!targetTeam) {
-        targetTeam = teams.find(t => t.schedule_status === 'Y') || teams[0] || null;
-    }
+    // 根据当前选中的班组显示信息
+    const targetTeam = teams.find(t => t.team_name === currentTeam);
     
     if (targetTeam) {
         teamEl.textContent = targetTeam.team_name || '--';
@@ -1535,9 +1527,9 @@ function updateOnDutyInfoBar() {
         timeEl.textContent = timeText;
         shiftEl.textContent = targetTeam.shift_type || '--';
     } else {
-        teamEl.textContent = '--';
+        teamEl.textContent = currentTeam || '--';
         timeEl.textContent = '--';
-        shiftEl.textContent = '--';
+        shiftEl.textContent = '未排班';
     }
     
     // 更新班次按钮上的时间标签
@@ -1582,6 +1574,7 @@ function updateShiftButtonTimes() {
 
 /**
  * 选择班组
+ * 同时联动更新班次选中状态（双向联动）
  */
 async function selectTeam(team) {
     // 统一补全班组名称（'A' -> 'A班'）
@@ -1597,6 +1590,28 @@ async function selectTeam(team) {
             btn.classList.add('active');
         }
     });
+    
+    // ── 反向联动：根据班组查找班次，更新班次选中状态 ──
+    const teams = staffState.teams || [];
+    const teamData = teams.find(t => t.team_name === team);
+    const matchedShift = teamData ? teamData.shift_type : null;
+    
+    if (matchedShift) {
+        // 该班组有排班 → 自动选中对应班次
+        currentShift = matchedShift;
+        document.querySelectorAll('.shift-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.shift === currentShift);
+        });
+    } else {
+        // 该班组无排班 → 取消所有班次选中
+        currentShift = null;
+        document.querySelectorAll('.shift-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+    }
+    
+    // 更新信息栏
+    updateOnDutyInfoBar();
     
     // 重新渲染人员列表
     renderStaffList();

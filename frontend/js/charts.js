@@ -1525,6 +1525,7 @@ async function showStaffDetail() {
 
 /**
  * 更新弹窗中的当值班组信息栏
+ * 根据当前选中的班次显示对应的班组信息
  */
 function updateOnDutyInfoBar() {
     const teamEl = document.getElementById('modalOnDutyTeam');
@@ -1532,32 +1533,29 @@ function updateOnDutyInfoBar() {
     const shiftEl = document.getElementById('modalOnDutyShift');
     if (!teamEl || !timeEl || !shiftEl) return;
     
-    // 查找在值班组（schedule_status === 'Y'）
     const teams = staffState.teams || [];
-    const onDutyTeam = teams.find(t => t.schedule_status === 'Y');
     
-    if (onDutyTeam) {
-        teamEl.textContent = onDutyTeam.team_name || '--';
-        const timeText = onDutyTeam.on_duty_time && onDutyTeam.off_duty_time
-            ? `${onDutyTeam.on_duty_time} - ${onDutyTeam.off_duty_time}`
+    // 根据当前选中的班次找到对应的班组
+    let targetTeam = null;
+    if (currentShift) {
+        targetTeam = teams.find(t => t.shift_type === currentShift);
+    }
+    // 如果没找到或没选班次，找在值班组
+    if (!targetTeam) {
+        targetTeam = teams.find(t => t.schedule_status === 'Y') || teams[0] || null;
+    }
+    
+    if (targetTeam) {
+        teamEl.textContent = targetTeam.team_name || '--';
+        const timeText = targetTeam.on_duty_time && targetTeam.off_duty_time
+            ? `${targetTeam.on_duty_time} - ${targetTeam.off_duty_time}`
             : '--';
         timeEl.textContent = timeText;
-        shiftEl.textContent = onDutyTeam.shift_type || '--';
+        shiftEl.textContent = targetTeam.shift_type || '--';
     } else {
-        // 没有在值班组，显示第一个班组
-        const firstTeam = teams[0];
-        if (firstTeam) {
-            teamEl.textContent = firstTeam.team_name || '--';
-            const timeText = firstTeam.on_duty_time && firstTeam.off_duty_time
-                ? `${firstTeam.on_duty_time} - ${firstTeam.off_duty_time}`
-                : '--';
-            timeEl.textContent = timeText;
-            shiftEl.textContent = firstTeam.shift_type || '--';
-        } else {
-            teamEl.textContent = '--';
-            timeEl.textContent = '--';
-            shiftEl.textContent = '--';
-        }
+        teamEl.textContent = '--';
+        timeEl.textContent = '--';
+        shiftEl.textContent = '--';
     }
     
     // 更新班次按钮上的时间标签
@@ -1723,8 +1721,8 @@ function renderStaffList() {
         // ── 非当值班组视图（如 A班当值，查看 B班）──
         // 左侧：本班组中已被临时借调到当值班组的人（如果有）
         onDutyStaff = allOnDutyStaff.filter(p => p.team === currentTeam);
-        // 右侧：本班组的所有成员
-        restingStaff = (staffState.restingPersonnel || []).filter(p => p.team === currentTeam && !allOnDutyIds.has(p.id));
+        // 右侧：所有其他班组的休息人员（与当值班组视图一致）
+        restingStaff = (staffState.restingPersonnel || []).filter(p => !allOnDutyIds.has(p.id));
     }
     
     // 更新数量

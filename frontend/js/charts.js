@@ -1383,17 +1383,35 @@ const FALLBACK_STAFF_DATA = {
                 { id: 'U102', name: '王明', role: '值班人员', team: 'A班', type: 'core', status: 'on-duty' },
                 { id: 'U103', name: '刘洋', role: '值班人员', team: 'A班', type: 'core', status: 'on-duty' }
             ]
+        },
+        {
+            record_id: 'fallback_B',
+            team_name: 'B班', shift_type: '晚班',
+            schedule_status: 'N',
+            on_duty_time: '16:00', off_duty_time: '24:00',
+            on_duty_count: 4,
+            on_duty_personnel: [
+                { id: 'U002', name: '陈静', role: '值班长', team: 'B班', type: 'core', status: 'on-duty' },
+                { id: 'U201', name: '赵磊', role: '值班人员', team: 'B班', type: 'core', status: 'on-duty' },
+                { id: 'U202', name: '孙杰', role: '值班人员', team: 'B班', type: 'core', status: 'on-duty' },
+                { id: 'U203', name: '林峰', role: '值班人员', team: 'B班', type: 'core', status: 'on-duty' }
+            ]
+        },
+        {
+            record_id: 'fallback_C',
+            team_name: 'C班', shift_type: '夜班',
+            schedule_status: 'N',
+            on_duty_time: '00:00', off_duty_time: '08:00',
+            on_duty_count: 4,
+            on_duty_personnel: [
+                { id: 'U003', name: '周涛', role: '值班长', team: 'C班', type: 'core', status: 'on-duty' },
+                { id: 'U301', name: '吴鹏', role: '值班人员', team: 'C班', type: 'core', status: 'on-duty' },
+                { id: 'U302', name: '黄海', role: '值班人员', team: 'C班', type: 'core', status: 'on-duty' },
+                { id: 'U303', name: '徐达', role: '值班人员', team: 'C班', type: 'core', status: 'on-duty' }
+            ]
         }
     ],
     restingPersonnel: [
-        { id: 'U002', name: '陈静', role: '值班长', team: 'B班', status: 'rest' },
-        { id: 'U201', name: '赵磊', role: '值班人员', team: 'B班', status: 'rest' },
-        { id: 'U202', name: '孙杰', role: '值班人员', team: 'B班', status: 'rest' },
-        { id: 'U203', name: '林峰', role: '值班人员', team: 'B班', status: 'rest' },
-        { id: 'U003', name: '周涛', role: '值班长', team: 'C班', status: 'rest' },
-        { id: 'U301', name: '吴鹏', role: '值班人员', team: 'C班', status: 'rest' },
-        { id: 'U302', name: '黄海', role: '值班人员', team: 'C班', status: 'rest' },
-        { id: 'U303', name: '徐达', role: '值班人员', team: 'C班', status: 'rest' },
         { id: 'U004', name: '郑华', role: '值班长', team: 'D班', status: 'rest' },
         { id: 'U401', name: '钱勇', role: '值班人员', team: 'D班', status: 'rest' },
         { id: 'U402', name: '王芳', role: '值班人员', team: 'D班', status: 'rest' },
@@ -1548,11 +1566,20 @@ function updateOnDutyInfoBar() {
 
 /**
  * 更新班次按钮上的时间显示
+ * 优先使用数据中的时间，没有数据时使用默认时间
  */
 function updateShiftButtonTimes() {
     const teams = staffState.teams || [];
     const shiftTimeMap = {};
     
+    // 默认班次时间（当数据中缺少时使用）
+    const DEFAULT_SHIFT_TIMES = {
+        '夜班': '00:00-08:00',
+        '早班': '08:00-16:00',
+        '晚班': '16:00-24:00'
+    };
+    
+    // 从数据中收集时间
     teams.forEach(t => {
         if (t.shift_type && !shiftTimeMap[t.shift_type]) {
             const timeStr = t.on_duty_time && t.off_duty_time
@@ -1565,7 +1592,8 @@ function updateShiftButtonTimes() {
     // 更新按钮文本
     document.querySelectorAll('.shift-btn').forEach(btn => {
         const shift = btn.dataset.shift;
-        const timeStr = shiftTimeMap[shift] || '';
+        // 优先使用数据中的时间，没有则用默认时间
+        const timeStr = shiftTimeMap[shift] || DEFAULT_SHIFT_TIMES[shift] || '';
         const icons = { '夜班': '🌙', '早班': '☀️', '晚班': '🌆' };
         const icon = icons[shift] || '';
         btn.textContent = timeStr ? `${icon} ${shift} ${timeStr}` : `${icon} ${shift}`;

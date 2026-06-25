@@ -1702,8 +1702,8 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
-    padding: 12px 16px;
+    gap: 4px;
+    padding: 18px 16px;
     flex: 1;
     border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
@@ -1716,7 +1716,7 @@ body {
     font-weight: 500;
 }
 .on-duty-info-bar .info-value {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 700;
     color: var(--text-primary, #e6f1ff);
 }
@@ -1726,7 +1726,7 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 14px;
+    margin: 12px 0 14px;
     padding: 12px 20px;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid var(--border-color, #2d365c);
@@ -1744,7 +1744,7 @@ body {
     flex-wrap: wrap;
 }
 .shift-btn {
-    padding: 6px 16px;
+    padding: 7px 18px;
     border: 1px solid var(--border-color, #2d365c);
     background: transparent;
     color: var(--text-secondary, #8892b0);

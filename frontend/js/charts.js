@@ -1443,17 +1443,8 @@ async function loadStaffData(teamName = '') {
             staffState.restingCount = result.data.resting_count || 0;
             staffState.loaded = true;
             staffState.isFallback = false;
-            // 数据加载完成后，按班次过滤并渲染
+            // 数据加载完成后，按班次自动选中班组并渲染
             filterTeamsByShift();
-            // 确保当前班组在可见列表中
-            const visibleBtns = document.querySelectorAll('.team-btn:not(.hidden)');
-            if (visibleBtns.length > 0) {
-                const currentVisible = Array.from(visibleBtns).some(btn => (btn.dataset.team + '班') === currentTeam);
-                if (!currentVisible) {
-                    currentTeam = visibleBtns[0].dataset.team + '班';
-                }
-            }
-            renderStaffList();
             return;
         }
         // API 返回成功但无数据，使用降级
@@ -1463,17 +1454,8 @@ async function loadStaffData(teamName = '') {
         console.warn('后端不可用，使用降级假数据:', e.message);
         applyFallbackData();
     }
-    // 数据加载完成后，按班次过滤并渲染
+    // 降级数据：按班次自动选中班组并渲染
     filterTeamsByShift();
-    // 确保当前班组在可见列表中
-    const visibleBtns = document.querySelectorAll('.team-btn:not(.hidden)');
-    if (visibleBtns.length > 0) {
-        const currentVisible = Array.from(visibleBtns).some(btn => (btn.dataset.team + '班') === currentTeam);
-        if (!currentVisible) {
-            currentTeam = visibleBtns[0].dataset.team + '班';
-        }
-    }
-    renderStaffList();
 }
 
 /**
@@ -1636,47 +1618,32 @@ function selectShift(shiftKey) {
         btn.classList.toggle('active', btn.dataset.shift === currentShift);
     });
     
-    // 根据班次过滤班组按钮
+    // 根据班次自动选中对应班组
     filterTeamsByShift();
-    
-    // 如果当前班组不在可见列表中，切换到第一个可见班组
-    const visibleBtns = document.querySelectorAll('.team-btn:not(.hidden)');
-    if (visibleBtns.length > 0) {
-        const currentVisible = Array.from(visibleBtns).some(btn => (btn.dataset.team + '班') === currentTeam);
-        if (!currentVisible) {
-            selectTeam(visibleBtns[0].dataset.team);
-            return;
-        }
-    }
-    
-    renderStaffList();
+    // 更新信息栏
+    updateOnDutyInfoBar();
 }
 
 /**
- * 根据选中的班次过滤班组按钮
+ * 根据选中的班次自动选中对应班组
+ * 所有班组按钮始终显示，班次只影响自动选中
  */
 function filterTeamsByShift() {
     const allTeamBtns = document.querySelectorAll('.team-btn');
     
-    if (!currentShift) {
-        // 显示全部
-        allTeamBtns.forEach(btn => btn.classList.remove('hidden'));
-        return;
-    }
+    // 所有班组按钮始终显示（不移除hidden）
+    allTeamBtns.forEach(btn => btn.classList.remove('hidden'));
     
-    // 查找当前选中班次对应的班组
+    if (!currentShift) return;
+    
+    // 查找当前班次对应的班组并自动选中
     const teams = staffState.teams || [];
-    const shiftTeams = new Set(
-        teams.filter(t => t.shift_type === currentShift).map(t => t.team_name.replace('班', ''))
-    );
-    
-    allTeamBtns.forEach(btn => {
-        if (shiftTeams.has(btn.dataset.team)) {
-            btn.classList.remove('hidden');
-        } else {
-            btn.classList.add('hidden');
-        }
-    });
+    const shiftTeam = teams.find(t => t.shift_type === currentShift);
+    if (shiftTeam) {
+        const teamKey = shiftTeam.team_name.replace('班', '');
+        // 自动选中对应班组
+        selectTeam(teamKey);
+    }
 }
 
 

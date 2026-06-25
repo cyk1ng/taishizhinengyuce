@@ -322,7 +322,8 @@ function handleStaffingRecommendation(data) {
         document.getElementById('suggestedStaff').textContent = data.suggestedStaff + '人';
     }
     if (data.staffCapacity !== undefined) {
-        document.getElementById('staffCapacity').textContent = data.staffCapacity.toFixed(1);
+        const capEl = document.getElementById('staffCapacity');
+        if (capEl) capEl.textContent = data.staffCapacity.toFixed(1);
     }
     if (data.isOverload !== undefined) {
         const statusEl = document.getElementById('overloadStatus');
@@ -473,9 +474,11 @@ function updateDashboardWithData(data) {
     const totalStaff = hourlyDetails.reduce((sum, h) => sum + (h.staff_count || 0), 0) / 24 || 0;
     document.getElementById('currentStaff').textContent = Math.round(totalStaff) + '人';
     
-    // 更新人员当量
-    const avgCapacity = hourlyDetails.reduce((sum, h) => sum + (h.staff_capacity || 0), 0) / 24 || 0;
-    document.getElementById('staffCapacity').textContent = avgCapacity.toFixed(1);
+    // 更新当值班组名称
+    if (data.on_duty_team_name) {
+        const teamEl = document.getElementById('onDutyTeamName');
+        if (teamEl) teamEl.textContent = data.on_duty_team_name;
+    }
     
     // 更新超负荷状态
     const overloadEl = document.getElementById('overloadStatus');

@@ -1251,16 +1251,6 @@ function saveUnplannedWorkload() {
 }
 
 /**
- * 显示人员详情
- */
-function showStaffDetail() {
-    // 先渲染人员列表
-    renderStaffList();
-    // 打开弹窗
-    openModal('staffModal');
-}
-
-/**
  * 显示时间段详情
  */
 /**
@@ -1506,9 +1496,80 @@ async function showStaffDetail() {
     });
     
     await loadStaffData(currentTeam);
+    
+    // 更新当值班组信息栏
+    updateOnDutyInfoBar();
+    
     // filterTeamsByShift 已经在 loadStaffData 里调用
     // renderStaffList 也在 loadStaffData 里调用
     openModal('staffModal');
+}
+
+/**
+ * 更新弹窗中的当值班组信息栏
+ */
+function updateOnDutyInfoBar() {
+    const teamEl = document.getElementById('modalOnDutyTeam');
+    const timeEl = document.getElementById('modalOnDutyTime');
+    const shiftEl = document.getElementById('modalOnDutyShift');
+    if (!teamEl || !timeEl || !shiftEl) return;
+    
+    // 查找在值班组（schedule_status === 'Y'）
+    const teams = staffState.teams || [];
+    const onDutyTeam = teams.find(t => t.schedule_status === 'Y');
+    
+    if (onDutyTeam) {
+        teamEl.textContent = onDutyTeam.team_name || '--';
+        const timeText = onDutyTeam.on_duty_time && onDutyTeam.off_duty_time
+            ? `${onDutyTeam.on_duty_time} - ${onDutyTeam.off_duty_time}`
+            : '--';
+        timeEl.textContent = timeText;
+        shiftEl.textContent = onDutyTeam.shift_type || '--';
+    } else {
+        // 没有在值班组，显示第一个班组
+        const firstTeam = teams[0];
+        if (firstTeam) {
+            teamEl.textContent = firstTeam.team_name || '--';
+            const timeText = firstTeam.on_duty_time && firstTeam.off_duty_time
+                ? `${firstTeam.on_duty_time} - ${firstTeam.off_duty_time}`
+                : '--';
+            timeEl.textContent = timeText;
+            shiftEl.textContent = firstTeam.shift_type || '--';
+        } else {
+            teamEl.textContent = '--';
+            timeEl.textContent = '--';
+            shiftEl.textContent = '--';
+        }
+    }
+    
+    // 更新班次按钮上的时间标签
+    updateShiftButtonTimes();
+}
+
+/**
+ * 更新班次按钮上的时间显示
+ */
+function updateShiftButtonTimes() {
+    const teams = staffState.teams || [];
+    const shiftTimeMap = {};
+    
+    teams.forEach(t => {
+        if (t.shift_type && !shiftTimeMap[t.shift_type]) {
+            const timeStr = t.on_duty_time && t.off_duty_time
+                ? `${t.on_duty_time}-${t.off_duty_time}`
+                : '';
+            shiftTimeMap[t.shift_type] = timeStr;
+        }
+    });
+    
+    // 更新按钮文本
+    document.querySelectorAll('.shift-btn').forEach(btn => {
+        const shift = btn.dataset.shift;
+        const timeStr = shiftTimeMap[shift] || '';
+        const icons = { '夜班': '🌙', '早班': '☀️', '晚班': '🌆' };
+        const icon = icons[shift] || '';
+        btn.textContent = timeStr ? `${icon} ${shift} ${timeStr}` : `${icon} ${shift}`;
+    });
 }
 
 /**

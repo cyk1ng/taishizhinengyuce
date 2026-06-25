@@ -715,18 +715,35 @@
                 <button class="modal-close" onclick="closeModal('staffModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <!-- 班次选择器（新增，在班组上方） -->
-                <div class="shift-selector">
-                    <span class="shift-label">班次：</span>
-                    <div class="shift-buttons" id="shiftButtons">
-                        <button class="shift-btn" data-shift="夜班" onclick="selectShift('夜班')">🌙 夜班 00:00-8:00</button>
-                        <button class="shift-btn active" data-shift="早班" onclick="selectShift('早班')">☀️ 早班 8:00-16:00</button>
-                        <button class="shift-btn" data-shift="晚班" onclick="selectShift('晚班')">🌆 晚班 16:00-24:00</button>
+                <!-- 当值班组信息（从数据动态渲染） -->
+                <div class="on-duty-info-bar" id="onDutyInfoBar">
+                    <div class="on-duty-team">
+                        <span class="info-label">当值班组</span>
+                        <span class="info-value team-name" id="modalOnDutyTeam">--</span>
+                    </div>
+                    <div class="on-duty-time">
+                        <span class="info-label">值班时间</span>
+                        <span class="info-value time-range" id="modalOnDutyTime">--</span>
+                    </div>
+                    <div class="on-duty-shift">
+                        <span class="info-label">班次</span>
+                        <span class="info-value shift-name" id="modalOnDutyShift">--</span>
                     </div>
                 </div>
+
+                <!-- 班次选择器 -->
+                <div class="shift-selector">
+                    <span class="shift-label">班次筛选：</span>
+                    <div class="shift-buttons" id="shiftButtons">
+                        <button class="shift-btn" data-shift="夜班" onclick="selectShift('夜班')">🌙 夜班</button>
+                        <button class="shift-btn active" data-shift="早班" onclick="selectShift('早班')">☀️ 早班</button>
+                        <button class="shift-btn" data-shift="晚班" onclick="selectShift('晚班')">🌆 晚班</button>
+                    </div>
+                </div>
+
                 <!-- 班组选择器 -->
                 <div class="team-selector">
-                    <span class="team-label">当前班组：</span>
+                    <span class="team-label">班组：</span>
                     <div class="team-buttons" id="teamButtons">
                         <button class="team-btn active" data-team="A" onclick="selectTeam('A')">A班</button>
                         <button class="team-btn" data-team="B" onclick="selectTeam('B')">B班</button>
@@ -737,14 +754,14 @@
                     </div>
                 </div>
 
-                <!-- 人员列表容器（可滚动） -->
+                <!-- 人员列表容器 -->
                 <div class="staff-lists-container">
                     <div class="staff-detail-container">
                         <div class="staff-section">
                             <h4 class="staff-section-title">
                                 <span class="title-icon">👤</span>
                                 当值人员
-                                <span class="staff-count" id="onDutyCount">4人</span>
+                                <span class="staff-count" id="onDutyCount">0人</span>
                             </h4>
                             <div class="staff-list" id="onDutyStaffList">
                                 <!-- 当值人员将通过JavaScript动态生成 -->
@@ -755,7 +772,7 @@
                             <h4 class="staff-section-title">
                                 <span class="title-icon">💤</span>
                                 休息人员
-                                <span class="staff-count" id="restingCount">11人</span>
+                                <span class="staff-count" id="restingCount">0人</span>
                             </h4>
                             <div class="staff-list" id="restingStaffList">
                                 <!-- 休息人员将通过JavaScript动态生成 -->

@@ -1356,8 +1356,6 @@ function getShiftPeriod(hour) {
 
 // 当前选中的班组
 let currentTeam = 'A班';
-let currentShift = null; // 当前选中的班次（null=全部）
-// 当前选中的班次（null=全部）
 let currentShift = null;
 
 // 班次配置

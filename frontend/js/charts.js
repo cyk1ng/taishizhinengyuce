@@ -1376,12 +1376,19 @@ const FALLBACK_STAFF_DATA = {
             team_name: 'A班', shift_type: '早班',
             schedule_status: 'Y',
             on_duty_time: '08:00', off_duty_time: '16:00',
-            on_duty_count: 4,
+            on_duty_count: 11,
             on_duty_personnel: [
-                { id: 'U001', name: '张伟', role: '值班长', team: 'A班', type: 'core', status: 'on-duty' },
-                { id: 'U101', name: '李强', role: '值班人员', team: 'A班', type: 'core', status: 'on-duty' },
-                { id: 'U102', name: '王明', role: '值班人员', team: 'A班', type: 'core', status: 'on-duty' },
-                { id: 'U103', name: '刘洋', role: '值班人员', team: 'A班', type: 'core', status: 'on-duty' }
+                { id: 'U001', name: '宗德文', role: '值班长', team: 'A班', type: 'core', status: 'on-duty' },
+                { id: 'U101', name: '王云', role: '值班人员', team: 'A班', type: 'core', status: 'on-duty' },
+                { id: 'U102', name: '晏清阳', role: '值班人员', team: 'A班', type: 'core', status: 'on-duty' },
+                { id: 'U103', name: '杨凡奇', role: '值班人员', team: 'A班', type: 'core', status: 'on-duty' },
+                { id: 'U104', name: '李浩', role: '值班人员', team: 'A班', type: 'core', status: 'on-duty' },
+                { id: 'U105', name: '王玥', role: '值班人员', team: 'A班', type: 'core', status: 'on-duty' },
+                { id: 'U106', name: '何静', role: '值班人员', team: 'A班', type: 'core', status: 'on-duty' },
+                { id: 'U107', name: '李光临', role: '值班人员', team: 'A班', type: 'core', status: 'on-duty' },
+                { id: 'U108', name: '李杰', role: '值班人员', team: 'A班', type: 'core', status: 'on-duty' },
+                { id: 'U109', name: '杨宏敬', role: '值班人员', team: 'A班', type: 'core', status: 'on-duty' },
+                { id: 'U110', name: '龚瑞泉', role: '值班人员', team: 'A班', type: 'core', status: 'on-duty' }
             ]
         },
         {
@@ -1389,12 +1396,15 @@ const FALLBACK_STAFF_DATA = {
             team_name: 'B班', shift_type: '晚班',
             schedule_status: 'N',
             on_duty_time: '16:00', off_duty_time: '24:00',
-            on_duty_count: 4,
+            on_duty_count: 7,
             on_duty_personnel: [
-                { id: 'U002', name: '陈静', role: '值班长', team: 'B班', type: 'core', status: 'on-duty' },
-                { id: 'U201', name: '赵磊', role: '值班人员', team: 'B班', type: 'core', status: 'on-duty' },
-                { id: 'U202', name: '孙杰', role: '值班人员', team: 'B班', type: 'core', status: 'on-duty' },
-                { id: 'U203', name: '林峰', role: '值班人员', team: 'B班', type: 'core', status: 'on-duty' }
+                { id: 'U002', name: '朱利明', role: '值班长', team: 'B班', type: 'core', status: 'on-duty' },
+                { id: 'U201', name: '张小丽', role: '值班人员', team: 'B班', type: 'core', status: 'on-duty' },
+                { id: 'U202', name: '王海东', role: '值班人员', team: 'B班', type: 'core', status: 'on-duty' },
+                { id: 'U203', name: '马兴源', role: '值班人员', team: 'B班', type: 'core', status: 'on-duty' },
+                { id: 'U204', name: '杨智翔', role: '值班人员', team: 'B班', type: 'core', status: 'on-duty' },
+                { id: 'U205', name: '丁紫笠', role: '值班人员', team: 'B班', type: 'core', status: 'on-duty' },
+                { id: 'U206', name: '康林春', role: '值班人员', team: 'B班', type: 'core', status: 'on-duty' }
             ]
         },
         {
@@ -1402,28 +1412,115 @@ const FALLBACK_STAFF_DATA = {
             team_name: 'C班', shift_type: '夜班',
             schedule_status: 'N',
             on_duty_time: '00:00', off_duty_time: '08:00',
-            on_duty_count: 4,
+            on_duty_count: 8,
             on_duty_personnel: [
-                { id: 'U003', name: '周涛', role: '值班长', team: 'C班', type: 'core', status: 'on-duty' },
-                { id: 'U301', name: '吴鹏', role: '值班人员', team: 'C班', type: 'core', status: 'on-duty' },
-                { id: 'U302', name: '黄海', role: '值班人员', team: 'C班', type: 'core', status: 'on-duty' },
-                { id: 'U303', name: '徐达', role: '值班人员', team: 'C班', type: 'core', status: 'on-duty' }
+                { id: 'U003', name: '余永胜', role: '值班长', team: 'C班', type: 'core', status: 'on-duty' },
+                { id: 'U301', name: '王品', role: '值班人员', team: 'C班', type: 'core', status: 'on-duty' },
+                { id: 'U302', name: '高恩福', role: '值班人员', team: 'C班', type: 'core', status: 'on-duty' },
+                { id: 'U303', name: '杨志芳', role: '值班人员', team: 'C班', type: 'core', status: 'on-duty' },
+                { id: 'U304', name: '沙成石', role: '值班人员', team: 'C班', type: 'core', status: 'on-duty' },
+                { id: 'U305', name: '王一格', role: '值班人员', team: 'C班', type: 'core', status: 'on-duty' },
+                { id: 'U306', name: '黄佳', role: '值班人员', team: 'C班', type: 'core', status: 'on-duty' },
+                { id: 'U307', name: '耿绍胜', role: '值班人员', team: 'C班', type: 'core', status: 'on-duty' }
+            ]
+        },
+        {
+            record_id: 'fallback_D',
+            team_name: 'D值', shift_type: '',
+            schedule_status: 'N',
+            on_duty_time: '', off_duty_time: '',
+            on_duty_count: 9,
+            on_duty_personnel: [
+                { id: 'U004', name: '韦于成', role: '值班长', team: 'D值', type: 'core', status: 'on-duty' },
+                { id: 'U401', name: '王梓伟', role: '值班人员', team: 'D值', type: 'core', status: 'on-duty' },
+                { id: 'U402', name: '潘伟', role: '值班人员', team: 'D值', type: 'core', status: 'on-duty' },
+                { id: 'U403', name: '李云川', role: '值班人员', team: 'D值', type: 'core', status: 'on-duty' },
+                { id: 'U404', name: '保文鸿', role: '值班人员', team: 'D值', type: 'core', status: 'on-duty' },
+                { id: 'U405', name: '杨丽丽', role: '值班人员', team: 'D值', type: 'core', status: 'on-duty' },
+                { id: 'U406', name: '陶胜景', role: '值班人员', team: 'D值', type: 'core', status: 'on-duty' },
+                { id: 'U407', name: '张小丽', role: '值班人员', team: 'D值', type: 'core', status: 'on-duty' },
+                { id: 'U408', name: '黄佳', role: '值班人员', team: 'D值', type: 'core', status: 'on-duty' }
+            ]
+        },
+        {
+            record_id: 'fallback_E',
+            team_name: 'E班', shift_type: '',
+            schedule_status: 'N',
+            on_duty_time: '', off_duty_time: '',
+            on_duty_count: 7,
+            on_duty_personnel: [
+                { id: 'U005', name: '王勇', role: '值班长', team: 'E班', type: 'core', status: 'on-duty' },
+                { id: 'U501', name: '欧钰慷', role: '值班人员', team: 'E班', type: 'core', status: 'on-duty' },
+                { id: 'U502', name: '李燚', role: '值班人员', team: 'E班', type: 'core', status: 'on-duty' },
+                { id: 'U503', name: '孙裕华', role: '值班人员', team: 'E班', type: 'core', status: 'on-duty' },
+                { id: 'U504', name: '张梅', role: '值班人员', team: 'E班', type: 'core', status: 'on-duty' },
+                { id: 'U505', name: '黑晓捷', role: '值班人员', team: 'E班', type: 'core', status: 'on-duty' },
+                { id: 'U506', name: '宋静', role: '值班人员', team: 'E班', type: 'core', status: 'on-duty' }
+            ]
+        },
+        {
+            record_id: 'fallback_Y',
+            team_name: '乙班', shift_type: '',
+            schedule_status: 'N',
+            on_duty_time: '', off_duty_time: '',
+            on_duty_count: 3,
+            on_duty_personnel: [
+                { id: 'U006', name: '崔娇', role: '值班长', team: '乙班', type: 'core', status: 'on-duty' },
+                { id: 'U601', name: '桑江艳', role: '值班人员', team: '乙班', type: 'core', status: 'on-duty' },
+                { id: 'U602', name: '王英子', role: '值班人员', team: '乙班', type: 'core', status: 'on-duty' }
+            ]
+        },
+        {
+            record_id: 'fallback_J',
+            team_name: '甲班', shift_type: '',
+            schedule_status: 'N',
+            on_duty_time: '', off_duty_time: '',
+            on_duty_count: 3,
+            on_duty_personnel: [
+                { id: 'U007', name: '苏冀', role: '值班长', team: '甲班', type: 'core', status: 'on-duty' },
+                { id: 'U701', name: '张瑞颖', role: '值班人员', team: '甲班', type: 'core', status: 'on-duty' },
+                { id: 'U702', name: '桑江艳', role: '值班人员', team: '甲班', type: 'core', status: 'on-duty' }
             ]
         }
     ],
     restingPersonnel: [
-        { id: 'U004', name: '郑华', role: '值班长', team: 'D班', status: 'rest' },
-        { id: 'U401', name: '钱勇', role: '值班人员', team: 'D班', status: 'rest' },
-        { id: 'U402', name: '王芳', role: '值班人员', team: 'D班', status: 'rest' },
-        { id: 'U403', name: '李娜', role: '值班人员', team: 'D班', status: 'rest' },
-        { id: 'U005', name: '张强', role: '值班长', team: 'E班', status: 'rest' },
-        { id: 'U501', name: '赵敏', role: '值班人员', team: 'E班', status: 'rest' },
-        { id: 'U502', name: '周杰', role: '值班人员', team: 'E班', status: 'rest' },
-        { id: 'U503', name: '吴昊', role: '值班人员', team: 'E班', status: 'rest' },
-        { id: 'U006', name: '杨帆', role: '值班长', team: 'F班', status: 'rest' },
-        { id: 'U601', name: '陈蓉', role: '值班人员', team: 'F班', status: 'rest' },
-        { id: 'U602', name: '刘涛', role: '值班人员', team: 'F班', status: 'rest' },
-        { id: 'U603', name: '周丽', role: '值班人员', team: 'F班', status: 'rest' }
+        { id: 'U002', name: '朱利明', role: '值班长', team: 'B班', status: 'rest' },
+        { id: 'U201', name: '张小丽', role: '值班人员', team: 'B班', status: 'rest' },
+        { id: 'U202', name: '王海东', role: '值班人员', team: 'B班', status: 'rest' },
+        { id: 'U203', name: '马兴源', role: '值班人员', team: 'B班', status: 'rest' },
+        { id: 'U204', name: '杨智翔', role: '值班人员', team: 'B班', status: 'rest' },
+        { id: 'U205', name: '丁紫笠', role: '值班人员', team: 'B班', status: 'rest' },
+        { id: 'U206', name: '康林春', role: '值班人员', team: 'B班', status: 'rest' },
+        { id: 'U003', name: '余永胜', role: '值班长', team: 'C班', status: 'rest' },
+        { id: 'U301', name: '王品', role: '值班人员', team: 'C班', status: 'rest' },
+        { id: 'U302', name: '高恩福', role: '值班人员', team: 'C班', status: 'rest' },
+        { id: 'U303', name: '杨志芳', role: '值班人员', team: 'C班', status: 'rest' },
+        { id: 'U304', name: '沙成石', role: '值班人员', team: 'C班', status: 'rest' },
+        { id: 'U305', name: '王一格', role: '值班人员', team: 'C班', status: 'rest' },
+        { id: 'U306', name: '黄佳', role: '值班人员', team: 'C班', status: 'rest' },
+        { id: 'U307', name: '耿绍胜', role: '值班人员', team: 'C班', status: 'rest' },
+        { id: 'U004', name: '韦于成', role: '值班长', team: 'D值', status: 'rest' },
+        { id: 'U401', name: '王梓伟', role: '值班人员', team: 'D值', status: 'rest' },
+        { id: 'U402', name: '潘伟', role: '值班人员', team: 'D值', status: 'rest' },
+        { id: 'U403', name: '李云川', role: '值班人员', team: 'D值', status: 'rest' },
+        { id: 'U404', name: '保文鸿', role: '值班人员', team: 'D值', status: 'rest' },
+        { id: 'U405', name: '杨丽丽', role: '值班人员', team: 'D值', status: 'rest' },
+        { id: 'U406', name: '陶胜景', role: '值班人员', team: 'D值', status: 'rest' },
+        { id: 'U407', name: '张小丽', role: '值班人员', team: 'D值', status: 'rest' },
+        { id: 'U408', name: '黄佳', role: '值班人员', team: 'D值', status: 'rest' },
+        { id: 'U005', name: '王勇', role: '值班长', team: 'E班', status: 'rest' },
+        { id: 'U501', name: '欧钰慷', role: '值班人员', team: 'E班', status: 'rest' },
+        { id: 'U502', name: '李燚', role: '值班人员', team: 'E班', status: 'rest' },
+        { id: 'U503', name: '孙裕华', role: '值班人员', team: 'E班', status: 'rest' },
+        { id: 'U504', name: '张梅', role: '值班人员', team: 'E班', status: 'rest' },
+        { id: 'U505', name: '黑晓捷', role: '值班人员', team: 'E班', status: 'rest' },
+        { id: 'U506', name: '宋静', role: '值班人员', team: 'E班', status: 'rest' },
+        { id: 'U006', name: '崔娇', role: '值班长', team: '乙班', status: 'rest' },
+        { id: 'U601', name: '桑江艳', role: '值班人员', team: '乙班', status: 'rest' },
+        { id: 'U602', name: '王英子', role: '值班人员', team: '乙班', status: 'rest' },
+        { id: 'U007', name: '苏冀', role: '值班长', team: '甲班', status: 'rest' },
+        { id: 'U701', name: '张瑞颖', role: '值班人员', team: '甲班', status: 'rest' },
+        { id: 'U702', name: '桑江艳', role: '值班人员', team: '甲班', status: 'rest' }
     ]
 };/**
  * 从后端加载值班人员数据

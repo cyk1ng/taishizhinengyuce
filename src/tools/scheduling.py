@@ -341,55 +341,63 @@ class ScheduleDataProvider:
 
     @staticmethod
     def _get_mock_teams_data() -> list[OcScheduleTeam]:
-        """获取模拟班组数据"""
+        """获取模拟班组数据（实际班组人员）"""
         return [
             OcScheduleTeam(
                 team_id="T001", team_name="A班",
-                team_leader_id="U001", team_leader_name="张伟",
+                team_leader_id="U001", team_leader_name="宗德文",
                 create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
                 enable_flag="Y",
-                other_person_ids="U101,U102,U103",
-                other_person_names="李强,王明,刘洋"
+                other_person_ids="U101,U102,U103,U104,U105,U106,U107,U108,U109,U110",
+                other_person_names="王云,晏清阳,杨凡奇,李浩,王玥,何静,李光临,李杰,杨宏敬,龚瑞泉"
             ),
             OcScheduleTeam(
                 team_id="T002", team_name="B班",
-                team_leader_id="U002", team_leader_name="陈静",
+                team_leader_id="U002", team_leader_name="朱利明",
                 create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
                 enable_flag="Y",
-                other_person_ids="U201,U202,U203",
-                other_person_names="赵磊,孙杰,林峰"
+                other_person_ids="U201,U202,U203,U204,U205,U206",
+                other_person_names="张小丽,王海东,马兴源,杨智翔,丁紫笠,康林春"
             ),
             OcScheduleTeam(
                 team_id="T003", team_name="C班",
-                team_leader_id="U003", team_leader_name="周涛",
+                team_leader_id="U003", team_leader_name="余永胜",
                 create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
                 enable_flag="Y",
-                other_person_ids="U301,U302,U303",
-                other_person_names="吴鹏,黄海,徐达"
+                other_person_ids="U301,U302,U303,U304,U305,U306,U307",
+                other_person_names="王品,高恩福,杨志芳,沙成石,王一格,黄佳,耿绍胜"
             ),
             OcScheduleTeam(
-                team_id="T004", team_name="D班",
-                team_leader_id="U004", team_leader_name="郑华",
+                team_id="T004", team_name="D值",
+                team_leader_id="U004", team_leader_name="韦于成",
                 create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
                 enable_flag="Y",
-                other_person_ids="U401,U402,U403",
-                other_person_names="钱勇,王芳,李娜"
+                other_person_ids="U401,U402,U403,U404,U405,U406,U407,U408",
+                other_person_names="王梓伟,潘伟,李云川,保文鸿,杨丽丽,陶胜景,张小丽,黄佳"
             ),
             OcScheduleTeam(
                 team_id="T005", team_name="E班",
-                team_leader_id="U005", team_leader_name="张强",
+                team_leader_id="U005", team_leader_name="王勇",
                 create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
                 enable_flag="Y",
-                other_person_ids="U501,U502,U503",
-                other_person_names="赵敏,周杰,吴昊"
+                other_person_ids="U501,U502,U503,U504,U505,U506",
+                other_person_names="欧钰慷,李燚,孙裕华,张梅,黑晓捷,宋静"
             ),
             OcScheduleTeam(
-                team_id="T006", team_name="F班",
-                team_leader_id="U006", team_leader_name="杨帆",
+                team_id="T006", team_name="乙班",
+                team_leader_id="U006", team_leader_name="崔娇",
                 create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
                 enable_flag="Y",
-                other_person_ids="U601,U602,U603",
-                other_person_names="韩冰,杨柳,赵雪"
+                other_person_ids="U601,U602",
+                other_person_names="桑江艳,王英子"
+            ),
+            OcScheduleTeam(
+                team_id="T007", team_name="甲班",
+                team_leader_id="U007", team_leader_name="苏冀",
+                create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
+                enable_flag="Y",
+                other_person_ids="U701,U702",
+                other_person_names="张瑞颖,桑江艳"
             ),
         ]
 

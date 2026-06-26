@@ -10,7 +10,7 @@ INSERT INTO OC_SCHEDULE_TEAM (team_id, team_name, team_leader_id, team_leader_na
 VALUES ('T001', 'A班', 'U001', '宗德文',
     'DEPT001', '调度中心', 'Y',
     'U101,U102,U103,U104,U105,U106,U107,U108,U109,U110',
-    '王云,晏清阳,杨凡奇,李浩,王玥,何静,李光临,李杰,杨宏敬,龚瑞泉');
+    '王云,暴清阳,杨凡奇,李浩,王玥,何静,李光临,李杰,杨宏敏,龚瑞泉');
 
 -- B班 (晚班 16:00-24:00)
 INSERT INTO OC_SCHEDULE_TEAM (team_id, team_name, team_leader_id, team_leader_name,
@@ -37,7 +37,7 @@ INSERT INTO OC_SCHEDULE_TEAM (team_id, team_name, team_leader_id, team_leader_na
 VALUES ('T004', 'D值', 'U004', '韦于成',
     'DEPT001', '调度中心', 'Y',
     'U401,U402,U403,U404,U405,U406,U407,U408',
-    '王梓伟,潘伟,李云川,保文鸿,杨丽丽,陶胜景,张小丽,黄佳');
+    '王祥伟,潘伟,李云川,保文鸿,杨丽丽,陶胜晨,张小丽,黄佳');
 
 -- E班 (无排班)
 INSERT INTO OC_SCHEDULE_TEAM (team_id, team_name, team_leader_id, team_leader_name,
@@ -85,7 +85,7 @@ VALUES ('SR_YYYYMMDD_001', 'DEPT001', '调度中心',
     'YYYY-MM-DD 08:00:00', 'YYYY-MM-DD 16:00:00',
     'U001', '宗德文',
     'U101,U102,U103,U104,U105,U106,U107,U108,U109,U110',
-    '王云,晏清阳,杨凡奇,李浩,王玥,何静,李光临,李杰,杨宏敬,龚瑞泉');
+    '王云,暴清阳,杨凡奇,李浩,王玥,何静,李光临,李杰,杨宏敏,龚瑞泉');
 
 -- 晚班: B班 (16:00-24:00) - 已交班
 INSERT INTO OC_SCHEDULE_RECORD (record_id, dis_org_id, dis_org_name,

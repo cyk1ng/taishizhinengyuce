@@ -349,7 +349,7 @@ class ScheduleDataProvider:
                 create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
                 enable_flag="Y",
                 other_person_ids="U101,U102,U103,U104,U105,U106,U107,U108,U109,U110",
-                other_person_names="王云,晏清阳,杨凡奇,李浩,王玥,何静,李光临,李杰,杨宏敬,龚瑞泉"
+                other_person_names="王云,暴清阳,杨凡奇,李浩,王玥,何静,李光临,李杰,杨宏敏,龚瑞泉"
             ),
             OcScheduleTeam(
                 team_id="T002", team_name="B班",
@@ -373,7 +373,7 @@ class ScheduleDataProvider:
                 create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
                 enable_flag="Y",
                 other_person_ids="U401,U402,U403,U404,U405,U406,U407,U408",
-                other_person_names="王梓伟,潘伟,李云川,保文鸿,杨丽丽,陶胜景,张小丽,黄佳"
+                other_person_names="王祥伟,潘伟,李云川,保文鸿,杨丽丽,陶胜晨,张小丽,黄佳"
             ),
             OcScheduleTeam(
                 team_id="T005", team_name="E班",

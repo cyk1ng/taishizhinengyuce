@@ -221,18 +221,18 @@ def detect_shift_type(on_duty_time: Optional[datetime]) -> str:
     根据 ON_DUTY_TIME 自动识别班次类型
 
     规则（按上班时间）：
-      - 06:00-11:59  → 早班（08:00-16:00）
-      - 12:00-19:59  → 中班（16:00-24:00）
-      - 20:00-05:59  → 晚班（00:00-08:00）
+      - 00:00-07:59  → 夜班（00:00-08:00）
+      - 08:00-15:59  → 早班（08:00-16:00）
+      - 16:00-23:59  → 晚班（16:00-24:00）
     """
     if on_duty_time is None:
         return "未知"
     hour = on_duty_time.hour
-    if 6 <= hour < 12:
+    if hour < 8:
+        return "夜班"
+    elif hour < 16:
         return "早班"
-    elif 12 <= hour < 20:
-        return "中班"
-    else:  # 20:00-23:59, 00:00-05:59
+    else:
         return "晚班"
 
 
@@ -315,8 +315,8 @@ class ScheduleDataProvider:
                 if current > end_date:
                     break
                 is_on_duty = (i == on_duty_team_idx)
-                # 早/中/晚三个班次
-                for hour_offset in [8, 12, 18]:
+                # 夜班00-08 / 早班08-16 / 晚班16-24 三个班次
+                for hour_offset in [0, 8, 16]:
                     on_duty = datetime(current.year, current.month, current.day, hour_offset, 0, 0)
                     off_duty = on_duty + timedelta(hours=8)
                     idx += 1
@@ -349,22 +349,22 @@ class ScheduleDataProvider:
                 create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
                 enable_flag="Y",
                 other_person_ids="U101,U102,U103,U104,U105,U106,U107,U108,U109,U110",
-                other_person_names="王云,暴清阳,杨凡奇,李浩,王玥,何静,李光临,李杰,杨宏敏,龚瑞泉"
+                other_person_names="王云,晏清阳,杨凡奇,李浩,王玥,何静,李光临,李杰,杨宏敏,龚瑞泉"
             ),
             OcScheduleTeam(
                 team_id="T002", team_name="B班",
                 team_leader_id="U002", team_leader_name="朱利明",
                 create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
                 enable_flag="Y",
-                other_person_ids="U201,U202,U203,U204,U205,U206",
-                other_person_names="张小丽,王海东,马兴源,杨智翔,丁紫笠,康林春"
+                other_person_ids="U201,U202,U203,U204,U205,U206,U207",
+                other_person_names="张小丽,王海东,马兴源,杨智翔,丁紫签,康林春"
             ),
             OcScheduleTeam(
                 team_id="T003", team_name="C班",
                 team_leader_id="U003", team_leader_name="余永胜",
                 create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
                 enable_flag="Y",
-                other_person_ids="U301,U302,U303,U304,U305,U306,U307",
+                other_person_ids="U301,U302,U303,U304,U305,U306,U307,U308",
                 other_person_names="王品,高恩福,杨志芳,沙成石,王一格,黄佳,耿绍胜"
             ),
             OcScheduleTeam(
@@ -373,31 +373,15 @@ class ScheduleDataProvider:
                 create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
                 enable_flag="Y",
                 other_person_ids="U401,U402,U403,U404,U405,U406,U407,U408",
-                other_person_names="王祥伟,潘伟,李云川,保文鸿,杨丽丽,陶胜晨,张小丽,黄佳"
+                other_person_names="王祥伟,潘伟,李云川,保文鸿,杨丽丽,陶胜晟,张小丽,黄佳"
             ),
             OcScheduleTeam(
                 team_id="T005", team_name="E班",
                 team_leader_id="U005", team_leader_name="王勇",
                 create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
                 enable_flag="Y",
-                other_person_ids="U501,U502,U503,U504,U505,U506",
-                other_person_names="欧钰慷,李燚,孙裕华,张梅,黑晓捷,宋静"
-            ),
-            OcScheduleTeam(
-                team_id="T006", team_name="乙班",
-                team_leader_id="U006", team_leader_name="崔娇",
-                create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
-                enable_flag="Y",
-                other_person_ids="U601,U602",
-                other_person_names="桑江艳,王英子"
-            ),
-            OcScheduleTeam(
-                team_id="T007", team_name="甲班",
-                team_leader_id="U007", team_leader_name="苏冀",
-                create_busi_dept_id="D001", create_busi_dept_name="广州供电局",
-                enable_flag="Y",
-                other_person_ids="U701,U702",
-                other_person_names="张瑞颖,桑江艳"
+                other_person_ids="U501,U502,U503,U504,U505,U506,U507",
+                other_person_names="欧钰瞧,李燚,孙榕华,张梅,黑晓捷,宋静"
             ),
         ]
 

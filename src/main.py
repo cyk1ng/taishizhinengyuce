@@ -707,17 +707,41 @@ async def plan_workload_detail():
                 "summary": {"total_in_progress": 35, "total_completed": 15, "grand_total": 50},
                 "shift_allocation": {"morning": 20, "afternoon": 18, "night": 12}
             }
+            # 应用覆盖数据
+            from workload_override import load_overrides, apply_overrides_to_details
+            overrides = load_overrides("plan", today)
+            if overrides:
+                fallback["details"] = apply_overrides_to_details(fallback["details"], overrides)
+                # 重新计算汇总
+                total_ip = sum(v.get("in_progress", 0) for v in fallback["details"].values())
+                total_cp = sum(v.get("completed", 0) for v in fallback["details"].values())
+                total_gt = total_ip + total_cp
+                fallback["summary"] = {"total_in_progress": total_ip, "total_completed": total_cp, "grand_total": total_gt}
             logger.info(f"使用兜底假数据")
             return fallback
+
+        # 应用覆盖数据（用户手动修改）
+        from workload_override import load_overrides, apply_overrides_to_details
+        overrides = load_overrides("plan", today)
+        if overrides:
+            details = apply_overrides_to_details(results, overrides)
+            total_ip = sum(v.get("in_progress", 0) for v in details.values())
+            total_cp = sum(v.get("completed", 0) for v in details.values())
+            total_gt = total_ip + total_cp
+        else:
+            details = results
+            total_ip = total_in_progress
+            total_cp = total_completed
+            total_gt = grand_total
         
         return {
             "success": True,
             "date": today,
-            "details": results,
+            "details": details,
             "summary": {
-                "total_in_progress": total_in_progress,
-                "total_completed": total_completed,
-                "grand_total": grand_total
+                "total_in_progress": total_ip,
+                "total_completed": total_cp,
+                "grand_total": total_gt
             },
             "shift_allocation": shift_allocation
         }
@@ -780,14 +804,30 @@ async def nonplan_workload_detail():
                 },
                 "total": 12
             }
+            # 应用覆盖数据
+            from workload_override import load_overrides, apply_overrides_to_details
+            overrides = load_overrides("nonplan", today)
+            if overrides:
+                fallback["details"] = apply_overrides_to_details(fallback["details"], overrides)
+                fallback["total"] = sum(v.get("count", 0) for v in fallback["details"].values())
             logger.info(f"使用兜底假数据")
             return fallback
+
+        # 应用覆盖数据（用户手动修改）
+        from workload_override import load_overrides, apply_overrides_to_details
+        overrides = load_overrides("nonplan", today)
+        if overrides:
+            details = apply_overrides_to_details(results, overrides)
+            total_count = sum(v.get("count", 0) for v in details.values())
+        else:
+            details = results
+            total_count = grand_total
         
         return {
             "success": True,
             "date": today,
-            "details": results,
-            "total": grand_total
+            "details": details,
+            "total": total_count
         }
     except Exception as e:
         logger.error(f"获取非计划工作量详情失败: {e}")
@@ -804,6 +844,40 @@ async def nonplan_workload_detail():
         }
         logger.info(f"使用兜底假数据: {str(fallback)}")
         return fallback
+
+# 保存工作量覆盖数据
+@app.post("/api/save_workload_override")
+async def save_workload_override(request: Request):
+    """
+    保存用户在前端弹窗手动修改的工作量数据。
+    请求体 JSON：
+    {
+        "workload_type": "plan" | "nonplan",
+        "data": {
+            "maintenance": {"in_progress": 10, "completed": 5},
+            ...
+        },
+        "target_date": "2026-06-26"   // 可选，默认今天
+    }
+    """
+    try:
+        body = await request.json()
+        wl_type = body.get("workload_type", "")
+        data = body.get("data", {})
+        target_date = body.get("target_date", datetime.now().strftime("%Y-%m-%d"))
+
+        if wl_type not in ("plan", "nonplan"):
+            return {"success": False, "error": "workload_type 必须为 plan 或 nonplan"}
+        if not data:
+            return {"success": False, "error": "data 不能为空"}
+
+        from workload_override import save_batch_overrides
+        ok = save_batch_overrides(wl_type, data, target_date)
+
+        return {"success": ok, "message": "保存成功" if ok else "保存失败"}
+    except Exception as e:
+        logger.error(f"保存工作量覆盖数据失败: {e}")
+        return {"success": False, "error": str(e)}
 
 # 健康检查接口
 @app.get("/health")

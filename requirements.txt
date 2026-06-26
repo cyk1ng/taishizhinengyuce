@@ -100,6 +100,7 @@ opentelemetry-exporter-otlp-proto-grpc==1.42.1
 opentelemetry-proto==1.42.1
 opentelemetry-sdk==1.42.1
 opentelemetry-semantic-conventions==0.63b1
+oracledb==4.0.1
 orjson==3.11.7
 ormsgpack==1.12.2
 overrides==7.7.0

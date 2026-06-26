@@ -728,6 +728,73 @@
     opacity: 0.7;
 }
 
+/* ========================================
+   可编辑字段 & 操作按钮
+   ======================================== */
+.editable-card .field-value {
+    cursor: pointer;
+    border-bottom: 1px dashed transparent;
+    transition: all 0.2s;
+    padding: 2px 6px;
+    border-radius: 4px;
+    min-width: 28px;
+    display: inline-block;
+    text-align: right;
+}
+
+.editable-card .field-value:hover {
+    background: rgba(59, 130, 246, 0.08);
+    border-bottom: 1px dashed var(--accent-blue);
+}
+
+.editable-card .field-value.editing {
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid var(--accent-blue);
+    outline: none;
+    min-width: 40px;
+}
+
+/* 弹窗底部的保存/取消按钮 */
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 20px;
+    margin-top: 24px;
+    border-top: 1px solid var(--border-color);
+}
+
+.modal-btn {
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.modal-btn.primary {
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+    color: white;
+}
+
+.modal-btn.primary:hover {
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    transform: translateY(-1px);
+}
+
+.modal-btn.secondary {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.modal-btn.secondary:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--accent-blue);
+}
+
 .alert-card:hover .click-hint {
     opacity: 1;
     color: var(--accent-cyan);

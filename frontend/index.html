@@ -513,96 +513,104 @@
                 <button class="modal-close" onclick="closeModal('planWorkloadModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <!-- 四个业务类型卡片 -->
+                <!-- 四个业务类型卡片（可编辑） -->
                 <div class="plan-workload-grid">
                     <!-- 计划检修 -->
-                    <div class="plan-workload-card">
+                    <div class="plan-workload-card editable-card" data-category="maintenance">
                         <div class="plan-card-header">
                             <span class="plan-icon">🔧</span>
                             <span class="plan-title">计划检修</span>
                         </div>
                         <div class="plan-card-body">
-                            <div class="plan-stat">
+                            <div class="plan-stat editable-field">
                                 <span class="plan-label">开展中</span>
-                                <span class="plan-value green" id="plan-maintenance-in-progress">0</span>
+                                <span class="plan-value green field-value" data-field="in_progress"
+                                      ondblclick="editFieldValue(this)" title="双击编辑">0</span>
                             </div>
-                            <div class="plan-stat">
+                            <div class="plan-stat editable-field">
                                 <span class="plan-label">已终结</span>
-                                <span class="plan-value blue" id="plan-maintenance-completed">0</span>
+                                <span class="plan-value blue field-value" data-field="completed"
+                                      ondblclick="editFieldValue(this)" title="双击编辑">0</span>
                             </div>
                             <div class="plan-divider"></div>
                             <div class="plan-stat total">
                                 <span class="plan-label">总计</span>
-                                <span class="plan-value" id="plan-maintenance-total">0</span>
+                                <span class="plan-value field-total">0</span>
                             </div>
                         </div>
                     </div>
 
                     <!-- 转供电 -->
-                    <div class="plan-workload-card">
+                    <div class="plan-workload-card editable-card" data-category="transfer">
                         <div class="plan-card-header">
                             <span class="plan-icon">🔄</span>
                             <span class="plan-title">转供电</span>
                         </div>
                         <div class="plan-card-body">
-                            <div class="plan-stat">
+                            <div class="plan-stat editable-field">
                                 <span class="plan-label">开展中</span>
-                                <span class="plan-value green" id="plan-transfer-in-progress">0</span>
+                                <span class="plan-value green field-value" data-field="in_progress"
+                                      ondblclick="editFieldValue(this)" title="双击编辑">0</span>
                             </div>
-                            <div class="plan-stat">
+                            <div class="plan-stat editable-field">
                                 <span class="plan-label">已终结</span>
-                                <span class="plan-value blue" id="plan-transfer-completed">0</span>
+                                <span class="plan-value blue field-value" data-field="completed"
+                                      ondblclick="editFieldValue(this)" title="双击编辑">0</span>
                             </div>
                             <div class="plan-divider"></div>
                             <div class="plan-stat total">
                                 <span class="plan-label">总计</span>
-                                <span class="plan-value" id="plan-transfer-total">0</span>
+                                <span class="plan-value field-total">0</span>
                             </div>
                         </div>
                     </div>
 
                     <!-- 设备投退 -->
-                    <div class="plan-workload-card">
+                    <div class="plan-workload-card editable-card" data-category="equipment">
                         <div class="plan-card-header">
                             <span class="plan-icon">🔌</span>
                             <span class="plan-title">设备投退</span>
                         </div>
                         <div class="plan-card-body">
-                            <div class="plan-stat">
+                            <div class="plan-stat editable-field">
                                 <span class="plan-label">开展中</span>
-                                <span class="plan-value green" id="plan-equipment-in-progress">0</span>
+                                <span class="plan-value green field-value" data-field="in_progress"
+                                      ondblclick="editFieldValue(this)" title="双击编辑">0</span>
                             </div>
-                            <div class="plan-stat">
+                            <div class="plan-stat editable-field">
                                 <span class="plan-label">已终结</span>
-                                <span class="plan-value blue" id="plan-equipment-completed">0</span>
+                                <span class="plan-value blue field-value" data-field="completed"
+                                      ondblclick="editFieldValue(this)" title="双击编辑">0</span>
                             </div>
                             <div class="plan-divider"></div>
                             <div class="plan-stat total">
                                 <span class="plan-label">总计</span>
-                                <span class="plan-value" id="plan-equipment-total">0</span>
+                                <span class="plan-value field-total">0</span>
                             </div>
                         </div>
                     </div>
 
                     <!-- 周计划 -->
-                    <div class="plan-workload-card">
+                    <div class="plan-workload-card editable-card" data-category="weekly_plan">
                         <div class="plan-card-header">
                             <span class="plan-icon">📅</span>
                             <span class="plan-title">周计划</span>
                         </div>
                         <div class="plan-card-body">
-                            <div class="plan-stat">
+                            <div class="plan-stat editable-field">
                                 <span class="plan-label">开展中</span>
-                                <span class="plan-value green" id="plan-weekly-in-progress">0</span>
+                                <span class="plan-value green field-value" data-field="in_progress"
+                                      ondblclick="editFieldValue(this)" title="双击编辑">0</span>
                             </div>
-                            <div class="plan-stat">
+                            <div class="plan-stat editable-field">
                                 <span class="plan-label">已终结</span>
-                                <span class="plan-value blue" id="plan-weekly-completed">0</span>
+                                <span class="plan-value blue field-value" data-field="completed"
+                                      ondblclick="editFieldValue(this)" title="双击编辑">0</span>
                             </div>
                             <div class="plan-divider"></div>
                             <div class="plan-stat total">
                                 <span class="plan-label">总计</span>
-                                <span class="plan-value" id="plan-weekly-total">0</span>
+                                <span class="plan-value field-total">0</span>
                             </div>
                         </div>
                     </div>
@@ -626,6 +634,14 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- 保存按钮 -->
+                <div class="modal-actions">
+                    <button class="modal-btn secondary" onclick="closeModal('planWorkloadModal')">取消</button>
+                    <button class="modal-btn primary" onclick="savePlanWorkloadOverride()">
+                        💾 保存修改
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -638,18 +654,19 @@
                 <button class="modal-close" onclick="closeModal('nonPlanWorkloadModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <!-- 三个业务类型卡片 -->
+                <!-- 三个业务类型卡片（可编辑） -->
                 <div class="non-plan-workload-grid">
                     <!-- 故障日志 -->
-                    <div class="non-plan-workload-card">
+                    <div class="non-plan-workload-card editable-card" data-category="fault">
                         <div class="non-plan-card-header">
                             <span class="non-plan-icon">⚡</span>
                             <span class="non-plan-title">故障日志</span>
                         </div>
                         <div class="non-plan-card-body">
-                            <div class="non-plan-stat">
+                            <div class="non-plan-stat editable-field">
                                 <span class="non-plan-label">数量</span>
-                                <span class="non-plan-value red" id="non-plan-fault-count">0</span>
+                                <span class="non-plan-value red field-value" data-field="count"
+                                      ondblclick="editFieldValue(this)" title="双击编辑">0</span>
                             </div>
                             <div class="non-plan-desc">
                                 <span class="non-plan-desc-label">说明：</span>
@@ -659,15 +676,16 @@
                     </div>
 
                     <!-- 异常缺陷 -->
-                    <div class="non-plan-workload-card">
+                    <div class="non-plan-workload-card editable-card" data-category="defect">
                         <div class="non-plan-card-header">
                             <span class="non-plan-icon">⚠️</span>
                             <span class="non-plan-title">异常缺陷</span>
                         </div>
                         <div class="non-plan-card-body">
-                            <div class="non-plan-stat">
+                            <div class="non-plan-stat editable-field">
                                 <span class="non-plan-label">数量</span>
-                                <span class="non-plan-value yellow" id="non-plan-defect-count">0</span>
+                                <span class="non-plan-value yellow field-value" data-field="count"
+                                      ondblclick="editFieldValue(this)" title="双击编辑">0</span>
                             </div>
                             <div class="non-plan-desc">
                                 <span class="non-plan-desc-label">说明：</span>
@@ -677,15 +695,16 @@
                     </div>
 
                     <!-- 重过载 -->
-                    <div class="non-plan-workload-card">
+                    <div class="non-plan-workload-card editable-card" data-category="overload">
                         <div class="non-plan-card-header">
                             <span class="non-plan-icon">🔥</span>
                             <span class="non-plan-title">重过载</span>
                         </div>
                         <div class="non-plan-card-body">
-                            <div class="non-plan-stat">
+                            <div class="non-plan-stat editable-field">
                                 <span class="non-plan-label">数量</span>
-                                <span class="non-plan-value orange" id="non-plan-overload-count">0</span>
+                                <span class="non-plan-value orange field-value" data-field="count"
+                                      ondblclick="editFieldValue(this)" title="双击编辑">0</span>
                             </div>
                             <div class="non-plan-desc">
                                 <span class="non-plan-desc-label">说明：</span>
@@ -702,6 +721,14 @@
                         <span class="non-plan-total-label">非计划工作量总计</span>
                         <span class="non-plan-total-value" id="non-plan-total-count">0</span>
                     </div>
+                </div>
+
+                <!-- 保存按钮 -->
+                <div class="modal-actions">
+                    <button class="modal-btn secondary" onclick="closeModal('nonPlanWorkloadModal')">取消</button>
+                    <button class="modal-btn primary" onclick="saveNonPlanWorkloadOverride()">
+                        💾 保存修改
+                    </button>
                 </div>
             </div>
         </div>

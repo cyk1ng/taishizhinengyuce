@@ -1922,3 +1922,270 @@ document.addEventListener('DOMContentLoaded', function() {
         renderStaffList();
     });
 });
+
+/**
+ * ========================================
+ * 工作量弹窗编辑功能
+ * ========================================
+ */
+
+/**
+ * 双击编辑字段值 - 将数字变为可编辑输入框
+ */
+window.editFieldValue = function(el) {
+    if (el.classList.contains('editing')) return;
+    
+    const currentValue = el.textContent.trim();
+    if (isNaN(parseInt(currentValue))) return;
+    
+    el.classList.add('editing');
+    el.contentEditable = true;
+    el.focus();
+    
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    
+    const finishEdit = function() {
+        el.contentEditable = false;
+        el.classList.remove('editing');
+        el.removeEventListener('blur', finishEdit);
+        el.removeEventListener('keydown', onKeyDown);
+        
+        const card = el.closest('.editable-card');
+        if (card) {
+            const totalEl = card.querySelector('.field-total');
+            if (totalEl) {
+                const inProg = parseInt(card.querySelector('.field-value[data-field="in_progress"]')?.textContent || '0');
+                const compl = parseInt(card.querySelector('.field-value[data-field="completed"]')?.textContent || '0');
+                totalEl.textContent = inProg + compl;
+            }
+        }
+    };
+    
+    const onKeyDown = function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            el.blur();
+            return;
+        }
+        if (e.key === 'Escape') {
+            el.textContent = currentValue;
+            el.blur();
+            return;
+        }
+    };
+    
+    el.addEventListener('blur', finishEdit);
+    el.addEventListener('keydown', onKeyDown);
+};
+
+/**
+ * 收集弹窗中某个类型的所有编辑数据
+ */
+function collectOverrideData(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return {};
+    
+    const data = {};
+    const cards = modal.querySelectorAll('.editable-card');
+    cards.forEach(card => {
+        const category = card.dataset.category;
+        if (!category) return;
+        data[category] = {};
+        card.querySelectorAll('.field-value').forEach(el => {
+            const field = el.dataset.field;
+            if (field) {
+                data[category][field] = parseInt(el.textContent.trim()) || 0;
+            }
+        });
+    });
+    return data;
+}
+
+/**
+ * 保存计划工作量覆盖数据到后端
+ */
+window.savePlanWorkloadOverride = function() {
+    const data = collectOverrideData('planWorkloadModal');
+    if (Object.keys(data).length === 0) {
+        alert('没有数据可保存');
+        return;
+    }
+    
+    const today = new Date().toISOString().slice(0, 10);
+    const payload = {
+        workload_type: 'plan',
+        data: data,
+        target_date: today
+    };
+    
+    const btn = document.querySelector('#planWorkloadModal .modal-btn.primary');
+    const originalText = btn.textContent;
+    btn.textContent = '⏳ 保存中...';
+    btn.disabled = true;
+    
+    fetch('/api/save_workload_override', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(result => {
+        if (result.success) {
+            updatePlanDashboardCards(data);
+            btn.textContent = '✅ 已保存';
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }, 2000);
+            showToast('计划工作量已保存', 'success');
+        } else {
+            btn.textContent = '❌ 保存失败';
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }, 2000);
+            showToast('保存失败: ' + (result.error || '未知错误'), 'error');
+        }
+    })
+    .catch(err => {
+        console.error('保存失败:', err);
+        btn.textContent = '❌ 保存失败';
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }, 2000);
+        showToast('网络错误，请重试', 'error');
+    });
+};
+
+/**
+ * 保存非计划工作量覆盖数据到后端
+ */
+window.saveNonPlanWorkloadOverride = function() {
+    const data = collectOverrideData('nonPlanWorkloadModal');
+    if (Object.keys(data).length === 0) {
+        alert('没有数据可保存');
+        return;
+    }
+    
+    const today = new Date().toISOString().slice(0, 10);
+    const payload = {
+        workload_type: 'nonplan',
+        data: data,
+        target_date: today
+    };
+    
+    const btn = document.querySelector('#nonPlanWorkloadModal .modal-btn.primary');
+    const originalText = btn.textContent;
+    btn.textContent = '⏳ 保存中...';
+    btn.disabled = true;
+    
+    fetch('/api/save_workload_override', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(result => {
+        if (result.success) {
+            updateNonPlanDashboardCards(data);
+            btn.textContent = '✅ 已保存';
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }, 2000);
+            showToast('非计划工作量已保存', 'success');
+        } else {
+            btn.textContent = '❌ 保存失败';
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }, 2000);
+            showToast('保存失败: ' + (result.error || '未知错误'), 'error');
+        }
+    })
+    .catch(err => {
+        console.error('保存失败:', err);
+        btn.textContent = '❌ 保存失败';
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }, 2000);
+        showToast('网络错误，请重试', 'error');
+    });
+};
+
+/**
+ * 更新计划工作量的 dashboard 卡片数值
+ */
+function updatePlanDashboardCards(data) {
+    let totalInProgress = 0, totalCompleted = 0;
+    Object.values(data).forEach(item => {
+        totalInProgress += item.in_progress || 0;
+        totalCompleted += item.completed || 0;
+    });
+    
+    const planCard = document.querySelector('.alert-card[data-type="plan-workload"]');
+    if (planCard) {
+        const values = planCard.querySelectorAll('.alert-value');
+        if (values.length >= 3) {
+            values[0].textContent = totalInProgress;
+            values[1].textContent = totalCompleted;
+        }
+    }
+    
+    if (typeof updateCharts === 'function') {
+        updateCharts();
+    }
+}
+
+/**
+ * 更新非计划工作量的 dashboard 卡片数值
+ */
+function updateNonPlanDashboardCards(data) {
+    let total = 0;
+    Object.values(data).forEach(item => {
+        total += item.count || 0;
+    });
+    
+    const nonPlanCard = document.querySelector('.alert-card[data-type="nonplan-workload"]');
+    if (nonPlanCard) {
+        const value = nonPlanCard.querySelector('.alert-value');
+        if (value) {
+            value.textContent = total;
+        }
+    }
+    
+    if (typeof updateCharts === 'function') {
+        updateCharts();
+    }
+}
+
+/**
+ * 简单的 Toast 提示
+ */
+function showToast(message, type) {
+    const existing = document.querySelector('.workload-toast');
+    if (existing) existing.remove();
+    
+    const toast = document.createElement('div');
+    toast.className = 'workload-toast';
+    toast.textContent = message;
+    toast.style.cssText = `
+        position: fixed; bottom: 24px; right: 24px; z-index: 10000;
+        padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600;
+        background: ${type === 'success' ? 'rgba(34,197,94,0.9)' : 'rgba(239,68,68,0.9)'};
+        color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transition: opacity 0.3s ease;
+    `;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}

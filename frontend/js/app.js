@@ -929,29 +929,52 @@ function showPlanWorkloadModal(event) {
  */
 function updatePlanWorkloadModal(data) {
     // 更新计划检修
-    document.getElementById('plan-maintenance-in-progress').textContent = data.maintenance.in_progress;
-    document.getElementById('plan-maintenance-completed').textContent = data.maintenance.completed;
-    document.getElementById('plan-maintenance-total').textContent = data.maintenance.total;
+    updateCardFields('planWorkloadModal', 'maintenance', data.maintenance);
     
     // 更新转供电
-    document.getElementById('plan-transfer-in-progress').textContent = data.transfer.in_progress;
-    document.getElementById('plan-transfer-completed').textContent = data.transfer.completed;
-    document.getElementById('plan-transfer-total').textContent = data.transfer.total;
+    updateCardFields('planWorkloadModal', 'transfer', data.transfer);
     
     // 更新设备投退
-    document.getElementById('plan-equipment-in-progress').textContent = data.equipment.in_progress;
-    document.getElementById('plan-equipment-completed').textContent = data.equipment.completed;
-    document.getElementById('plan-equipment-total').textContent = data.equipment.total;
+    updateCardFields('planWorkloadModal', 'equipment', data.equipment);
     
     // 更新周计划
-    document.getElementById('plan-weekly-in-progress').textContent = data.weekly_plan.in_progress;
-    document.getElementById('plan-weekly-completed').textContent = data.weekly_plan.completed;
-    document.getElementById('plan-weekly-total').textContent = data.weekly_plan.total;
+    updateCardFields('planWorkloadModal', 'weekly_plan', data.weekly_plan);
     
     // 更新班次分配
     document.getElementById('shift-morning-count').textContent = data.shift_allocation.morning;
     document.getElementById('shift-afternoon-count').textContent = data.shift_allocation.afternoon;
     document.getElementById('shift-night-count').textContent = data.shift_allocation.night;
+
+    // 存储原始数据用于编辑
+    window._planWorkloadOriginal = {
+        maintenance: {...data.maintenance},
+        transfer: {...data.transfer},
+        equipment: {...data.equipment},
+        weekly_plan: {...data.weekly_plan}
+    };
+}
+
+/**
+ * 更新弹窗中某个卡片的所有字段
+ */
+function updateCardFields(modalId, category, data) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    const card = modal.querySelector(`.editable-card[data-category="${category}"]`);
+    if (!card) return;
+    card.querySelectorAll('.field-value').forEach(el => {
+        const field = el.dataset.field;
+        if (field && data[field] !== undefined) {
+            el.textContent = data[field];
+        }
+    });
+    // 更新总计
+    const total = card.querySelector('.field-total');
+    if (total) {
+        const inProgress = data.in_progress || 0;
+        const completed = data.completed || 0;
+        total.textContent = inProgress + completed;
+    }
 }
 
 /**
@@ -998,15 +1021,27 @@ function showNonPlanWorkloadModal(event) {
  */
 function updateNonPlanWorkloadModal(data) {
     // 更新故障日志
-    document.getElementById('non-plan-fault-count').textContent = data.fault.count;
+    updateCardFields('nonPlanWorkloadModal', 'fault', data.fault);
     
     // 更新异常缺陷
-    document.getElementById('non-plan-defect-count').textContent = data.defect.count;
+    updateCardFields('nonPlanWorkloadModal', 'defect', data.defect);
     
     // 更新重过载
-    document.getElementById('non-plan-overload-count').textContent = data.overload.count;
+    updateCardFields('nonPlanWorkloadModal', 'overload', data.overload);
     
     // 更新总计
+    const totalEl = document.getElementById('non-plan-total-count');
+    if (totalEl) {
+        totalEl.textContent = data.total || 0;
+    }
+    
+    // 存储原始数据
+    window._nonPlanWorkloadOriginal = {
+        fault: {...data.fault},
+        defect: {...data.defect},
+        overload: {...data.overload}
+    };
+}
     document.getElementById('non-plan-total-count').textContent = data.total;
 }
 

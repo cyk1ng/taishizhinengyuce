@@ -1042,8 +1042,6 @@ function updateNonPlanWorkloadModal(data) {
         overload: {...data.overload}
     };
 }
-    document.getElementById('non-plan-total-count').textContent = data.total;
-}
 
 /**
  * 关闭弹窗

@@ -707,32 +707,14 @@ async def plan_workload_detail():
                 "summary": {"total_in_progress": 35, "total_completed": 15, "grand_total": 50},
                 "shift_allocation": {"morning": 20, "afternoon": 18, "night": 12}
             }
-            # 应用覆盖数据
-            from workload_override import load_overrides, apply_overrides_to_details
-            overrides = load_overrides("plan", today)
-            if overrides:
-                fallback["details"] = apply_overrides_to_details(fallback["details"], overrides)
-                # 重新计算汇总
-                total_ip = sum(v.get("in_progress", 0) for v in fallback["details"].values())
-                total_cp = sum(v.get("completed", 0) for v in fallback["details"].values())
-                total_gt = total_ip + total_cp
-                fallback["summary"] = {"total_in_progress": total_ip, "total_completed": total_cp, "grand_total": total_gt}
             logger.info(f"使用兜底假数据")
             return fallback
 
-        # 应用覆盖数据（用户手动修改）
-        from workload_override import load_overrides, apply_overrides_to_details
-        overrides = load_overrides("plan", today)
-        if overrides:
-            details = apply_overrides_to_details(results, overrides)
-            total_ip = sum(v.get("in_progress", 0) for v in details.values())
-            total_cp = sum(v.get("completed", 0) for v in details.values())
-            total_gt = total_ip + total_cp
-        else:
-            details = results
-            total_ip = total_in_progress
-            total_cp = total_completed
-            total_gt = grand_total
+        # 覆盖已由 workload_data 接口统一管理，此处不再叠加
+        details = results
+        total_ip = total_in_progress
+        total_cp = total_completed
+        total_gt = grand_total
         
         return {
             "success": True,
@@ -812,22 +794,13 @@ async def nonplan_workload_detail():
                 fallback["total"] = sum(v.get("count", 0) for v in fallback["details"].values())
             logger.info(f"使用兜底假数据")
             return fallback
-
-        # 应用覆盖数据（用户手动修改）
-        from workload_override import load_overrides, apply_overrides_to_details
-        overrides = load_overrides("nonplan", today)
-        if overrides:
-            details = apply_overrides_to_details(results, overrides)
-            total_count = sum(v.get("count", 0) for v in details.values())
-        else:
-            details = results
-            total_count = grand_total
         
+        # 覆盖已由 workload_data 接口统一管理
         return {
             "success": True,
             "date": today,
-            "details": details,
-            "total": total_count
+            "details": results,
+            "total": grand_total
         }
     except Exception as e:
         logger.error(f"获取非计划工作量详情失败: {e}")
@@ -871,15 +844,77 @@ async def save_workload_override(request: Request):
         if not data:
             return {"success": False, "error": "data 不能为空"}
 
-        from workload_override import save_batch_overrides
-        ok = save_batch_overrides(wl_type, data, target_date)
+        from workload_manager import save_manual_edits
+        ok = save_manual_edits(wl_type, data, target_date)
 
         return {"success": ok, "message": "保存成功" if ok else "保存失败"}
     except Exception as e:
         logger.error(f"保存工作量覆盖数据失败: {e}")
         return {"success": False, "error": str(e)}
 
+# ===== 工作量数据统一管理接口 =====
+
+@app.get("/api/workload_data")
+async def workload_data(target_date: str = ""):
+    """
+    获取工作量数据（含覆盖已合并的结果）。
+    自动初始化 OC_WORKLOAD_DATA 表数据。
+    """
+    try:
+        from workload_manager import get_workload_data
+        date = target_date or datetime.now().strftime("%Y-%m-%d")
+        data = get_workload_data(date)
+        return {"success": True, "data": data}
+    except Exception as e:
+        logger.error(f"获取工作量数据失败: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/check_workload_updates")
+async def check_workload_updates(target_date: str = ""):
+    """
+    检查源数据是否有更新。
+    返回 has_updates: bool 前端据此决定是否弹出提示。
+    """
+    try:
+        from workload_manager import check_workload_updates
+        date = target_date or datetime.now().strftime("%Y-%m-%d")
+        result = check_workload_updates(date)
+        return {"success": True, **result}
+    except Exception as e:
+        logger.error(f"检查工作量更新失败: {e}")
+        return {"success": False, "error": str(e), "has_updates": False}
+
+@app.post("/api/apply_workload_updates")
+async def apply_workload_updates(request: Request):
+    """
+    用户确认后，用新源数据覆盖工作量表。
+    """
+    try:
+        from workload_manager import apply_source_updates
+        body = await request.json()
+        target_date = body.get("target_date", datetime.now().strftime("%Y-%m-%d"))
+        result = apply_source_updates(target_date)
+        return {"success": True, **result}
+    except Exception as e:
+        logger.error(f"应用工作量更新失败: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/predict_workload")
+async def predict_workload(target_date: str = ""):
+    """
+    根据工作量数据 + 班组排班 → 大模型预测工作量趋势
+    """
+    try:
+        from workload_manager import predict_workload
+        date = target_date or datetime.now().strftime("%Y-%m-%d")
+        result = predict_workload(date)
+        return {"success": True, **result}
+    except Exception as e:
+        logger.error(f"工作量预测失败: {e}")
+        return {"success": False, "error": str(e)}
+
 # 健康检查接口
+@app.get("/health")
 @app.get("/health")
 async def health_check():
     """健康检查接口"""

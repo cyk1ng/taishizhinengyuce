@@ -2189,3 +2189,162 @@ function showToast(message, type) {
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
+
+/**
+ * ========================================
+ * 工作量数据更新检测 & 智能预测
+ * ========================================
+ */
+
+/**
+ * 页面加载时检查工作量数据是否有更新
+ */
+function checkWorkloadUpdates() {
+    const today = new Date().toISOString().slice(0, 10);
+    fetch('/api/check_workload_updates?target_date=' + today)
+        .then(res => res.json())
+        .then(result => {
+            if (result.success && result.has_updates) {
+                // 显示更新提示弹窗
+                const modal = document.getElementById('workloadUpdateModal');
+                if (modal) {
+                    modal.classList.remove('hidden');
+                }
+            }
+        })
+        .catch(err => console.warn('检测工作量更新失败:', err));
+}
+
+/**
+ * 用户确认是否更新工作量数据
+ */
+window.confirmWorkloadUpdate = function(apply) {
+    const modal = document.getElementById('workloadUpdateModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+    
+    if (!apply) {
+        showToast('已保留当前修改数据', 'info');
+        return;
+    }
+    
+    const today = new Date().toISOString().slice(0, 10);
+    fetch('/api/apply_workload_updates', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({target_date: today})
+    })
+    .then(res => res.json())
+    .then(result => {
+        if (result.success) {
+            showToast('工作量数据已更新', 'success');
+            // 重新加载页面数据
+            if (typeof refreshData === 'function') {
+                refreshData();
+            } else {
+                location.reload();
+            }
+        } else {
+            showToast('更新失败: ' + (result.error || '未知错误'), 'error');
+        }
+    })
+    .catch(err => {
+        console.error('更新失败:', err);
+        showToast('网络错误，请重试', 'error');
+    });
+};
+
+/**
+ * 打开智能预测弹窗
+ */
+window.openPredictModal = function() {
+    const modal = document.getElementById('predictModal');
+    if (!modal) {
+        showToast('预测弹窗不存在', 'error');
+        return;
+    }
+    
+    modal.classList.remove('hidden');
+    
+    // 显示加载中
+    document.getElementById('predictLoading').style.display = 'block';
+    document.getElementById('predictResult').style.display = 'none';
+    
+    const today = new Date().toISOString().slice(0, 10);
+    
+    fetch('/api/predict_workload?target_date=' + today)
+        .then(res => res.json())
+        .then(result => {
+            document.getElementById('predictLoading').style.display = 'none';
+            const resultDiv = document.getElementById('predictResult');
+            resultDiv.style.display = 'block';
+            
+            if (!result.success) {
+                resultDiv.innerHTML = '<div class="predict-card predict-risk-high"><p style="color:#ff4d4f;">预测失败: ' + (result.error || '未知错误') + '</p></div>';
+                return;
+            }
+            
+            const pred = result.prediction || {};
+            const riskLevel = pred.risk_level || 'medium';
+            const riskClass = 'predict-risk-' + riskLevel;
+            
+            let html = '<div class="predict-card ' + riskClass + '">';
+            
+            // 总体趋势
+            html += '<div class="predict-card-title">📊 总体趋势</div>';
+            html += '<p style="font-size:14px;color:#555;margin-bottom:12px;">' + (pred.overall_trend || '暂无数据') + '</p>';
+            
+            // 风险等级
+            const riskLabels = {low: '🟢 低风险', medium: '🟡 中风险', high: '🔴 高风险'};
+            html += '<div style="margin-bottom:12px;"><strong>风险等级：</strong><span class="predict-tag" style="background:' + 
+                (riskLevel === 'high' ? '#ff4d4f' : riskLevel === 'medium' ? '#faad14' : '#52c41a') + ';color:#fff;">' + 
+                (riskLabels[riskLevel] || riskLevel) + '</span></div>';
+            
+            // 峰值类别
+            if (pred.peak_categories && pred.peak_categories.length > 0) {
+                html += '<div style="margin-bottom:12px;"><strong>⚠️ 高峰工作类别：</strong><br>';
+                pred.peak_categories.forEach(function(cat) {
+                    html += '<span class="predict-category">' + cat + '</span> ';
+                });
+                html += '</div>';
+            }
+            
+            // 瓶颈班组
+            if (pred.bottleneck_teams && pred.bottleneck_teams.length > 0) {
+                html += '<div style="margin-bottom:12px;"><strong>🏭 可能超负荷班组：</strong><br>';
+                pred.bottleneck_teams.forEach(function(team) {
+                    html += '<span class="predict-tag">' + team + '</span> ';
+                });
+                html += '</div>';
+            }
+            
+            html += '</div>';
+            
+            // 优化建议
+            if (pred.suggestions && pred.suggestions.length > 0) {
+                html += '<div class="predict-card predict-risk-low"><div class="predict-card-title">💡 优化建议</div>';
+                pred.suggestions.forEach(function(s, i) {
+                    html += '<div class="predict-suggestion">' + (i+1) + '. ' + s + '</div>';
+                });
+                html += '</div>';
+            }
+            
+            // 模型信息
+            html += '<div style="text-align:right;font-size:11px;color:#999;margin-top:8px;">';
+            html += '模型: ' + (result.model || 'unknown') + ' | ' + (result.cached ? '🔄 缓存' : '✨ 实时');
+            html += '</div>';
+            
+            resultDiv.innerHTML = html;
+        })
+        .catch(err => {
+            document.getElementById('predictLoading').style.display = 'none';
+            document.getElementById('predictResult').style.display = 'block';
+            document.getElementById('predictResult').innerHTML = '<div class="predict-card predict-risk-high"><p style="color:#ff4d4f;">预测请求失败: ' + err.message + '</p></div>';
+        });
+};
+
+// 页面加载完成后检查工作量更新
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(checkWorkloadUpdates, 1000);
+});

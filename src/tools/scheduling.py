@@ -388,8 +388,31 @@ class ScheduleDataProvider:
     @staticmethod
     def get_teams(city_dept_id: str = "") -> list[OcScheduleTeam]:
         """
-        获取班组信息 — 对应 SELECT * FROM OC_SCHEDULE_TEAM WHERE ENABLE_FLAG='Y'
+        获取班组信息 — 从 Oracle 查询 OC_SCHEDULE_TEAM，失败降级到 mock 数据
         """
+        try:
+            # 尝试从 Oracle 查询
+            from oracle_db import query_teams as oracle_query_teams
+            oracle_teams = oracle_query_teams(city_dept_id)
+            if oracle_teams:
+                result = []
+                for t in oracle_teams:
+                    result.append(OcScheduleTeam(
+                        team_id=t["team_id"],
+                        team_name=t["team_name"],
+                        team_leader_id=t.get("team_leader_id", ""),
+                        team_leader_name=t["team_leader_name"],
+                        create_busi_dept_id=t.get("create_busi_dept_id", ""),
+                        create_busi_dept_name=t.get("create_busi_dept_name", ""),
+                        enable_flag="Y",
+                        other_person_ids=t.get("person_ids", ""),
+                        other_person_names=t.get("person_names", ""),
+                    ))
+                return result
+        except Exception as e:
+            print(f"[Scheduling] Oracle 查询班组失败，降级到 mock: {e}")
+
+        # 降级：使用 mock 数据
         teams = ScheduleDataProvider._get_mock_teams_data()
         if city_dept_id:
             teams = [t for t in teams if t.create_busi_dept_id == city_dept_id]
@@ -402,15 +425,53 @@ class ScheduleDataProvider:
         city_dept_id: str = ""
     ) -> list[OcScheduleRecord]:
         """
-        获取排班记录 — 从内存存储中查询
+        获取排班记录 — 从 Oracle 查询 OC_SCHEDULE_RECORD，失败降级到内存存储
         """
+        try:
+            # 尝试从 Oracle 查询
+            from oracle_db import query_records as oracle_query_records
+            oracle_records = oracle_query_records(start_date, end_date, city_dept_id)
+            if oracle_records:
+                result = []
+                for r in oracle_records:
+                    # 解析时间字段
+                    on_duty = r["on_duty_time"]
+                    off_duty = r["off_duty_time"]
+                    if isinstance(on_duty, datetime):
+                        pass  # 已经是 datetime
+                    elif isinstance(on_duty, str) and on_duty:
+                        on_duty = datetime.strptime(on_duty.replace("T", " ")[:19], "%Y-%m-%d %H:%M:%S")
+                    if isinstance(off_duty, str) and off_duty:
+                        off_duty = datetime.strptime(off_duty.replace("T", " ")[:19], "%Y-%m-%d %H:%M:%S")
+
+                    result.append(OcScheduleRecord(
+                        record_id=r["record_id"],
+                        dis_org_id=r.get("dis_org_id", ""),
+                        dis_org_name=r.get("dis_org_name", ""),
+                        team_id=r["team_id"],
+                        team_name=r["team_name"],
+                        schedule_status=r.get("schedule_status", "Y"),
+                        on_duty_time=on_duty,
+                        off_duty_time=off_duty,
+                        team_leader_id=r.get("team_leader_id", ""),
+                        team_leader_name=r.get("team_leader_name", ""),
+                        other_person_ids=r.get("other_person_ids", ""),
+                        other_person_names=r.get("other_person_names", ""),
+                        temp_person_ids=r.get("temp_person_ids", ""),
+                        temp_person_names=r.get("temp_person_names", ""),
+                    ))
+                result.sort(key=lambda rec: (rec.on_duty_time or datetime.min, rec.team_name or ""))
+                return result
+        except Exception as e:
+            print(f"[Scheduling] Oracle 查询排班记录失败，降级到内存: {e}")
+
+        # 降级：从内存存储查询
         ScheduleDataProvider._ensure_record_store()
         result = []
         for rec in ScheduleDataProvider._record_store.values():
             if rec.on_duty_time and start_date <= rec.on_duty_time.date() <= end_date:
                 if not city_dept_id or rec.dis_org_id == city_dept_id:
                     result.append(rec)
-        # 按时间排序
         result.sort(key=lambda r: (r.on_duty_time or datetime.min, r.team_name or ""))
         return result
 

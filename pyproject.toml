@@ -38,6 +38,7 @@ dependencies = [
     "chromadb>=1.5.0",
     "scikit-learn>=1.0.0",
     "jieba>=0.42.0",
+    "oracledb",
 ]
 
 [tool.uv]

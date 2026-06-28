@@ -1752,27 +1752,41 @@ function renderStaffList() {
     
     // 按当前时间找到当值班组
     const dutyTeam = getCurrentOnDutyTeam();
+    const isOnDutyTeam = dutyTeam && dutyTeam.team_name === currentTeam;
     
-    // 当值人员 = 当值班组的所有成员
-    const onDutyStaff = dutyTeam ? (dutyTeam.on_duty_personnel || []) : [];
-    const onDutyIds = new Set(onDutyStaff.map(p => p.id));
+    let onDutyStaff, restingStaff;
     
-    // 休息人员 = 所有其他班组的人（包括被选中班组但非当值的人）
-    const restingStaff = [];
-    (staffState.teams || []).forEach(team => {
-        const teamStaff = team.on_duty_personnel || [];
-        teamStaff.forEach(p => {
-            if (!onDutyIds.has(p.id)) {
+    if (isOnDutyTeam) {
+        // 选中的班组就是当值班组 → 当值人员=本班组，休息人员=所有其他班组
+        onDutyStaff = dutyTeam ? (dutyTeam.on_duty_personnel || []) : [];
+        const onDutyIds = new Set(onDutyStaff.map(p => p.id));
+        
+        restingStaff = [];
+        (staffState.teams || []).forEach(team => {
+            const teamStaff = team.on_duty_personnel || [];
+            teamStaff.forEach(p => {
+                if (!onDutyIds.has(p.id)) {
+                    restingStaff.push(p);
+                }
+            });
+        });
+        (staffState.restingPersonnel || []).forEach(p => {
+            if (!onDutyIds.has(p.id) && !restingStaff.find(r => r.id === p.id)) {
                 restingStaff.push(p);
             }
         });
-    });
-    // 加上专门的休息人员列表
-    (staffState.restingPersonnel || []).forEach(p => {
-        if (!onDutyIds.has(p.id) && !restingStaff.find(r => r.id === p.id)) {
-            restingStaff.push(p);
-        }
-    });
+    } else {
+        // 选中的班组不是当值班组 → 当值人员为空，休息人员=选中班组的人
+        onDutyStaff = [];
+        const selectedTeamData = (staffState.teams || []).find(t => t.team_name === currentTeam);
+        restingStaff = selectedTeamData ? [...(selectedTeamData.on_duty_personnel || [])] : [];
+        // 也加上专门的休息人员列表中属于选中班组的人
+        (staffState.restingPersonnel || []).forEach(p => {
+            if (p.team === currentTeam && !restingStaff.find(r => r.id === p.id)) {
+                restingStaff.push(p);
+            }
+        });
+    }
     
     // 更新数量
     if (onDutyCount) onDutyCount.textContent = `${onDutyStaff.length}人`;

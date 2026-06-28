@@ -1849,6 +1849,49 @@ body {
     padding-bottom: 20px;
 }
 
+.staff-search-box {
+    position: relative;
+    margin: 8px 0 12px;
+}
+
+.staff-search-input {
+    width: 100%;
+    padding: 8px 32px 8px 12px;
+    border: 1px solid #d0d5dd;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #333;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.staff-search-input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+}
+
+.staff-search-input::placeholder {
+    color: #9ca3af;
+}
+
+.staff-search-icon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+/* 搜索时匹配高亮 */
+.staff-item.highlight-match {
+    background: #fef3c7;
+    border-color: #f59e0b;
+}
+
 /* ========================================
    人员详情样式（优化版）
    ======================================== */

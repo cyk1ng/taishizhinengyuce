@@ -2254,6 +2254,21 @@ function checkWorkloadUpdates() {
         .catch(err => console.warn('检测工作量更新失败:', err));
 }
 
+// 姓名模糊搜索 - 过滤当值/休息人员卡片
+function filterStaffList(side) {
+    const input = document.getElementById(side === 'on-duty' ? 'onDutySearch' : 'restingSearch');
+    const list = document.getElementById(side === 'on-duty' ? 'onDutyList' : 'restingList');
+    if (!input || !list) return;
+    const keyword = input.value.trim().toLowerCase();
+    const cards = list.querySelectorAll('.staff-card');
+    cards.forEach(card => {
+        const name = card.querySelector('.staff-name');
+        if (!name) return;
+        const match = !keyword || name.textContent.toLowerCase().includes(keyword);
+        card.style.display = match ? '' : 'none';
+    });
+}
+
 // 页面加载完成后检查工作量更新 - 集成到现有 DOMContentLoaded 中
 // 注意: 现有 charts.js 在文件开头已有 DOMContentLoaded 监听，此处通过延迟调用触发
 setTimeout(checkWorkloadUpdates, 1500);

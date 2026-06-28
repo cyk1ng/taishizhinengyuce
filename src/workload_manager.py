@@ -29,26 +29,15 @@ _oracle_available: Optional[bool] = None
 
 
 def _check_oracle() -> bool:
-    """检查 Oracle 是否可达（缓存结果）"""
+    """检查 Oracle 是否可达（共享 oracle_db 的缓存）"""
     global _oracle_available
     if _oracle_available is not None:
         return _oracle_available
     try:
-        import oracledb
-        host = os.getenv("ORACLE_HOST", "10.111.134.211")
-        port = int(os.getenv("ORACLE_PORT", "1521"))
-        service_name = os.getenv("ORACLE_SERVICE_NAME", "domsdb")
-        user = os.getenv("ORACLE_USER", "DOMS_JADP")
-        password = os.getenv("ORACLE_PASSWORD", "doms_jadp")
-        conn = oracledb.connect(
-            user=user, password=password,
-            host=host, port=port, service_name=service_name,
-            expire_time=5,
-        )
-        conn.close()
-        _oracle_available = True
-        return True
-    except Exception as e:
+        from oracle_db import is_oracle_available as _check
+        _oracle_available = _check()
+        return _oracle_available
+    except Exception:
         _oracle_available = False
         return False
 

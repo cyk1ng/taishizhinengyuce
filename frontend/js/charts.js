@@ -1351,8 +1351,8 @@ let currentShift = null;
 // 班次配置
 const SHIFT_DEFS = {
     '早班': { label: '早班', time: '08:00-16:00', color: '#ff9800' },
-    '晚班': { label: '晚班', time: '16:00-24:00', color: '#2196f3' },
-    '夜班': { label: '夜班', time: '00:00-08:00', color: '#9c27b0' }
+    '中班': { label: '中班', time: '16:00-24:00', color: '#2196f3' },
+    '晚班': { label: '晚班', time: '00:00-08:00', color: '#9c27b0' }
 };
 
 // 当前值班数据（由后端 API 加载，失败时自动降级为假数据）
@@ -1393,7 +1393,7 @@ const FALLBACK_STAFF_DATA = {
         },
         {
             record_id: 'fallback_B',
-            team_name: 'B班', shift_type: '晚班',
+            team_name: 'B班', shift_type: '中班',
             schedule_status: 'N',
             on_duty_time: '16:00', off_duty_time: '24:00',
             on_duty_count: 7,
@@ -1409,7 +1409,7 @@ const FALLBACK_STAFF_DATA = {
         },
         {
             record_id: 'fallback_C',
-            team_name: 'C班', shift_type: '夜班',
+            team_name: 'C班', shift_type: '晚班',
             schedule_status: 'N',
             on_duty_time: '00:00', off_duty_time: '08:00',
             on_duty_count: 8,
@@ -1546,9 +1546,9 @@ function applyFallbackData() {
  */
 function getDefaultShiftByTime() {
     const hour = new Date().getHours();
-    if (hour >= 0 && hour < 8) return '夜班';
+    if (hour >= 0 && hour < 8) return '晚班';
     if (hour >= 8 && hour < 16) return '早班';
-    return '晚班';
+    return '中班';
 }
 
 /**
@@ -1613,9 +1613,9 @@ function updateShiftButtonTimes() {
     
     // 默认班次时间（当数据中缺少时使用）
     const DEFAULT_SHIFT_TIMES = {
-        '夜班': '00:00-08:00',
+        '晚班': '00:00-08:00',
         '早班': '08:00-16:00',
-        '晚班': '16:00-24:00'
+        '中班': '16:00-24:00'
     };
     
     // 从数据中收集时间
@@ -1633,7 +1633,7 @@ function updateShiftButtonTimes() {
         const shift = btn.dataset.shift;
         // 优先使用数据中的时间，没有则用默认时间
         const timeStr = shiftTimeMap[shift] || DEFAULT_SHIFT_TIMES[shift] || '';
-        const icons = { '夜班': '🌙', '早班': '☀️', '晚班': '🌆' };
+        const icons = { '晚班': '🌙', '早班': '☀️', '中班': '🌆' };
         const icon = icons[shift] || '';
         btn.textContent = timeStr ? `${icon} ${shift} ${timeStr}` : `${icon} ${shift}`;
     });

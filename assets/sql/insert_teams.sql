@@ -12,7 +12,7 @@ VALUES ('T001', 'A班', 'U001', '宗德文',
     'U101,U102,U103,U104,U105,U106,U107,U108,U109,U110',
     '王云,晏清阳,杨凡奇,李浩,王玥,何静,李光临,李杰,杨宏敏,龚瑞泉');
 
--- B班 (晚班 16:00-24:00)
+-- B班 (中班 16:00-24:00)
 INSERT INTO OC_SCHEDULE_TEAM (team_id, team_name, team_leader_id, team_leader_name,
     create_busi_dept_id, create_busi_dept_name, enable_flag,
     other_person_ids, other_person_names)
@@ -21,7 +21,7 @@ VALUES ('T002', 'B班', 'U002', '朱利明',
     'U201,U202,U203,U204,U205,U206',
     '张小丽,王海东,马兴源,杨智翔,丁紫签,康林春');
 
--- C班 (夜班 00:00-08:00)
+-- C班 (晚班 00:00-08:00)
 INSERT INTO OC_SCHEDULE_TEAM (team_id, team_name, team_leader_id, team_leader_name,
     create_busi_dept_id, create_busi_dept_name, enable_flag,
     other_person_ids, other_person_names)

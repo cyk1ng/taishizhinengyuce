@@ -221,19 +221,19 @@ def detect_shift_type(on_duty_time: Optional[datetime]) -> str:
     根据 ON_DUTY_TIME 自动识别班次类型
 
     规则（按上班时间）：
-      - 00:00-07:59  → 夜班（00:00-08:00）
+      - 00:00-07:59  → 晚班（00:00-08:00）
       - 08:00-15:59  → 早班（08:00-16:00）
-      - 16:00-23:59  → 晚班（16:00-24:00）
+      - 16:00-23:59  → 中班（16:00-24:00）
     """
     if on_duty_time is None:
         return "未知"
     hour = on_duty_time.hour
     if hour < 8:
-        return "夜班"
+        return "晚班"
     elif hour < 16:
         return "早班"
     else:
-        return "晚班"
+        return "中班"
 
 
 # ═══════════════════════════════════════════════
@@ -315,7 +315,7 @@ class ScheduleDataProvider:
                 if current > end_date:
                     break
                 is_on_duty = (i == on_duty_team_idx)
-                # 夜班00-08 / 早班08-16 / 晚班16-24 三个班次
+                # 晚班00-08 / 早班08-16 / 中班16-24 三个班次
                 for hour_offset in [0, 8, 16]:
                     on_duty = datetime(current.year, current.month, current.day, hour_offset, 0, 0)
                     off_duty = on_duty + timedelta(hours=8)
@@ -391,7 +391,11 @@ class ScheduleDataProvider:
         获取班组信息 — 从 Oracle 查询 OC_SCHEDULE_TEAM，失败降级到 mock 数据
         """
         try:
-            # 尝试从 Oracle 查询
+            # 快速检查 Oracle 是否可达
+            from oracle_db import is_oracle_available
+            if not is_oracle_available():
+                raise ConnectionError("Oracle 不可用，跳过查询")
+
             from oracle_db import query_teams as oracle_query_teams
             oracle_teams = oracle_query_teams(city_dept_id)
             if oracle_teams:
@@ -428,7 +432,11 @@ class ScheduleDataProvider:
         获取排班记录 — 从 Oracle 查询 OC_SCHEDULE_RECORD，失败降级到内存存储
         """
         try:
-            # 尝试从 Oracle 查询
+            # 快速检查 Oracle 是否可达
+            from oracle_db import is_oracle_available
+            if not is_oracle_available():
+                raise ConnectionError("Oracle 不可用，跳过查询")
+
             from oracle_db import query_records as oracle_query_records
             oracle_records = oracle_query_records(start_date, end_date, city_dept_id)
             if oracle_records:

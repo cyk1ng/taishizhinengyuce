@@ -37,18 +37,41 @@ TNS_CONNECT_STRING = (
 )
 
 
-def get_oracle_connection():
-    """获取 Oracle 数据库连接（oracledb 驱动）"""
-    import oracledb
+_ORACLE_AVAILABLE = None  # None=未检测, True=可用, False=不可用
+
+
+def is_oracle_available() -> bool:
+    """检查 Oracle 是否可达（缓存结果，避免重复超时等待）"""
+    global _ORACLE_AVAILABLE
+    if _ORACLE_AVAILABLE is not None:
+        return _ORACLE_AVAILABLE
     try:
-        oracledb.init_oracle_client()
+        import oracledb
+        conn = oracledb.connect(
+            user=ORACLE_CONFIG["user"],
+            password=ORACLE_CONFIG["password"],
+            dsn=TNS_CONNECT_STRING,
+            expire_time=3,
+        )
+        conn.close()
+        _ORACLE_AVAILABLE = True
+        return True
     except Exception:
-        pass  # 没装 Instant Client 也能用 thin 模式
+        _ORACLE_AVAILABLE = False
+        return False
+
+
+def get_oracle_connection():
+    """获取 Oracle 数据库连接（oracledb 驱动 thin 模式，3秒超时）"""
+    import oracledb
+    if _ORACLE_AVAILABLE is False:
+        raise ConnectionError("Oracle 数据库不可用（已缓存）")
 
     return oracledb.connect(
         user=ORACLE_CONFIG["user"],
         password=ORACLE_CONFIG["password"],
         dsn=TNS_CONNECT_STRING,
+        expire_time=3,
     )
 
 

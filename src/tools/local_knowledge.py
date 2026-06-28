@@ -59,7 +59,7 @@ def _load_latest_seed() -> list:
 
 def _auto_seed():
     """自动导入种子文档到知识库（仅首次调用生效）"""
-    global _seeded
+    global _seeded, _seed_docs, _memory_docs
     if _seeded:
         return
     _seeded = True
@@ -68,13 +68,38 @@ def _auto_seed():
     if not docs:
         return
 
+    # 先将种子文档加载到全局变量（即使 SDK 不可用也能保底搜索）
+    for doc in docs:
+        content = doc.get("content") or doc.get("text", "")
+        if content:
+            doc_id = str(uuid.uuid4())
+            _seed_docs.append({
+                "id": doc_id,
+                "content": content,
+                "source": doc.get("source", "seed"),
+                "_type": "seed"
+            })
+            # 同时加入 memory_docs，使所有 API 都能检索到
+            _memory_docs.append({
+                "id": doc_id,
+                "content": content,
+                "source": doc.get("source", "seed"),
+                "_type": "seed"
+            })
+
+    logger.info(f"种子文档已加载到内存: {len(_seed_docs)} 条")
+
+    # 尝试通过 SDK 导入知识库（沙箱环境可能不可用）
     ctx = req_ctx.get() or new_context(method="knowledge_auto_seed")
-    client = _get_client(ctx)
+    try:
+        client = _get_client(ctx)
+    except Exception as e:
+        logger.warning(f"KnowledgeClient 不可用，使用内存模式: {e}")
+        return
 
     from coze_coding_dev_sdk import KnowledgeDocument, DataSourceType
 
     try:
-        # 先搜索一下，看知识库是否已有数据
         search_resp = client.search(query="test", table_names=[KNOWLEDGE_TABLE], top_k=1)
         if search_resp.code == 0 and len(search_resp.chunks) > 0:
             logger.info("知识库已有数据，跳过种子导入")
@@ -127,24 +152,46 @@ def _search_raw(query: str, top_k: int = 5) -> list:
     """内部搜索函数（无 @tool 装饰），返回结构化结果列表。"""
     ctx = req_ctx.get() or new_context(method="search_knowledge")
     _auto_seed()
-    client = _get_client(ctx)
+
+    # 优先使用 SDK 搜索
     try:
+        client = _get_client(ctx)
         response = client.search(
             query=query,
             table_names=[KNOWLEDGE_TABLE],
             top_k=top_k,
             min_score=0.0,
         )
+        if response.code == 0 and response.chunks:
+            return [
+                {"text": c.content, "score": getattr(c, "score", 0.0)}
+                for c in response.chunks
+            ]
         if response.code != 0:
-            return [{"error": f"搜索失败: {response.msg}"}]
-        if not response.chunks:
-            return []
-        return [
-            {"text": c.content, "score": getattr(c, "score", 0.0)}
-            for c in response.chunks
-        ]
+            logger.warning(f"SDK 搜索返回错误: {response.msg}，降级到内存搜索")
     except Exception as e:
-        return [{"error": f"搜索异常: {str(e)}"}]
+        logger.warning(f"SDK 搜索异常: {e}，降级到内存搜索")
+
+    # 降级：内存模糊搜索
+    if not _memory_docs:
+        return []
+
+    query_lower = query.lower()
+    scored = []
+    for doc in _memory_docs:
+        content = doc.get("content", "")
+        if not content:
+            continue
+        # 简单关键词匹配得分（出现次数 / 文档长度）
+        text_lower = content.lower()
+        count = text_lower.count(query_lower)
+        if count > 0:
+            score = count / max(len(content), 1) * 100
+            scored.append({"text": content[:500], "score": min(score, 1.0), "id": doc.get("id", "")})
+
+    # 按得分排序取 top_k
+    scored.sort(key=lambda x: x["score"], reverse=True)
+    return scored[:top_k]
 
 
 @tool
@@ -200,6 +247,7 @@ def import_document(content: str, source_name: str = None) -> dict:
 
 def get_all_documents(page: int = 1, page_size: int = 20) -> dict:
     """获取知识库文档列表"""
+    _auto_seed()  # 确保种子文档已加载
     offset = (page - 1) * page_size
     docs = _memory_docs[offset:offset + page_size]
     return {
@@ -231,14 +279,16 @@ def update_document(doc_id: str, content: str, source_name: str = None) -> dict:
 
 def count_documents() -> dict:
     """统计知识库文档数量"""
+    _auto_seed()  # 确保种子文档已加载
     return {"total": len(_memory_docs), "seed": len(_seed_docs)}
 
 
 def get_info() -> dict:
     """获取知识库信息"""
+    _auto_seed()  # 确保种子文档已加载
     return {
         "type": "local",
-        "total_documents": len(_memory_docs) + len(_seed_docs),
+        "total_documents": len(_memory_docs),
         "seed_count": len(_seed_docs),
         "memory_count": len(_memory_docs)
     }

@@ -1732,9 +1732,11 @@ function filterTeamsByShift() {
 
 function getCurrentOnDutyTeam() {
     if (!staffState.teams || staffState.teams.length === 0) return null;
-    // 查找匹配当前选中班组的值班记录
-    const match = staffState.teams.find(t => t.team_name === currentTeam);
-    return match || staffState.teams[0] || null;
+    // 按当前时间确定当值班次
+    const currentShiftName = getDefaultShiftByTime();
+    // 查找分配到这个班次的班组
+    const match = staffState.teams.find(t => t.shift_type === currentShiftName);
+    return match || null;
 }
 
 /**
@@ -1748,32 +1750,29 @@ function renderStaffList() {
     
     if (!onDutyList || !restingList) return;
     
-    // 获取当前值班班组数据
+    // 按当前时间找到当值班组
     const dutyTeam = getCurrentOnDutyTeam();
     
-    // 全部当值人员（所有班次的总和）
-    const allOnDutyStaff = (staffState.teams || []).flatMap(t => t.on_duty_personnel || []);
-    const allOnDutyIds = new Set(allOnDutyStaff.map(p => p.id));
+    // 当值人员 = 当值班组的所有成员
+    const onDutyStaff = dutyTeam ? (dutyTeam.on_duty_personnel || []) : [];
+    const onDutyIds = new Set(onDutyStaff.map(p => p.id));
     
-    // 判断当前选中的班组是否在值
-    const isCurrentTeamOnDuty = dutyTeam !== null && dutyTeam.team_name === currentTeam && dutyTeam.schedule_status === 'Y';
-    
-    let onDutyStaff = [];
-    let restingStaff = [];
-    
-    if (isCurrentTeamOnDuty) {
-        // ── 当值班组视图（如 A班当值，查看 A班）──
-        // 左侧：本班当值人员（核心 + 来自其他班组的临时借调）
-        onDutyStaff = dutyTeam.on_duty_personnel || [];
-        // 右侧：所有其他班组的休息人员
-        restingStaff = (staffState.restingPersonnel || []).filter(p => !allOnDutyIds.has(p.id));
-    } else {
-        // ── 非当值班组视图（如 A班当值，查看 B班）──
-        // 左侧：本班组中已被临时借调到当值班组的人（如果有）
-        onDutyStaff = allOnDutyStaff.filter(p => p.team === currentTeam);
-        // 右侧：所有其他班组的休息人员（与当值班组视图一致）
-        restingStaff = (staffState.restingPersonnel || []).filter(p => !allOnDutyIds.has(p.id));
-    }
+    // 休息人员 = 所有其他班组的人（包括被选中班组但非当值的人）
+    const restingStaff = [];
+    (staffState.teams || []).forEach(team => {
+        const teamStaff = team.on_duty_personnel || [];
+        teamStaff.forEach(p => {
+            if (!onDutyIds.has(p.id)) {
+                restingStaff.push(p);
+            }
+        });
+    });
+    // 加上专门的休息人员列表
+    (staffState.restingPersonnel || []).forEach(p => {
+        if (!onDutyIds.has(p.id) && !restingStaff.find(r => r.id === p.id)) {
+            restingStaff.push(p);
+        }
+    });
     
     // 更新数量
     if (onDutyCount) onDutyCount.textContent = `${onDutyStaff.length}人`;

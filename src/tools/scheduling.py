@@ -303,39 +303,45 @@ class ScheduleDataProvider:
 
     @staticmethod
     def _generate_mock_records(start_date: date, end_date: date) -> list[OcScheduleRecord]:
-        """生成模拟排班记录 —— 每天仅一个班组在值，轮转"""
+        """生成模拟排班记录
+        班组-班次固定映射：
+          A班=早班(08:00), B班=中班(16:00), C班=晚班(00:00)
+          D值、E班 无排班
+        """
+        # 班组 → 班次偏移映射（小时）
+        TEAM_SHIFT_MAP = {
+            "A班": 8,    # 早班 08:00-16:00
+            "B班": 16,   # 中班 16:00-24:00
+            "C班": 0,    # 晚班 00:00-08:00
+        }
         records: list[OcScheduleRecord] = []
         teams = ScheduleDataProvider._get_mock_teams_data()
         current = start_date
         idx = 0
         while current <= end_date:
-            # 每天轮转一个班组在值（按日期索引选班组）
-            on_duty_team_idx = current.day % len(teams)
-            for i, team in enumerate(teams):
-                if current > end_date:
-                    break
-                is_on_duty = (i == on_duty_team_idx)
-                # 晚班00-08 / 早班08-16 / 中班16-24 三个班次
-                for hour_offset in [0, 8, 16]:
-                    on_duty = datetime(current.year, current.month, current.day, hour_offset, 0, 0)
-                    off_duty = on_duty + timedelta(hours=8)
-                    idx += 1
-                    records.append(OcScheduleRecord(
-                        record_id=f"SR{current.strftime('%Y%m%d')}_{team.team_id}_{hour_offset}",
-                        dis_org_id=team.create_busi_dept_id,
-                        dis_org_name=team.create_busi_dept_name,
-                        team_id=team.team_id,
-                        team_name=team.team_name,
-                        schedule_status="Y" if is_on_duty else "N",
-                        on_duty_time=on_duty,
-                        off_duty_time=off_duty,
-                        team_leader_id=team.team_leader_id,
-                        team_leader_name=team.team_leader_name,
-                        other_person_ids=team.other_person_ids,
-                        other_person_names=team.other_person_names,
-                        temp_person_ids="",
-                        temp_person_names="",
-                    ))
+            for team in teams:
+                hour_offset = TEAM_SHIFT_MAP.get(team.team_name)
+                if hour_offset is None:
+                    continue  # D值、E班 无排班
+                on_duty = datetime(current.year, current.month, current.day, hour_offset, 0, 0)
+                off_duty = on_duty + timedelta(hours=8)
+                idx += 1
+                records.append(OcScheduleRecord(
+                    record_id=f"SR{current.strftime('%Y%m%d')}_{team.team_id}_{hour_offset}",
+                    dis_org_id=team.create_busi_dept_id,
+                    dis_org_name=team.create_busi_dept_name,
+                    team_id=team.team_id,
+                    team_name=team.team_name,
+                    schedule_status="Y",  # 有排班即为在值（当前时段由前端筛选）
+                    on_duty_time=on_duty,
+                    off_duty_time=off_duty,
+                    team_leader_id=team.team_leader_id,
+                    team_leader_name=team.team_leader_name,
+                    other_person_ids=team.other_person_ids,
+                    other_person_names=team.other_person_names,
+                    temp_person_ids="",
+                    temp_person_names="",
+                ))
             current += timedelta(days=1)
         return records
 
@@ -924,9 +930,22 @@ def save_schedule_records(records_json: str = "") -> str:
 # ═══════════════════════════════════════════════
 
 @tool
+def get_current_shift_key() -> str:
+    """根据当前时间返回当前班次名称"""
+    now = datetime.now()
+    h = now.hour
+    if h < 8:
+        return "晚班"    # 00:00-08:00
+    elif h < 16:
+        return "早班"    # 08:00-16:00
+    else:
+        return "中班"    # 16:00-24:00
+
+
 def get_staff_detail(team_name: str = "", date_str: str = "") -> str:
     """
     获取值班人员详情 — 返回当值人员和休息人员列表
+    规则：按当前时间确定当值班次，当值班次对应班组为当值班组，其成员为当值人员。
     - team_name: 班组名称（如 A班, B班），为空则返回所有班组
     - date_str: 日期（YYYY-MM-DD），为空则默认今天
     """
@@ -935,8 +954,15 @@ def get_staff_detail(team_name: str = "", date_str: str = "") -> str:
         all_teams = ScheduleDataProvider.get_teams()
         records = ScheduleDataProvider.get_records(target_date, target_date)
 
-        # 找出在值的班组
-        on_duty_records = [r for r in records if r.schedule_status == "Y"]
+        # 按当前时间确定当值班次
+        current_shift = get_current_shift_key()
+        # 找到匹配当值班次的排班记录
+        on_duty_records = []
+        for r in records:
+            rec_shift = detect_shift_type(r.on_duty_time)
+            if rec_shift == current_shift:
+                on_duty_records.append(r)
+
         on_duty_team_name = on_duty_records[0].team_name if on_duty_records else ""
         on_duty_record = on_duty_records[0] if on_duty_records else None
 

@@ -7,6 +7,7 @@
 
 import os
 import json
+import uuid
 import logging
 from typing import Optional
 from langchain.tools import tool
@@ -168,3 +169,76 @@ def search_knowledge(query: str, top_k: int = 5) -> str:
     for i, r in enumerate(results):
         parts.append(f"[结果 {i + 1}] (相关度: {r.get('score', 0):.2f})\n{r.get('text', '')}")
     return "\n\n---\n\n".join(parts)
+
+
+# ─── 全局变量初始化 ──────────────────────────────────
+_memory_docs = []
+_seed_docs = []
+_kb_initialized = False
+
+# ─── 文档管理 API（供 main.py 调用） ─────────────────────────────
+
+def import_document(content: str, source_name: str = None) -> dict:
+    """导入文档到知识库"""
+    global _memory_docs, _seed_docs, _kb_initialized
+    ctx = req_ctx.get() or new_context(method="import_document")
+    try:
+        client = _get_client(ctx)
+        meta = {"source": source_name or "user_import"}
+        if client:
+            client.add_documents(
+                documents=[{"content": content, "metadata": meta}],
+                dataset_name="dispatch_knowledge"
+            )
+        _memory_docs.append({"content": content, "source": meta["source"], "id": str(uuid.uuid4())})
+        return {"success": True, "result": "文档导入成功"}
+    except Exception as e:
+        logger.warning(f"KnowledgeClient import failed, using memory: {e}")
+        _memory_docs.append({"content": content, "source": source_name or "user_import", "id": str(uuid.uuid4())})
+        return {"success": True, "result": "文档已导入（内存模式）"}
+
+
+def get_all_documents(page: int = 1, page_size: int = 20) -> dict:
+    """获取知识库文档列表"""
+    offset = (page - 1) * page_size
+    docs = _memory_docs[offset:offset + page_size]
+    return {
+        "total": len(_memory_docs),
+        "page": page,
+        "page_size": page_size,
+        "documents": [{"id": d["id"], "content": d["content"][:200], "source": d.get("source", "")} for d in docs],
+        "seed_count": len(_seed_docs)
+    }
+
+
+def delete_document(doc_id: str) -> dict:
+    """删除知识库文档"""
+    global _memory_docs, _seed_docs, _kb_initialized
+    _memory_docs = [d for d in _memory_docs if d["id"] != doc_id]
+    return {"success": True}
+
+
+def update_document(doc_id: str, content: str, source_name: str = None) -> dict:
+    """更新知识库文档"""
+    for d in _memory_docs:
+        if d["id"] == doc_id:
+            d["content"] = content
+            if source_name:
+                d["source"] = source_name
+            return {"success": True}
+    return {"success": False, "error": "文档不存在"}
+
+
+def count_documents() -> dict:
+    """统计知识库文档数量"""
+    return {"total": len(_memory_docs), "seed": len(_seed_docs)}
+
+
+def get_info() -> dict:
+    """获取知识库信息"""
+    return {
+        "type": "local",
+        "total_documents": len(_memory_docs) + len(_seed_docs),
+        "seed_count": len(_seed_docs),
+        "memory_count": len(_memory_docs)
+    }

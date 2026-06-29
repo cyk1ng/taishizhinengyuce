@@ -1832,7 +1832,6 @@ body {
 }
 
 .staff-section-title .staff-count {
-    margin-left: auto;
     padding: 5px 14px;
     background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
     color: #fff;
@@ -1852,6 +1851,22 @@ body {
 .staff-search-box {
     position: relative;
     margin: 8px 0 12px;
+}
+
+.staff-section-title .staff-search-box {
+    margin: 0 0 0 auto;
+    flex: 0 1 180px;
+    min-width: 0;
+}
+
+.staff-section-title .staff-search-box .staff-search-input {
+    padding: 5px 28px 5px 10px;
+    font-size: 12px;
+}
+
+.staff-section-title .staff-search-box .staff-search-icon {
+    font-size: 12px;
+    right: 8px;
 }
 
 .staff-search-input {

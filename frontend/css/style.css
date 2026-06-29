@@ -1932,6 +1932,27 @@ body {
     backdrop-filter: blur(10px);
 }
 
+/* 休息人员卡片灰化 */
+.staff-section:last-of-type .staff-card {
+    background: linear-gradient(135deg, rgba(30, 40, 60, 0.4), rgba(20, 30, 50, 0.2));
+    border-color: rgba(60, 80, 110, 0.3);
+    filter: saturate(0.6);
+}
+
+.staff-section:last-of-type .staff-card:hover {
+    border-color: rgba(60, 80, 110, 0.6);
+    filter: saturate(0.8);
+}
+
+.staff-section:last-of-type .staff-card::before {
+    background: rgba(100, 130, 170, 0.4);
+    width: 3px;
+}
+
+.staff-section:last-of-type .staff-card::after {
+    background: radial-gradient(circle, rgba(100, 130, 170, 0.05), transparent 70%);
+}
+
 .staff-card::before {
     content: '';
     position: absolute;

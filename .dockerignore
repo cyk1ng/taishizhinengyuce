@@ -1,0 +1,45 @@
+# Docker 构建忽略文件 - 打包到 Docker 镜像时排除无用文件
+
+# 版本控制
+.git
+.gitignore
+
+# Python 缓存
+__pycache__
+*.pyc
+*.pyo
+.venv
+venv
+*.egg-info
+
+# 开发环境配置
+.coze
+.env.example
+.venv
+
+# IDE
+.idea
+.vscode
+*.swp
+
+# 旧 ChromaDB 知识库文件（已废弃）
+assets/knowledge/chroma.sqlite3
+assets/knowledge/*/
+
+# 打包文件
+*.zip
+*.tar.gz
+*.tgz
+
+# 开发文档（部署不需要）
+本地模型快速开始.md
+天气卡片*.md
+连接本地Ollama*.md
+Ollama启动指南.md
+本次会话修改文件清单.md
+本地模型配置完成说明.md
+本地模型配置总结.md
+界面布局优化*.md
+统计卡片高度优化说明.md
+README_本地模型.md
+天气信息*.md

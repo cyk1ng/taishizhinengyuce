@@ -368,10 +368,12 @@ if FRONTEND_DIR.exists():
     css_dir = FRONTEND_DIR / "css"
     js_dir = FRONTEND_DIR / "js"
     assets_dir = FRONTEND_DIR / "assets"
+    vendor_dir = FRONTEND_DIR / "vendor"
     
     logger.info(f"   CSS目录: {css_dir} - {css_dir.exists()}")
     logger.info(f"   JS目录: {js_dir} - {js_dir.exists()}")
     logger.info(f"   Assets目录: {assets_dir} - {assets_dir.exists()}")
+    logger.info(f"   Vendor目录: {vendor_dir} - {vendor_dir.exists()}")
     
     if css_dir.exists():
         app.mount("/css", StaticFiles(directory=str(css_dir)), name="css")
@@ -382,6 +384,9 @@ if FRONTEND_DIR.exists():
     if assets_dir.exists():
         app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
         logger.info(f"   ✅ Assets静态文件已挂载")
+    if vendor_dir.exists():
+        app.mount("/vendor", StaticFiles(directory=str(vendor_dir)), name="vendor")
+        logger.info(f"   ✅ Vendor静态文件已挂载")
     
     logger.info(f"✅ 前端界面已加载: {FRONTEND_DIR}")
 else:

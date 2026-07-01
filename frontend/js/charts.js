@@ -1971,8 +1971,10 @@ window.editFieldValue = function(el) {
         if (card) {
             const totalEl = card.querySelector('.field-total');
             if (totalEl) {
-                const inProg = parseInt(card.querySelector('.field-value[data-field="in_progress"]')?.textContent || '0');
-                const compl = parseInt(card.querySelector('.field-value[data-field="completed"]')?.textContent || '0');
+                const inProgEl = card.querySelector('.field-value[data-field="in_progress"]');
+                const complEl = card.querySelector('.field-value[data-field="completed"]');
+                const inProg = parseInt(inProgEl ? inProgEl.textContent : '0');
+                const compl = parseInt(complEl ? complEl.textContent : '0');
                 totalEl.textContent = inProg + compl;
             }
         }

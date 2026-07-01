@@ -2,7 +2,9 @@
 from typing import Optional
 
 
-def extract_core_stack(error: Exception) -> str:
+def extract_core_stack(error: Optional[Exception] = None) -> str:
     """提取核心堆栈 - 替身"""
     import traceback
-    return "".join(traceback.format_exception_only(type(error), error))
+    if error:
+        return "".join(traceback.format_exception_only(type(error), error))
+    return "stub traceback: no active exception"

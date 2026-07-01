@@ -10,8 +10,13 @@ LOG_LEVEL = "INFO"
 
 class _RequestContext:
     """请求上下文 - 替身"""
+    _ctx: Optional[object] = None
+
+    def set(self, ctx: object):
+        self._ctx = ctx
+
     def get(self) -> Optional[object]:
-        return None
+        return self._ctx
 
 
 request_context = _RequestContext()

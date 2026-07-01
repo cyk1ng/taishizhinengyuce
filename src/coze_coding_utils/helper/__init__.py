@@ -11,7 +11,7 @@ class _GraphHelper:
 
     def get_agent_instance(self, agent_path: str, ctx=None) -> Any:
         """获取 Agent 实例"""
-        from src.agents import agent
+        from agents import agent
         return agent.build_agent(ctx)
 
     def get_graph_node_func_with_inout(self, graph, node_id: str):

@@ -99,6 +99,11 @@ _engine = None
 _SessionLocal = None
 
 def _create_engine_with_retry():
+    # 本地开发环境跳过数据库
+    if os.getenv("SKIP_DB", "").lower() in ("true", "1", "yes"):
+        logger.warning("SKIP_DB=true, 跳过数据库连接，使用 mock 数据模式")
+        return None
+
     url = get_db_url()
     if not url:
         logger.warning("Database URL is not set, using mock data mode")

@@ -15,6 +15,7 @@
 """
 
 import json
+import os
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List
@@ -71,6 +72,9 @@ class NonPlanWorkloadDatabase:
     @staticmethod
     def get_session():
         """获取数据库会话"""
+        # 本地开发跳过数据库
+        if os.environ.get("SKIP_DB", "").lower() in ("true", "1", "yes"):
+            return None
         try:
             from storage.database.db import get_session, is_database_connected
             if is_database_connected():

@@ -315,7 +315,9 @@ class WorkloadDatabase:
     
     @staticmethod
     def get_session():
-        """获取数据库会话"""
+        """获取数据库会话（检查SKIP_DB）"""
+        if os.environ.get("SKIP_DB", "").lower() in ("true", "1", "yes"):
+            return None
         try:
             from storage.database.db import get_session, is_database_connected
             if is_database_connected():

@@ -8,14 +8,19 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
-# 加载 .env 文件（必须在读取任何环境变量之前）
+# 手动加载 .env 文件（无需 python-dotenv 依赖）
 _env_file = Path(__file__).parent.parent / '.env'
 if _env_file.exists():
-    try:
-        from dotenv import load_dotenv
-        load_dotenv(_env_file, override=True)
-    except ImportError:
-        pass
+    with open(_env_file, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('#') or '=' not in line:
+                continue
+            key, _, val = line.partition('=')
+            key = key.strip()
+            val = val.strip().strip('"').strip("'")
+            if key and val and key not in os.environ:
+                os.environ[key] = val
 from typing import Any, Dict, Iterable, AsyncIterable, AsyncGenerator, Optional
 # import cozeloop  # 已禁用，避免401认证日志
 import uvicorn

@@ -6,6 +6,16 @@ import threading
 import traceback
 import logging
 from datetime import datetime
+from pathlib import Path
+
+# 加载 .env 文件（必须在读取任何环境变量之前）
+_env_file = Path(__file__).parent.parent / '.env'
+if _env_file.exists():
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(_env_file, override=True)
+    except ImportError:
+        pass
 from typing import Any, Dict, Iterable, AsyncIterable, AsyncGenerator, Optional
 # import cozeloop  # 已禁用，避免401认证日志
 import uvicorn

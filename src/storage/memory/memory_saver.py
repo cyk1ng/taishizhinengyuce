@@ -46,6 +46,11 @@ class MemoryManager:
 
     def _setup_schema_and_tables(self, db_url: str) -> bool:
         """同步创建 schema 和表（只执行一次），返回是否成功"""
+        # 仅支持 PostgreSQL 数据库
+        if not db_url.startswith("postgresql") and "postgres" not in db_url:
+            logger.info(f"Non-postgres database type in DATABASE_URL, fallback to MemorySaver")
+            return False
+
         from langgraph.checkpoint.postgres import PostgresSaver
 
         if self._setup_done:

@@ -58,6 +58,7 @@
 
 import json
 import os
+import time
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
@@ -1396,6 +1397,8 @@ def get_workload_dashboard(
     返回：工作量看板数据JSON字符串
     """
     try:
+        _t0 = time.time()
+        logger.info(f"[timing] get_workload_dashboard 开始, target_date={target_date}")
         # 仪表盘：target_date为空时检修单查所有记录（不限日期），其他表仍按当天
         if not target_date:
             all_records_mode = True
@@ -1404,14 +1407,21 @@ def get_workload_dashboard(
             all_records_mode = False
             today_str = target_date
         
+        logger.info(f"[timing] get_workload_dashboard 开始, target_date={target_date}, 耗时: {time.time()-_t0:.2f}s")
         maintenance_records = PlanWorkloadDatabase.collect_maintenance_workload(
             None if all_records_mode else target_date
         )
+        logger.info(f"[timing] collect_maintenance_workload 完成: {time.time()-_t0:.2f}s")
         equipment_records = PlanWorkloadDatabase.collect_equipment_workload(today_str)
+        logger.info(f"[timing] collect_equipment_workload 完成: {time.time()-_t0:.2f}s")
         transfer_records = PlanWorkloadDatabase.collect_transfer_workload(today_str)
+        logger.info(f"[timing] collect_transfer_workload 完成: {time.time()-_t0:.2f}s")
         weekly_plan_records = PlanWorkloadDatabase.collect_weekly_plan_workload(today_str)
+        logger.info(f"[timing] collect_weekly_plan_workload 完成: {time.time()-_t0:.2f}s")
         protect_records = PlanWorkloadDatabase.collect_protect_feeder_workload(today_str)
+        logger.info(f"[timing] collect_protect_feeder_workload 完成: {time.time()-_t0:.2f}s")
         fault_records = NonPlanWorkloadDatabase.collect_fault_workload(today_str)
+        logger.info(f"[timing] collect_fault_workload 完成: {time.time()-_t0:.2f}s")
         defect_records = NonPlanWorkloadDatabase.collect_defect_workload(today_str)
         overload_records = NonPlanWorkloadDatabase.collect_overload_workload(today_str)
         

@@ -598,18 +598,23 @@ def _mock_dashboard_response(today):
 @app.get("/api/workload_dashboard")
 async def workload_dashboard():
     """获取今日工作量看板数据（实时数据库查询）"""
+    _t0 = time.time()
+    logger.info(f"[timing] workload_dashboard 开始处理")
     try:
         today = datetime.now().strftime("%Y-%m-%d")
+        logger.info(f"[timing] 准备今天日期: {time.time()-_t0:.2f}s")
         
         # 调用现有工具获取今日数据
         dashboard_raw = get_workload_dashboard.invoke({"target_date": today})
+        logger.info(f"[timing] get_workload_dashboard.invoke 完成: {time.time()-_t0:.2f}s")
         dashboard_data = json.loads(dashboard_raw) if isinstance(dashboard_raw, str) else dashboard_raw
         
         plan_raw = calculate_plan_workload.invoke({"target_date": today})
+        logger.info(f"[timing] calculate_plan_workload.invoke 完成: {time.time()-_t0:.2f}s")
         plan_data = json.loads(plan_raw) if isinstance(plan_raw, str) else plan_raw
         
         nonplan_raw = calculate_non_plan_workload.invoke({"target_date": today})
-        nonplan_data = json.loads(nonplan_raw) if isinstance(nonplan_raw, str) else nonplan_raw
+        logger.info(f"[timing] calculate_non_plan_workload.invoke 完成: {time.time()-_t0:.2f}s")
         
         # 聚合前端所需数据格式
         # dashboard_data 结构: {success, data: {plan_workload: {...}, non_plan_workload: {...}}}

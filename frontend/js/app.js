@@ -400,9 +400,12 @@ function refreshData() {
  * 通过发送对话请求给AI，获取数据库中的真实数据
  */
 async function loadRealTimeData() {
+    const _fetchStart = Date.now();
+    console.log('[timing] loadRealTimeData 开始 fetch /api/workload_dashboard');
     try {
         // 发送请求给后端获取数据
         const response = await fetch(`${window.location.origin}/api/workload_dashboard`);
+        console.log('[timing] fetch 响应收到, 耗时: ' + (Date.now() - _fetchStart) + 'ms');
         
         if (response.ok) {
             const result = await response.json();

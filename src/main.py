@@ -7,6 +7,7 @@ import traceback
 import logging
 from datetime import datetime
 from pathlib import Path
+from contextlib import asynccontextmanager
 
 # 手动加载 .env 文件（无需 python-dotenv 依赖）
 _env_file = Path(__file__).parent.parent / '.env'
@@ -49,6 +50,8 @@ from tools.scheduling import (
     get_all_teams,
     ScheduleDataProvider,
 )
+from tools.plan_workload import get_workload_dashboard, calculate_plan_workload, PlanWorkloadDatabase
+from tools.non_plan_workload import calculate_non_plan_workload, NonPlanWorkloadDatabase
 
 setup_logging(
     log_file=LOG_FILE,
@@ -348,7 +351,28 @@ class GraphService:
 
 
 service = GraphService()
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    """启动时预热模块加载，避免首次请求卡顿"""
+    logger.info("⚡ 正在预热模块加载，请稍候...")
+    t0 = time.time()
+    # 模块级导入已在 main.py 顶部完成，这里只是触发完整初始化
+    try:
+        # 预热数据库连接
+        from storage.database.db import is_database_connected
+        if is_database_connected():
+            logger.info("   ✅ 数据库连接成功")
+        else:
+            logger.info("   ℹ️  数据库未连接（SKIP_DB 或不可达），使用 mock 数据")
+    except Exception as e:
+        logger.info(f"   ℹ️  数据库预热跳过: {e}")
+    
+    elapsed = time.time() - t0
+    logger.info(f"   ✅ 预热完成，耗时 {elapsed:.1f}s")
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 # CORS - 允许沙箱代理跨域访问API
 app.add_middleware(
@@ -575,9 +599,6 @@ def _mock_dashboard_response(today):
 async def workload_dashboard():
     """获取今日工作量看板数据（实时数据库查询）"""
     try:
-        from tools.plan_workload import get_workload_dashboard, calculate_plan_workload
-        from tools.non_plan_workload import calculate_non_plan_workload
-        
         today = datetime.now().strftime("%Y-%m-%d")
         
         # 调用现有工具获取今日数据
@@ -668,8 +689,6 @@ async def workload_dashboard():
 async def plan_workload_detail():
     """返回计划工作量各分类详情（含兜底假数据）"""
     try:
-        from tools.plan_workload import PlanWorkloadDatabase
-        
         today = datetime.now().strftime("%Y-%m-%d")
         
         # 采集各表数据
@@ -771,8 +790,6 @@ async def plan_workload_detail():
 async def nonplan_workload_detail():
     """返回非计划工作量各分类详情（含兜底假数据）"""
     try:
-        from tools.non_plan_workload import NonPlanWorkloadDatabase
-        
         today = datetime.now().strftime("%Y-%m-%d")
         
         results = {}

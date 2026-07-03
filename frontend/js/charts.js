@@ -3,11 +3,6 @@
  * 配网调度智能预测系统 - 深蓝科技感主题
  */
 
-// 图表全局配置 - 深蓝主题
-Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif';
-Chart.defaults.color = '#8ba3c7';
-Chart.defaults.borderColor = 'rgba(30, 58, 95, 0.5)';
-
 // 颜色主题 - 深蓝科技感
 const chartColors = {
     primary: '#3b82f6',
@@ -37,22 +32,30 @@ let workloadTimelineChart = null;
  * 初始化各模块业务情况图表（柱状图，更紧凑）
  */
 function initModuleBusinessChart(data = null) {
-    const ctx = document.getElementById('moduleBusinessChart');
-    if (!ctx) return;
-    
-    if (moduleBusinessChart) {
-        moduleBusinessChart.destroy();
-    }
-    
-    // 初始化为空的默认数据（等待API推送）
-    const defaultData = {
-        labels: ['周计划', '设备投退', '跳闸', '缺陷', '重过载', '保供电', '检修业务', '方式单'],
-        values: [0, 0, 0, 0, 0, 0, 0, 0]
-    };
-    
-    const chartData = data || defaultData;
-    
-    moduleBusinessChart = new Chart(ctx, {
+    window.ensureChart(function() {
+        // 首次加载时设置 Chart.js 全局默认值
+        if (!window.__chartInited) {
+            window.__chartInited = true;
+            Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif';
+            Chart.defaults.color = '#8ba3c7';
+            Chart.defaults.borderColor = 'rgba(30, 58, 95, 0.5)';
+        }
+        const ctx = document.getElementById('moduleBusinessChart');
+        if (!ctx) return;
+        
+        if (moduleBusinessChart) {
+            moduleBusinessChart.destroy();
+        }
+        
+        // 初始化为空的默认数据（等待API推送）
+        const defaultData = {
+            labels: ['周计划', '设备投退', '跳闸', '缺陷', '重过载', '保供电', '检修业务', '方式单'],
+            values: [0, 0, 0, 0, 0, 0, 0, 0]
+        };
+        
+        const chartData = data || defaultData;
+        
+        moduleBusinessChart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: chartData.labels,
@@ -149,12 +152,14 @@ function initModuleBusinessChart(data = null) {
             }
         }]
     });
+    }); // end ensureChart
 }
 
 /**
  * 初始化操作票情况图表（饼图）
  */
 function initTicketChart(data = null) {
+    window.ensureChart(function() {
     const ctx = document.getElementById('ticketChart');
     if (!ctx) return;
     
@@ -257,12 +262,14 @@ function initTicketChart(data = null) {
             }
         }]
     });
+    }); // end ensureChart
 }
 
 /**
  * 初始化工作量时间轴图表（完整24小时）
  */
 function initWorkloadTimelineChart(data = null) {
+    window.ensureChart(function() {
     const ctx = document.getElementById('workloadTimelineChart');
     if (!ctx) return;
     
@@ -441,12 +448,14 @@ function initWorkloadTimelineChart(data = null) {
             }
         }]
     });
+    }); // end ensureChart
 }
 
 /**
  * 初始化网络发令情况饼图
  */
 function initNetworkOrderChart(data = null) {
+    window.ensureChart(function() {
     const ctx = document.getElementById('networkOrderChart');
     if (!ctx) return;
 
@@ -588,6 +597,7 @@ function initNetworkOrderChart(data = null) {
             }
         ]
     });
+    }); // end ensureChart
 }
 
 /**
@@ -713,6 +723,7 @@ function updateWorkloadData(data) {
  * 创建人员配置图表（用于消息内容）
  */
 function createStaffingChart(containerId, data) {
+    window.ensureChart(function() {
     const container = document.getElementById(containerId);
     if (!container) return;
     
@@ -778,12 +789,14 @@ function createStaffingChart(containerId, data) {
             }
         }
     });
+    }); // end ensureChart
 }
 
 /**
  * 创建风险等级仪表盘
  */
 function createRiskGauge(containerId, value) {
+    window.ensureChart(function() {
     const container = document.getElementById(containerId);
     if (!container) return;
     
@@ -843,6 +856,7 @@ function createRiskGauge(containerId, value) {
             }
         }]
     });
+    }); // end ensureChart
 }
 
 // ============================================================

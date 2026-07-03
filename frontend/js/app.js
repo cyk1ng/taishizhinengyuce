@@ -3,22 +3,34 @@
  * 深蓝科技感主题
  */
 
-// Markdown 解析器
-const md = window.markdownit({
-    html: true,
-    linkify: true,
-    typographer: true,
-    highlight: function (str, lang) {
-        if (lang && hljs.getLanguage(lang)) {
-            try {
-                return '<pre class="hljs"><code>' +
-                    hljs.highlight(str, lang, true).value +
-                    '</code></pre>';
-            } catch (__) {}
-        }
-        return '<pre class="hljs"><code>' + md.utils.escapeHtml(str) + '</code></pre>';
-    }
-});
+// Markdown 解析器（懒加载，避免阻塞页面渲染）
+let _md = null;
+let _mdLoading = null;
+function getMd() {
+    if (_md) return Promise.resolve(_md);
+    if (_mdLoading) return _mdLoading;
+    _mdLoading = (async function() {
+        await window.loadVendor('/vendor/markdown-it.min.js');
+        await window.loadVendor('/vendor/highlight.min.js');
+        _md = window.markdownit({
+            html: true,
+            linkify: true,
+            typographer: true,
+            highlight: function (str, lang) {
+                if (lang && window.hljs && window.hljs.getLanguage(lang)) {
+                    try {
+                        return '<pre class="hljs"><code>' +
+                            window.hljs.highlight(str, lang, true).value +
+                            '</code></pre>';
+                    } catch (__) {}
+                }
+                return '<pre class="hljs"><code>' + _md.utils.escapeHtml(str) + '</code></pre>';
+            }
+        });
+        return _md;
+    })();
+    return _mdLoading;
+}
 
 // 全局状态
 const AppState = {
@@ -195,8 +207,10 @@ function updateMessage(messageId, content) {
     
     const contentDiv = messageDiv.querySelector('.message-content');
     if (contentDiv) {
-        contentDiv.innerHTML = md.render(content);
-        contentDiv.classList.remove('streaming');
+        Promise.resolve(getMd()).then(function(md) {
+            contentDiv.innerHTML = md.render(content);
+            contentDiv.classList.remove('streaming');
+        });
         
         // 滚动到底部
         const container = document.getElementById('messagesContainer');
@@ -228,7 +242,9 @@ function appendToMessage(messageId, content) {
             .replace(/<tool_call>[\s\S]*?<\/tool_call>/g, '')
             .replace(/<tool_call>[\s\S]*$/gm, '')
             .trim();
-        contentDiv.innerHTML = md.render(filteredText);
+        Promise.resolve(getMd()).then(function(md) {
+            contentDiv.innerHTML = md.render(filteredText);
+        });
         
         // 滚动到底部
         const container = document.getElementById('messagesContainer');

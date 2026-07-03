@@ -20,6 +20,7 @@ function ensureChart(callback) {
 
 /**
  * 设置 Chart.js 全局默认值（仅在首次调用时执行）
+ */
 function _initChartDefaults() {
     Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif';
     Chart.defaults.color = '#8ba3c7';

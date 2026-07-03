@@ -46,6 +46,17 @@ function _initMd() {
     });
 }
 
+/** 动态加载脚本 */
+function _loadScript(src) {
+    return new Promise(function(resolve, reject) {
+        var s = document.createElement('script');
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+    });
+}
+
 // 全局状态
 const AppState = {
     isProcessing: false,

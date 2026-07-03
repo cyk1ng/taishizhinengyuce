@@ -64,8 +64,8 @@ def get_db_url() -> str:
         name = os.getenv("DB_NAME", "ORCL")
         user = os.getenv("DB_USER", "system")
         password = os.getenv("DB_PASSWORD", "")
-        # Oracle URL 格式: oracle+cx_oracle://user:password@host:port/?service_name=name
-        url = f"oracle+cx_oracle://{user}:{password}@{host}:{port}/?service_name={name}"
+        # Oracle URL 格式: oracle+oracledb://user:password@host:port/?service_name=name
+        url = f"oracle+oracledb://{user}:{password}@{host}:{port}/?service_name={name}"
         return url
     
     # 默认 PostgreSQL

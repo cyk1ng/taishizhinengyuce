@@ -34,8 +34,9 @@ COPY config/ ./config/
 COPY assets/ ./assets/
 COPY .env ./.env
 
-# 设置环境变量（生产环境需要手动注入 SKIP_DB=true）
+# 设置环境变量
 ENV PYTHONPATH=/app/src
+ENV COZE_WORKSPACE_PATH=/app
 
 # 暴露端口
 EXPOSE 5000

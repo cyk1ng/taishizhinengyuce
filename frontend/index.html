@@ -5,11 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>业务态势感知智能体 - 工作量自动统计看板</title>
     
-    <!-- 本地 Vendor 库（内网部署无 CDN，defer 避免阻塞主线程） -->
-    <script src="/vendor/chart.umd.min.js" defer></script>
-    <script src="/vendor/markdown-it.min.js" defer></script>
+    <!-- 本地 Vendor 库样式 -->
     <link rel="stylesheet" href="/vendor/github-dark.min.css">
-    <script src="/vendor/highlight.min.js" defer></script>
     
     <!-- Custom Styles -->
     <link rel="stylesheet" href="css/style.css">
@@ -1103,7 +1100,10 @@
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- Scripts（vendor 放末尾，不阻塞页面渲染） -->
+    <script src="/vendor/chart.umd.min.js"></script>
+    <script src="/vendor/markdown-it.min.js"></script>
+    <script src="/vendor/highlight.min.js"></script>
     <script src="js/api.js"></script>
     <script src="js/charts.js"></script>
     <script src="js/app.js"></script>

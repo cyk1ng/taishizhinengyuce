@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # ========== 生产模式（连接 Oracle） ==========
   dispatch-app:

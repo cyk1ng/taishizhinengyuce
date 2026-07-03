@@ -3,55 +3,48 @@
  * 深蓝科技感主题
  */
 
-// Markdown 解析器 - 先放个占位（纯文本），后台加载真正的 markdown-it
-(function() {
-    function escapeHtml(text) {
-        return (text || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-    // 占位 render：markdown-it 没加载好时直接显示文本
-    window.md = {
-        render: function(text) {
-            return '<pre class="hljs"><code>' + escapeHtml(text) + '</code></pre>';
-        },
-        utils: { escapeHtml: escapeHtml }
-    };
-    // 后台加载真正的 markdown-it
-    var s = document.createElement('script');
-    s.src = '/vendor/markdown-it.min.js';
-    s.onload = function() {
-        if (window.markdownit) {
-            // 也确保 hljs 加载
-            if (typeof window.hljs === 'undefined') {
-                var h = document.createElement('script');
-                h.src = '/vendor/highlight.min.js';
-                h.onload = function() { replaceMd(); };
-                h.onerror = function() { replaceMd(); };
-                document.head.appendChild(h);
-            } else {
-                replaceMd();
-            }
+// 懒加载 markdown-it + highlight.js
+var _md = null;
+var _hljs = null;
+
+function _ensureMd() {
+    if (_md) return Promise.resolve(_md);
+    return new Promise(function(resolve) {
+        if (typeof window.markdownit === 'function') {
+            _initMd();
+            resolve(_md);
+            return;
         }
-    };
-    s.onerror = function() { console.warn('markdown-it 加载失败'); };
-    document.head.appendChild(s);
-    function replaceMd() {
-        window.md = window.markdownit({
-            html: true,
-            linkify: true,
-            typographer: true,
-            highlight: function(str, lang) {
-                if (lang && window.hljs && window.hljs.getLanguage(lang)) {
-                    try {
-                        return '<pre class="hljs"><code>' +
-                            window.hljs.highlight(str, { language: lang }).value +
-                            '</code></pre>';
-                    } catch (__) {}
-                }
-                return '<pre class="hljs"><code>' + window.md.utils.escapeHtml(str) + '</code></pre>';
+        var s = document.createElement('script');
+        s.src = '/vendor/markdown-it.min.js';
+        s.onload = function() {
+            var s2 = document.createElement('script');
+            s2.src = '/vendor/highlight.min.js';
+            s2.onload = function() { _initMd(); resolve(_md); };
+            document.head.appendChild(s2);
+        };
+        document.head.appendChild(s);
+    });
+}
+
+function _initMd() {
+    _hljs = window.hljs;
+    _md = window.markdownit({
+        html: true,
+        linkify: true,
+        typographer: true,
+        highlight: function (str, lang) {
+            if (lang && _hljs && _hljs.getLanguage(lang)) {
+                try {
+                    return '<pre class="hljs"><code>' +
+                        _hljs.highlight(str, lang, true).value +
+                        '</code></pre>';
+                } catch (__) {}
             }
-        });
-    }
-})();
+            return '<pre class="hljs"><code>' + str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</code></pre>';
+        }
+    });
+}
 
 // 全局状态
 const AppState = {
@@ -64,6 +57,15 @@ const AppState = {
  * 发送消息
  */
 async function sendMessage() {
+    // 懒加载 markdown-it 和 highlight.js（用户在打字时后台下载）
+    if (!_md && !window.__loadingMd) {
+        window.__loadingMd = true;
+        _loadScript('/vendor/markdown-it.min.js').then(function() {
+            _loadScript('/vendor/highlight.min.js').then(function() {
+                _ensureMd();
+            });
+        });
+    }
     const input = document.getElementById('userInput');
     const message = input.value.trim();
     
@@ -228,7 +230,7 @@ function updateMessage(messageId, content) {
     
     const contentDiv = messageDiv.querySelector('.message-content');
     if (contentDiv) {
-        contentDiv.innerHTML = md.render(content);
+        contentDiv.innerHTML = _md ? _md.render(content) : content.replace(/\n/g, '<br>');
         contentDiv.classList.remove('streaming');
         
         // 滚动到底部
@@ -434,17 +436,18 @@ function refreshData() {
  */
 async function loadRealTimeData() {
     try {
-        // 优先使用预加载的数据（页面加载时就发起了请求）
+        // 优先使用预加载数据（页面内联 script 提前发起的 fetch）
         if (window._wdPromise) {
-            var result = await window._wdPromise;
-            window._wdPromise = null; // 用完即焚
+            var promise = window._wdPromise;
+            window._wdPromise = null; // 仅用一次
+            var result = await promise;
             if (result && result.success) {
                 updateDashboardWithData(result);
                 return;
             }
         }
         
-        // 降级：直接发送请求
+        // 发送请求给后端获取数据
         const response = await fetch(`${window.location.origin}/api/workload_dashboard`);
         
         if (response.ok) {

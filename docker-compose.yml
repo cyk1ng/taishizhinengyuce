@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # ========== 生产模式（连接 Oracle） ==========
   dispatch-app:
     build: .
     image: dispatch-app:latest
@@ -8,9 +9,10 @@ services:
     ports:
       - "5000:5000"
     environment:
+      # LLM 配置（Docker 内用 Ollama）
       - COZE_LLM_CONFIG=config/agent_llm_config_docker.json
       - COZE_INTEGRATION_MODEL_BASE_URL=http://host.docker.internal:11434/v1
-      # Oracle 连接
+      # Oracle 数据库（改成你实际的地址）
       - DATABASE_URL=oracle+oracledb://DOMS_JADP:doms_jadp@10.111.134.211:1521/?service_name=domsdb
       - DB_TYPE=oracle
       - DB_HOST=10.111.134.211
@@ -18,13 +20,30 @@ services:
       - DB_NAME=domsdb
       - DB_USER=DOMS_JADP
       - DB_PASSWORD=doms_jadp
-      # Oracle 备用连接
       - ORACLE_HOST=10.111.134.211
       - ORACLE_PORT=1521
       - ORACLE_SERVICE_NAME=domsdb
       - ORACLE_USER=DOMS_JADP
       - ORACLE_PASSWORD=doms_jadp
       # 天气 API
+      - WEATHER_API_KEY=44ff4071f86641979f59da2daed5505e
+      - WEATHER_API_ENDPOINT=https://devapi.qweather.com/v7
+      - DEFAULT_CITY=101280101
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  # ========== 测试模式（跳过数据库，用假数据） ==========
+  dispatch-app-test:
+    build: .
+    image: dispatch-app:latest
+    container_name: dispatch-app-test
+    ports:
+      - "5001:5000"
+    environment:
+      - COZE_LLM_CONFIG=config/agent_llm_config_docker.json
+      - COZE_INTEGRATION_MODEL_BASE_URL=http://host.docker.internal:11434/v1
+      - SKIP_DB=true
       - WEATHER_API_KEY=44ff4071f86641979f59da2daed5505e
       - WEATHER_API_ENDPOINT=https://devapi.qweather.com/v7
       - DEFAULT_CITY=101280101

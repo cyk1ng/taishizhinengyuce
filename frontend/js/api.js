@@ -51,15 +51,16 @@ class DispatchAPI {
                 buffer = lines.pop() || '';
 
                 for (const line of lines) {
-                    if (line.trim() === '') continue;
+                    const cleanLine = line.replace('\r', '').trim();
+                    if (cleanLine === '') continue;
                     
-                    if (line.startsWith('data: ')) {
-                        const data = line.slice(6);
+                    if (cleanLine.startsWith('data: ')) {
+                        const data = cleanLine.slice(6).trim();
                         try {
                             const parsed = JSON.parse(data);
                             onMessage(parsed);
                         } catch (e) {
-                            console.warn('Failed to parse SSE data:', data);
+                            console.warn('SSE parse error:', e.message, '| data:', data);
                         }
                     }
                 }

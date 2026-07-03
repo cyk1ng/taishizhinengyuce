@@ -130,43 +130,48 @@ def build_agent(ctx=None):
     - Agent实例
     """
     workspace_path = os.getenv("COZE_WORKSPACE_PATH", "/workspace/projects")
-    config_path = os.path.join(workspace_path, LLM_CONFIG)
+
+    # 支持通过 COZE_LLM_CONFIG 环境变量切换配置文件（Docker部署用）
+    llm_config_file = os.getenv("COZE_LLM_CONFIG", LLM_CONFIG)
+    config_path = os.path.join(workspace_path, llm_config_file)
 
     # 加载配置
     with open(config_path, 'r', encoding='utf-8') as f:
         cfg = json.load(f)
 
+    # 获取模型配置
+    model_cfg = cfg['config']
+    model_name = model_cfg.get("model", "qwen2.5:14b")
+    is_ollama = model_cfg.get("ollama", False)
+
     # 获取认证信息
-    api_key = os.getenv("COZE_WORKLOAD_IDENTITY_API_KEY")
+    api_key = os.getenv("COZE_WORKLOAD_IDENTITY_API_KEY") or "ollama"
     base_url = os.getenv("COZE_INTEGRATION_MODEL_BASE_URL")
 
-    if not api_key:
-        raise ValueError(
-            "❌ 缺少必要的环境变量: COZE_WORKLOAD_IDENTITY_API_KEY\n"
-            "请在 .env 文件中设置: COZE_WORKLOAD_IDENTITY_API_KEY=<智谱API Key>\n"
-            "智谱API Key获取: https://open.bigmodel.cn/usercenter/apikeys"
-        )
-
     if not base_url:
-        base_url = "https://open.bigmodel.cn/api/paas/v4/"
-        logger.warning("未设置 COZE_INTEGRATION_MODEL_BASE_URL，使用GLM默认值: %s", base_url)
+        if is_ollama:
+            base_url = "http://host.docker.internal:11434/v1/"
+        else:
+            base_url = "https://open.bigmodel.cn/api/paas/v4/"
+            logger.warning("未设置 COZE_INTEGRATION_MODEL_BASE_URL，使用GLM默认值: %s", base_url)
 
-    # 初始化LLM - GLM-4-Flash 使用 OpenAI 兼容模式
+    # 初始化LLM
     llm = ChatOpenAI(
-        model=cfg['config'].get("model"),
+        model=model_name,
         api_key=api_key,
         base_url=base_url,
-        temperature=cfg['config'].get('temperature', 0.7),
-        max_tokens=cfg['config'].get('max_tokens', 8000),
-        streaming=False,   # 先关闭 streaming 排查问题
-        timeout=cfg['config'].get('timeout', 600),
+        temperature=model_cfg.get('temperature', 0.7),
+        max_tokens=model_cfg.get('max_tokens', 8000),
+        streaming=False,
+        timeout=model_cfg.get('timeout', 600),
     )
 
     logger.info(
-        "GLM请求参数: model=%s, base_url=%s, temperature=%s, max_tokens=%s",
-        cfg['config'].get("model"), base_url,
-        cfg['config'].get('temperature', 0.7),
-        cfg['config'].get('max_tokens', 8000)
+        "模型请求参数: model=%s, base_url=%s, temperature=%s, max_tokens=%s, ollama=%s",
+        model_name, base_url,
+        model_cfg.get('temperature', 0.7),
+        model_cfg.get('max_tokens', 8000),
+        is_ollama
     )
 
     # 注册全部工具（从 config 中加载工具列表）

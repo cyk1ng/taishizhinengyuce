@@ -28,8 +28,8 @@ function _text(content, x, y, attrs) {
     return t;
 }
 function _makeSVG(w, h) {
-    const s = _svg('svg', { width: '100%', height: '100%', viewBox: `0 0 ${w} ${h}` });
-    s.style.display = 'block';
+    const s = _svg('svg', { viewBox: `0 0 ${w} ${h}` });
+    s.style.cssText = 'width:100%;height:100%;display:block;';
     return s;
 }
 
@@ -201,6 +201,24 @@ function initNetworkOrderChart(data) {
 // 初始化所有图表
 // ============================================================
 function initAllCharts() {
+    console.log('[charts] initAllCharts called');
+    // 测试 SVG 渲染是否正常
+    var testEl = document.getElementById('moduleBusinessChart');
+    if (testEl) {
+        console.log('[charts] moduleBusinessChart found, testing SVG...');
+        var testSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        testSvg.setAttribute('viewBox', '0 0 100 50');
+        testSvg.style.cssText = 'width:100%;height:50px;display:block;';
+        var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', '5'); rect.setAttribute('y', '5');
+        rect.setAttribute('width', '90'); rect.setAttribute('height', '40');
+        rect.setAttribute('fill', '#3b82f6');
+        testSvg.appendChild(rect);
+        testEl.appendChild(testSvg);
+        console.log('[charts] Test SVG appended');
+    } else {
+        console.log('[charts] moduleBusinessChart NOT FOUND!');
+    }
     initModuleBusinessChart();
     initTicketChart();
     initWorkloadTimelineChart();
@@ -1392,12 +1410,21 @@ async function setStaffOnDuty(personId, personName, homeTeamName) {
 
 // 页面加载完成后初始化图表
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('[charts] DOMContentLoaded fired, initializing charts...');
     initAllCharts();
     // 异步加载人员数据（首次加载时初始化，后续由用户点击触发）
     loadStaffData(currentTeam).then(() => {
         renderStaffList();
     });
 });
+
+// 应急兜底：如果 DOMContentLoaded 已过，立即执行
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    if (typeof initAllCharts === 'function') {
+        console.log('[charts] DOM already ready, init now');
+        initAllCharts();
+    }
+}
 
 /**
  * ========================================

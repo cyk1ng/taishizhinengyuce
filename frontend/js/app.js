@@ -3,34 +3,55 @@
  * 深蓝科技感主题
  */
 
-// Markdown 解析器（懒加载，避免阻塞页面渲染）
-let _md = null;
-let _mdLoading = null;
-function getMd() {
-    if (_md) return Promise.resolve(_md);
-    if (_mdLoading) return _mdLoading;
-    _mdLoading = (async function() {
-        await window.loadVendor('/vendor/markdown-it.min.js');
-        await window.loadVendor('/vendor/highlight.min.js');
-        _md = window.markdownit({
+// Markdown 解析器 - 先放个占位（纯文本），后台加载真正的 markdown-it
+(function() {
+    function escapeHtml(text) {
+        return (text || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+    // 占位 render：markdown-it 没加载好时直接显示文本
+    window.md = {
+        render: function(text) {
+            return '<pre class="hljs"><code>' + escapeHtml(text) + '</code></pre>';
+        },
+        utils: { escapeHtml: escapeHtml }
+    };
+    // 后台加载真正的 markdown-it
+    var s = document.createElement('script');
+    s.src = '/vendor/markdown-it.min.js';
+    s.onload = function() {
+        if (window.markdownit) {
+            // 也确保 hljs 加载
+            if (typeof window.hljs === 'undefined') {
+                var h = document.createElement('script');
+                h.src = '/vendor/highlight.min.js';
+                h.onload = function() { replaceMd(); };
+                h.onerror = function() { replaceMd(); };
+                document.head.appendChild(h);
+            } else {
+                replaceMd();
+            }
+        }
+    };
+    s.onerror = function() { console.warn('markdown-it 加载失败'); };
+    document.head.appendChild(s);
+    function replaceMd() {
+        window.md = window.markdownit({
             html: true,
             linkify: true,
             typographer: true,
-            highlight: function (str, lang) {
+            highlight: function(str, lang) {
                 if (lang && window.hljs && window.hljs.getLanguage(lang)) {
                     try {
                         return '<pre class="hljs"><code>' +
-                            window.hljs.highlight(str, lang, true).value +
+                            window.hljs.highlight(str, { language: lang }).value +
                             '</code></pre>';
                     } catch (__) {}
                 }
-                return '<pre class="hljs"><code>' + _md.utils.escapeHtml(str) + '</code></pre>';
+                return '<pre class="hljs"><code>' + window.md.utils.escapeHtml(str) + '</code></pre>';
             }
         });
-        return _md;
-    })();
-    return _mdLoading;
-}
+    }
+})();
 
 // 全局状态
 const AppState = {
@@ -207,10 +228,8 @@ function updateMessage(messageId, content) {
     
     const contentDiv = messageDiv.querySelector('.message-content');
     if (contentDiv) {
-        Promise.resolve(getMd()).then(function(md) {
-            contentDiv.innerHTML = md.render(content);
-            contentDiv.classList.remove('streaming');
-        });
+        contentDiv.innerHTML = md.render(content);
+        contentDiv.classList.remove('streaming');
         
         // 滚动到底部
         const container = document.getElementById('messagesContainer');
@@ -242,9 +261,7 @@ function appendToMessage(messageId, content) {
             .replace(/<tool_call>[\s\S]*?<\/tool_call>/g, '')
             .replace(/<tool_call>[\s\S]*$/gm, '')
             .trim();
-        Promise.resolve(getMd()).then(function(md) {
-            contentDiv.innerHTML = md.render(filteredText);
-        });
+        contentDiv.innerHTML = md.render(filteredText);
         
         // 滚动到底部
         const container = document.getElementById('messagesContainer');
@@ -416,12 +433,19 @@ function refreshData() {
  * 通过发送对话请求给AI，获取数据库中的真实数据
  */
 async function loadRealTimeData() {
-    const _fetchStart = Date.now();
-    console.log('[timing] loadRealTimeData 开始 fetch /api/workload_dashboard');
     try {
-        // 发送请求给后端获取数据
+        // 优先使用预加载的数据（页面加载时就发起了请求）
+        if (window._wdPromise) {
+            var result = await window._wdPromise;
+            window._wdPromise = null; // 用完即焚
+            if (result && result.success) {
+                updateDashboardWithData(result);
+                return;
+            }
+        }
+        
+        // 降级：直接发送请求
         const response = await fetch(`${window.location.origin}/api/workload_dashboard`);
-        console.log('[timing] fetch 响应收到, 耗时: ' + (Date.now() - _fetchStart) + 'ms');
         
         if (response.ok) {
             const result = await response.json();

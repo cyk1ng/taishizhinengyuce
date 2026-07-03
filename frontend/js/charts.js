@@ -1,865 +1,314 @@
 /**
- * Chart.js 配置与初始化
+ * SVG 图表渲染（替代 Chart.js）
  * 配网调度智能预测系统 - 深蓝科技感主题
+ * 零外部依赖，纯 SVG 矢量图
  */
 
-// 颜色主题 - 深蓝科技感
+// ============================================================
+// 颜色主题
+// ============================================================
 const chartColors = {
-    primary: '#3b82f6',
-    secondary: '#06b6d4',
-    cyan: '#22d3ee',
-    green: '#10b981',
-    yellow: '#f59e0b',
-    orange: '#f97316',
-    red: '#ef4444',
-    purple: '#8b5cf6',
-    pink: '#ec4899',
-    gray: '#64748b',
-    // 背景色
-    gridColor: 'rgba(30, 58, 95, 0.3)',
-    tooltipBg: '#152238',
-    tooltipText: '#e8f1ff',
-    tooltipBorder: '#2563eb'
+    primary: '#3b82f6', secondary: '#06b6d4', cyan: '#22d3ee',
+    green: '#10b981', yellow: '#f59e0b', orange: '#f97316',
+    red: '#ef4444', purple: '#8b5cf6', pink: '#ec4899', gray: '#64748b',
+    darkBg: '#0a1628', cardBg: '#0f1e33',
+    text: '#8ba3c7', textBright: '#b8d0f0', gridLine: 'rgba(30, 58, 95, 0.5)'
 };
+const chartColorsList = ['#3b82f6','#06b6d4','#22d3ee','#10b981','#f59e0b','#f97316','#ef4444','#8b5cf6','#ec4899','#64748b'];
+const SVG_NS = 'http://www.w3.org/2000/svg';
 
-// 图表实例
-let moduleBusinessChart = null;
-let ticketChart = null;
-let networkOrderChart = null;
-let workloadTimelineChart = null;
-
-/**
- * 初始化各模块业务情况图表（柱状图，更紧凑）
- */
-function initModuleBusinessChart(data = null) {
-    window.ensureChart(function() {
-        // 首次加载时设置 Chart.js 全局默认值
-        if (!window.__chartInited) {
-            window.__chartInited = true;
-            Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif';
-            Chart.defaults.color = '#8ba3c7';
-            Chart.defaults.borderColor = 'rgba(30, 58, 95, 0.5)';
-        }
-        const ctx = document.getElementById('moduleBusinessChart');
-        if (!ctx) return;
-        
-        if (moduleBusinessChart) {
-            moduleBusinessChart.destroy();
-        }
-        
-        // 初始化为空的默认数据（等待API推送）
-        const defaultData = {
-            labels: ['周计划', '设备投退', '跳闸', '缺陷', '重过载', '保供电', '检修业务', '方式单'],
-            values: [0, 0, 0, 0, 0, 0, 0, 0]
-        };
-        
-        const chartData = data || defaultData;
-        
-        moduleBusinessChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: chartData.labels,
-            datasets: [{
-                label: '业务数量',
-                data: chartData.values,
-                backgroundColor: [
-                    'rgba(6, 182, 212, 0.7)',
-                    'rgba(59, 130, 246, 0.7)',
-                    'rgba(239, 68, 68, 0.7)',
-                    'rgba(245, 158, 11, 0.7)',
-                    'rgba(139, 92, 246, 0.7)',
-                    'rgba(16, 185, 129, 0.7)',
-                    'rgba(6, 182, 212, 0.7)',
-                    'rgba(59, 130, 246, 0.7)'
-                ],
-                borderColor: [
-                    'rgba(6, 182, 212, 1)',
-                    'rgba(59, 130, 246, 1)',
-                    'rgba(239, 68, 68, 1)',
-                    'rgba(245, 158, 11, 1)',
-                    'rgba(139, 92, 246, 1)',
-                    'rgba(16, 185, 129, 1)',
-                    'rgba(6, 182, 212, 1)',
-                    'rgba(59, 130, 246, 1)'
-                ],
-                borderWidth: 1,
-                borderRadius: 3
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: chartColors.tooltipBg,
-                    titleColor: chartColors.tooltipText,
-                    bodyColor: chartColors.tooltipText,
-                    borderColor: chartColors.tooltipBorder,
-                    borderWidth: 1,
-                    cornerRadius: 4,
-                    padding: 8,
-                    callbacks: {
-                        label: function(context) {
-                            return `${context.label}: ${context.parsed.y}单`;
-                        }
-                    }
-                },
-                // 柱状图上方显示数字
-                datalabels: {
-                    display: true,
-                    color: '#e8f1ff',
-                    font: {
-                        size: 11,
-                        weight: 'normal'
-                    },
-                    anchor: 'end',
-                    align: 'top',
-                    offset: 2,
-                    formatter: function(value) {
-                        return value;
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    grid: { display: false },
-                    ticks: { color: '#5a7a9e', font: { size: 10 } }
-                },
-                y: {
-                    beginAtZero: true,
-                    max: 30,
-                    grid: { color: chartColors.gridColor, drawBorder: false },
-                    ticks: { color: '#5a7a9e', font: { size: 10 }, stepSize: 10 }
-                }
-            }
-        },
-        plugins: [{
-            id: 'datalabels',
-            afterDatasetsDraw: function(chart) {
-                const ctx = chart.ctx;
-                chart.data.datasets.forEach(function(dataset, i) {
-                    const meta = chart.getDatasetMeta(i);
-                    meta.data.forEach(function(bar, index) {
-                        const data = dataset.data[index];
-                        ctx.fillStyle = '#e8f1ff';
-                        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'bottom';
-                        ctx.fillText(data, bar.x, bar.y - 2);
-                    });
-                });
-            }
-        }]
-    });
-    }); // end ensureChart
+function _svg(tag, attrs) {
+    const el = document.createElementNS(SVG_NS, tag);
+    for (const [k, v] of Object.entries(attrs || {})) el.setAttribute(k, v);
+    return el;
 }
-
-/**
- * 初始化操作票情况图表（饼图）
- */
-function initTicketChart(data = null) {
-    window.ensureChart(function() {
-    const ctx = document.getElementById('ticketChart');
-    if (!ctx) return;
-    
-    if (ticketChart) {
-        ticketChart.destroy();
-    }
-    
-    // 假数据展示效果
-    const defaultData = {
-        labels: ['指令记录', '逐项令', '许可令', '综合令'],
-        values: [138, 79, 9, 25]
-    };
-    
-    const chartData = data || defaultData;
-    
-    ticketChart = new Chart(ctx, {
-        type: 'pie',
-        data: {
-            labels: chartData.labels,
-            datasets: [{
-                data: chartData.values,
-                backgroundColor: [
-                    chartColors.primary,
-                    chartColors.yellow,
-                    chartColors.red,
-                    chartColors.gray
-                ],
-                borderColor: '#0a1628',
-                borderWidth: 2,
-                hoverOffset: 8
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    backgroundColor: chartColors.tooltipBg,
-                    titleColor: chartColors.tooltipText,
-                    bodyColor: chartColors.tooltipText,
-                    borderColor: chartColors.tooltipBorder,
-                    borderWidth: 1,
-                    cornerRadius: 6,
-                    padding: 10,
-                    callbacks: {
-                        label: function(context) {
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = ((context.parsed / total) * 100).toFixed(1);
-                            return `${context.label}: ${context.parsed} (${percentage}%)`;
-                        }
-                    }
-                },
-                // 扇形图标签插件
-                pieLabels: {
-                    display: true,
-                    formatter: function(context) {
-                        return `${context.label}:${context.parsed}`;
-                    },
-                    color: '#e8f1ff',
-                    font: {
-                        size: 11,
-                        weight: 'normal'
-                    },
-                    padding: 6
-                }
-            }
-        },
-        plugins: [{
-            id: 'pieLabels',
-            afterDatasetsDraw: function(chart) {
-                const ctx = chart.ctx;
-                chart.data.datasets.forEach(function(dataset, i) {
-                    const meta = chart.getDatasetMeta(i);
-                    meta.data.forEach(function(arc, index) {
-                        const data = dataset.data[index];
-                        const label = chart.data.labels[index];
-                        
-                        // 跳过值为0的数据
-                        if (data === 0) return;
-
-                        const midAngle = arc.startAngle + (arc.endAngle - arc.startAngle) / 2;
-                        const radius = (arc.outerRadius + arc.innerRadius) / 2;
-
-                        const x = arc.x + Math.cos(midAngle) * radius;
-                        const y = arc.y + Math.sin(midAngle) * radius;
-
-                        ctx.fillStyle = '#e8f1ff';
-                        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-
-                        // 显示 "名称:数量"
-                        const text = `${label}:${data}`;
-                        ctx.fillText(text, x, y);
-                    });
-                });
-            }
-        }]
-    });
-    }); // end ensureChart
+function _text(content, x, y, attrs) {
+    const t = _svg('text', { x: '' + x, y: '' + y, fill: chartColors.text, ...attrs });
+    t.textContent = '' + (content ?? '');
+    return t;
 }
-
-/**
- * 初始化工作量时间轴图表（完整24小时）
- */
-function initWorkloadTimelineChart(data = null) {
-    window.ensureChart(function() {
-    const ctx = document.getElementById('workloadTimelineChart');
-    if (!ctx) return;
-    
-    if (workloadTimelineChart) {
-        workloadTimelineChart.destroy();
-    }
-    
-    // 生成时间标签 (0-1 到 23-24 时间段)
-    const timeLabels = [];
-    for (let i = 0; i < 24; i++) {
-        const start = i.toString();
-        const end = (i + 1).toString();
-        timeLabels.push(`${start}-${end}`);
-    }
-    
-    // 假数据展示效果 - 24小时工作量分布
-    const defaultData = {
-        labels: timeLabels,
-        workloadTotal: [2.5, 2.1, 2.0, 1.8, 1.5, 1.8, 3.2, 4.5, 5.8, 6.2, 5.9, 5.5, 5.8, 6.0, 6.3, 6.5, 6.2, 5.8, 5.2, 4.8, 4.2, 3.8, 3.2, 2.8],
-        staffCapacity: Array(24).fill(5.2),
-        plannedTask: [1.8, 1.5, 1.4, 1.2, 1.0, 1.2, 2.2, 3.2, 4.0, 4.2, 4.0, 3.8, 4.0, 4.2, 4.4, 4.5, 4.2, 4.0, 3.6, 3.2, 2.8, 2.6, 2.2, 1.8],
-        unplannedTask: [0.7, 0.6, 0.6, 0.6, 0.5, 0.6, 1.0, 1.3, 1.8, 2.0, 1.9, 1.7, 1.8, 1.8, 1.9, 2.0, 2.0, 1.8, 1.6, 1.6, 1.4, 1.2, 1.0, 1.0]
-    };
-    
-    const chartData = data || defaultData;
-    
-    workloadTimelineChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: chartData.labels,
-            datasets: [
-                {
-                    label: '工作任务总当量',
-                    data: chartData.workloadTotal,
-                    borderColor: chartColors.cyan,
-                    backgroundColor: 'rgba(34, 211, 238, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 2,
-                    pointBackgroundColor: chartColors.cyan
-                },
-                {
-                    label: '班组人员工作当量',
-                    data: chartData.staffCapacity,
-                    borderColor: chartColors.yellow,
-                    backgroundColor: 'transparent',
-                    borderWidth: 1.5,
-                    borderDash: [4, 4],
-                    fill: false,
-                    tension: 0,
-                    pointRadius: 0
-                },
-                {
-                    label: '计划任务当量',
-                    data: chartData.plannedTask,
-                    borderColor: chartColors.green,
-                    backgroundColor: 'transparent',
-                    borderWidth: 1.5,
-                    fill: false,
-                    tension: 0.3,
-                    pointRadius: 2,
-                    pointBackgroundColor: chartColors.green
-                },
-                {
-                    label: '非计划任务当量',
-                    data: chartData.unplannedTask,
-                    borderColor: chartColors.orange,
-                    backgroundColor: 'transparent',
-                    borderWidth: 1.5,
-                    fill: false,
-                    tension: 0.3,
-                    pointRadius: 2,
-                    pointBackgroundColor: chartColors.orange
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                intersect: false,
-                mode: 'index'
-            },
-            onClick: function(event, elements) {
-                if (elements.length > 0) {
-                    const element = elements[0];
-                    const index = element.index;
-                    showTimeSlotDetail(index, chartData);
-                }
-            },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: chartColors.tooltipBg,
-                    titleColor: chartColors.tooltipText,
-                    bodyColor: chartColors.tooltipText,
-                    borderColor: chartColors.tooltipBorder,
-                    borderWidth: 1,
-                    cornerRadius: 4,
-                    padding: 10,
-                    displayColors: true,
-                    callbacks: {
-                        title: function(items) {
-                            const idx = items[0].dataIndex;
-                            const total = chartData.workloadTotal[idx];
-                            const isOverload = total > 5.2 * 1.5;
-                            return `${items[0].label}${isOverload ? ' ⚠️' : ''}`;
-                        },
-                        label: function(context) {
-                            return `${context.dataset.label}: ${context.parsed.y.toFixed(1)}`;
-                        }
-                    }
-                },
-                // 在数据点上显示数字
-                datalabels: {
-                    display: function(context) {
-                        // 只在每2小时的数据点显示标签
-                        return context.dataIndex % 2 === 0;
-                    },
-                    color: '#e8f1ff',
-                    font: {
-                        size: 9,
-                        weight: 'normal'
-                    },
-                    anchor: 'end',
-                    align: 'top',
-                    offset: 5,
-                    formatter: function(value) {
-                        return value.toFixed(1);
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    grid: { color: chartColors.gridColor, drawBorder: false },
-                    ticks: {
-                        color: '#5a7a9e',
-                        font: { size: 9 },
-                        maxRotation: 0,
-                        // 显示所有时间标签
-                        callback: function(value, index) {
-                            return index % 2 === 0 ? this.getLabelForValue(value) : '';
-                        }
-                    }
-                },
-                y: {
-                    beginAtZero: true,
-                    max: 8,
-                    grid: { color: chartColors.gridColor, drawBorder: false },
-                    ticks: { color: '#5a7a9e', font: { size: 9 }, stepSize: 2 }
-                }
-            }
-        },
-        plugins: [{
-            id: 'datalabels',
-            afterDatasetsDraw: function(chart) {
-                const ctx = chart.ctx;
-                chart.data.datasets.forEach(function(dataset, i) {
-                    const meta = chart.getDatasetMeta(i);
-                    // 只在第一个数据集上显示标签（工作任务总当量）
-                    if (i === 0) {
-                        meta.data.forEach(function(point, index) {
-                            // 只在每2小时的数据点显示标签
-                            if (index % 2 === 0) {
-                                const data = dataset.data[index];
-                                ctx.fillStyle = '#e8f1ff';
-                                ctx.font = '9px -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif';
-                                ctx.textAlign = 'center';
-                                ctx.textBaseline = 'bottom';
-                                ctx.fillText(data.toFixed(1), point.x, point.y - 5);
-                            }
-                        });
-                    }
-                });
-            }
-        }]
-    });
-    }); // end ensureChart
-}
-
-/**
- * 初始化网络发令情况饼图
- */
-function initNetworkOrderChart(data = null) {
-    window.ensureChart(function() {
-    const ctx = document.getElementById('networkOrderChart');
-    if (!ctx) return;
-
-    if (networkOrderChart) {
-        networkOrderChart.destroy();
-    }
-
-    const defaultData = {
-        labels: ['逐项令', '综合令', '许可令'],
-        values: [15, 7, 3]
-    };
-
-    const chartData = data || defaultData;
-
-    networkOrderChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: chartData.labels,
-            datasets: [{
-                data: chartData.values,
-                backgroundColor: [
-                    chartColors.yellow,
-                    chartColors.green,
-                    chartColors.red
-                ],
-                borderColor: '#0a1628',
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '65%',
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    backgroundColor: chartColors.tooltipBg,
-                    titleColor: chartColors.tooltipText,
-                    bodyColor: chartColors.tooltipText,
-                    borderColor: chartColors.tooltipBorder,
-                    borderWidth: 1,
-                    cornerRadius: 4,
-                    padding: 8,
-                    callbacks: {
-                        label: function(context) {
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = ((context.parsed / total) * 100).toFixed(1);
-                            return `${context.label}: ${context.parsed} (${percentage}%)`;
-                        }
-                    }
-                },
-                // 中心文本插件（多行显示）
-                centerText: {
-                    display: true,
-                    lines: [
-                        `许可令:${chartData.values[2]}`,
-                        `综合令:${chartData.values[1]}`,
-                        `逐项令:${chartData.values[0]}`
-                    ]
-                }
-            },
-            pluginsConfig: {
-                centerText: {
-                    color: '#e8f1ff',
-                    font: {
-                        size: 12,
-                        weight: 'normal'
-                    },
-                    lineHeight: 18
-                }
-            }
-        },
-        plugins: [
-            {
-                id: 'centerText',
-                beforeDraw: function(chart) {
-                    if (chart.config.options.plugins.centerText &&
-                        chart.config.options.plugins.centerText.display) {
-                        const ctx = chart.ctx;
-                        const centerConfig = chart.config.options.plugins.centerText;
-                        const pluginsConfig = chart.config.options.pluginsConfig.centerText;
-                        const width = chart.width;
-                        const height = chart.height;
-                        const centerX = width / 2;
-                        const centerY = height / 2;
-
-                        ctx.save();
-                        ctx.fillStyle = pluginsConfig.color;
-                        ctx.font = `${pluginsConfig.font.weight} ${pluginsConfig.font.size}px -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif`;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-
-                        // 绘制多行文本
-                        const lines = centerConfig.lines;
-                        const totalHeight = lines.length * pluginsConfig.lineHeight;
-                        const startY = centerY - totalHeight / 2 + pluginsConfig.lineHeight / 2;
-
-                        lines.forEach((line, index) => {
-                            const y = startY + index * pluginsConfig.lineHeight;
-                            ctx.fillText(line, centerX, y);
-                        });
-
-                        ctx.restore();
-                    }
-                }
-            },
-            {
-                id: 'doughnutLabels',
-                afterDatasetsDraw: function(chart) {
-                    const ctx = chart.ctx;
-                    chart.data.datasets.forEach(function(dataset, i) {
-                        const meta = chart.getDatasetMeta(i);
-                        meta.data.forEach(function(arc, index) {
-                            const data = dataset.data[index];
-                            const label = chart.data.labels[index];
-                            
-                            // 跳过值为0的数据
-                            if (data === 0) return;
-
-                            const midAngle = arc.startAngle + (arc.endAngle - arc.startAngle) / 2;
-                            const radius = (arc.outerRadius + arc.innerRadius) / 2;
-
-                            const x = arc.x + Math.cos(midAngle) * radius;
-                            const y = arc.y + Math.sin(midAngle) * radius;
-
-                            ctx.fillStyle = '#e8f1ff';
-                            ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif';
-                            ctx.textAlign = 'center';
-                            ctx.textBaseline = 'middle';
-
-                            // 显示 "名称:数量"
-                            const text = `${label}:${data}`;
-                            ctx.fillText(text, x, y);
-                        });
-                    });
-                }
-            }
-        ]
-    });
-    }); // end ensureChart
-}
-
-/**
- * 初始化所有图表
- */
-function initAllCharts() {
-    initModuleBusinessChart();
-    initTicketChart();
-    initNetworkOrderChart();
-    initWorkloadTimelineChart();
-}
-
-/**
- * 更新工作量数据（处理真实数据）
- */
-function updateWorkloadData(data) {
-    // 处理工作量时间轴数据（从后端API返回的格式）
-    if (data && data.hourly_details && Array.isArray(data.hourly_details)) {
-        const hourlyData = data.hourly_details;
-        
-        // 生成时间标签
-        const timeLabels = hourlyData.map((h, i) => `${i}:00`);
-        
-        // 提取数据
-        const workloadTotal = hourlyData.map(h => h.total_equivalent || 0);
-        const staffCapacity = hourlyData.map(h => h.staff_capacity || 0);
-        const plannedTask = hourlyData.map(h => h.plan_equivalent || 0);
-        const unplannedTask = hourlyData.map(h => h.non_plan_equivalent || 0);
-        
-        // 更新图表
-        initWorkloadTimelineChart({
-            labels: timeLabels,
-            workloadTotal: workloadTotal,
-            staffCapacity: staffCapacity,
-            plannedTask: plannedTask,
-            unplannedTask: unplannedTask
-        });
-        
-        // 优先更新柱状图（各模块业务情况）
-        // 放在最前面确保不会被后续可能的JS错误阻断
-        if (data.moduleBusiness) {
-            initModuleBusinessChart(data.moduleBusiness);
-        }
-
-        // 更新统计卡片
-        if (data.summary) {
-            const summary = data.summary;
-            
-            // 更新当值人员信息
-            const totalStaff = hourlyData.reduce((sum, h) => sum + (h.staff_count || 0), 0) / 24 || 0;
-            const staffEl = document.getElementById('currentStaff');
-            if (staffEl) staffEl.textContent = Math.round(totalStaff) + '人';
-            
-            // 更新当值班组名称
-            if (data.on_duty_team_name) {
-                const teamEl = document.getElementById('onDutyTeamName');
-                if (teamEl) teamEl.textContent = data.on_duty_team_name;
-            }
-            
-            // 更新超负荷状态
-            const overloadCount = summary.overload_count || 0;
-            const overloadEl = document.getElementById('overloadStatus');
-            if (overloadEl) {
-                overloadEl.textContent = overloadCount > 0 ? '是' : '否';
-                overloadEl.className = 'staff-value ' + (overloadCount > 0 ? 'warning' : 'success');
-            }
-            
-            // 更新系统状态
-            const statusText = document.querySelector('.status-text');
-            if (statusText && statusText.id === 'lastUpdate') {
-                statusText.textContent = new Date().toLocaleTimeString('zh-CN', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                });
-            }
-        }
-        return;
-    }
-    
-    // 处理其他格式的数据（旧格式兼容）
-    // 更新统计卡片（旧格式兼容，所有元素加 null 保护）
-    if (data.stats) {
-        const stats = data.stats;
-        
-        const safeText = (id, val) => {
-            const el = document.getElementById(id);
-            if (el) el.textContent = val || 0;
-        };
-        const safeHTML = (id, html) => {
-            const el = document.getElementById(id);
-            if (el) el.innerHTML = html;
-        };
-        
-        safeHTML('stat-maintenance', stats.maintenance !== undefined ? `${stats.maintenance}<span class="unit">单</span>` : null);
-        safeText('stat-maintenance-ongoing', stats.maintenanceOngoing);
-        safeText('stat-maintenance-done', stats.maintenanceDone);
-        
-        safeHTML('stat-weekly-plan', stats.weeklyPlan !== undefined ? `${stats.weeklyPlan}<span class="unit">单</span>` : null);
-        safeText('stat-weekly-ongoing', stats.weeklyOngoing);
-        safeText('stat-weekly-done', stats.weeklyDone);
-        
-        safeHTML('stat-trip', stats.trip !== undefined ? `${stats.trip}<span class="unit">起</span>` : null);
-        safeText('stat-trip-success', stats.tripSuccess);
-        safeText('stat-trip-fail', stats.tripFail);
-    }
-    
-    // 更新图表
-    if (data.moduleBusiness) {
-        initModuleBusinessChart(data.moduleBusiness);
-    }
-    if (data.ticket) {
-        initTicketChart(data.ticket);
-    }
-    if (data.networkOrder) {
-        initNetworkOrderChart(data.networkOrder);
-    }
-    if (data.workloadTimeline && !Array.isArray(data.workloadTimeline)) {
-        initWorkloadTimelineChart(data.workloadTimeline);
-    }
-}
-
-/**
- * 创建人员配置图表（用于消息内容）
- */
-function createStaffingChart(containerId, data) {
-    window.ensureChart(function() {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    
-    const canvas = document.createElement('canvas');
-    canvas.style.width = '100%';
-    canvas.style.height = '150px';
-    container.innerHTML = '';
-    container.appendChild(canvas);
-    
-    const ctx = canvas.getContext('2d');
-    
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: data.labels,
-            datasets: [{
-                label: '建议人数',
-                data: data.values,
-                backgroundColor: [
-                    'rgba(59, 130, 246, 0.6)',
-                    'rgba(6, 182, 212, 0.6)',
-                    'rgba(34, 211, 238, 0.6)',
-                    'rgba(139, 92, 246, 0.6)',
-                    'rgba(236, 72, 153, 0.6)'
-                ],
-                borderColor: [
-                    chartColors.primary,
-                    chartColors.secondary,
-                    chartColors.cyan,
-                    chartColors.purple,
-                    chartColors.pink
-                ],
-                borderWidth: 2,
-                borderRadius: 4,
-                borderSkipped: false
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: chartColors.tooltipBg,
-                    titleColor: chartColors.tooltipText,
-                    bodyColor: chartColors.tooltipText,
-                    borderColor: chartColors.tooltipBorder,
-                    borderWidth: 1,
-                    cornerRadius: 6,
-                    padding: 10
-                }
-            },
-            scales: {
-                x: {
-                    grid: { display: false },
-                    ticks: { color: '#5a7a9e', font: { size: 10 } }
-                },
-                y: {
-                    beginAtZero: true,
-                    grid: { color: chartColors.gridColor, drawBorder: false },
-                    ticks: { color: '#5a7a9e', font: { size: 10 }, stepSize: 5 }
-                }
-            }
-        }
-    });
-    }); // end ensureChart
-}
-
-/**
- * 创建风险等级仪表盘
- */
-function createRiskGauge(containerId, value) {
-    window.ensureChart(function() {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    
-    const canvas = document.createElement('canvas');
-    canvas.style.width = '100%';
-    canvas.style.height = '120px';
-    container.innerHTML = '';
-    container.appendChild(canvas);
-    
-    const ctx = canvas.getContext('2d');
-    
-    // 根据值选择颜色
-    let color = chartColors.green;
-    if (value > 70) {
-        color = chartColors.red;
-    } else if (value > 40) {
-        color = chartColors.orange;
-    }
-    
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            datasets: [{
-                data: [value, 100 - value],
-                backgroundColor: [color, 'rgba(100, 116, 139, 0.2)'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '75%',
-            plugins: {
-                legend: { display: false },
-                tooltip: { enabled: false }
-            }
-        },
-        plugins: [{
-            id: 'centerText',
-            beforeDraw: function(chart) {
-                const width = chart.width;
-                const height = chart.height;
-                const ctx = chart.ctx;
-                
-                ctx.restore();
-                const fontSize = (height / 80).toFixed(2);
-                ctx.font = `bold ${fontSize}em sans-serif`;
-                ctx.textBaseline = 'middle';
-                ctx.fillStyle = color;
-                
-                const text = value + '%';
-                const textX = Math.round((width - ctx.measureText(text).width) / 2);
-                const textY = height / 2;
-                
-                ctx.fillText(text, textX, textY);
-                ctx.save();
-            }
-        }]
-    });
-    }); // end ensureChart
+function _makeSVG(w, h) {
+    const s = _svg('svg', { width: '100%', height: '100%', viewBox: `0 0 ${w} ${h}` });
+    s.style.display = 'block';
+    return s;
 }
 
 // ============================================================
+// SVG 柱状图
+// ============================================================
+function _drawBars(svg, ox, oy, w, h, bars, opts) {
+    const maxVal = opts.maxValue || Math.max(...bars.map(b => b.value || 0), 1);
+    const barW = opts.barWidth || Math.min(24, w / bars.length * 0.5);
+    const gap = Math.max(1, (w - barW * bars.length) / (bars.length + 1));
+    bars.forEach(function(bar, i) {
+        const bx = ox + gap + i * (barW + gap);
+        const bh = bar.value > 0 ? Math.max(2, (bar.value / maxVal) * h) : 0;
+        const color = bar.color || chartColorsList[i % chartColorsList.length];
+        svg.appendChild(_svg('rect', { x: '' + bx, y: '' + (oy + h - bh), width: '' + barW, height: '' + bh, fill: color, rx: '3', ry: '3' }));
+        svg.appendChild(_text(bar.label || '', bx + barW / 2, oy + h + 13, { 'text-anchor': 'middle', 'font-size': '9' }));
+        if (bh > 16) svg.appendChild(_text('' + bar.value, bx + barW / 2, oy + h - bh - 4, { 'text-anchor': 'middle', 'font-size': '9', 'font-weight': 'bold', fill: chartColors.textBright }));
+    });
+}
+
+// ============================================================
+// SVG 环形图（doughnut）
+// ============================================================
+function _drawDoughnut(svg, cx, cy, r, segments, holeRatio) {
+    holeRatio = holeRatio || 0.6;
+    const circ = 2 * Math.PI * r;
+    const total = segments.reduce(function(s, seg) { return s + (seg.value || 0); }, 0);
+    const sw = r * (1 - holeRatio) * 2;
+    if (total === 0) {
+        svg.appendChild(_svg('circle', { cx: '' + cx, cy: '' + cy, r: '' + r, fill: 'none', stroke: chartColors.gridLine, 'stroke-width': '' + sw }));
+        svg.appendChild(_text('0', cx, cy + 1, { 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': '' + Math.max(12, r * 0.4), 'font-weight': 'bold', fill: chartColors.textBright }));
+        return;
+    }
+    var offset = 0;
+    segments.forEach(function(seg) {
+        if (!seg.value) return;
+        var ratio = seg.value / total;
+        var len = ratio * circ;
+        svg.appendChild(_svg('circle', { cx: '' + cx, cy: '' + cy, r: '' + r, fill: 'none', stroke: seg.color || chartColors.primary, 'stroke-width': '' + sw, 'stroke-dasharray': len + ' ' + circ, 'stroke-dashoffset': '' + (-offset), transform: 'rotate(-90 ' + cx + ' ' + cy + ')' }));
+        offset += len;
+    });
+    svg.appendChild(_text('' + total, cx, cy + 1, { 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': '' + Math.max(12, r * 0.4), 'font-weight': 'bold', fill: chartColors.textBright }));
+}
+function _doughnutLegendHtml(segments) {
+    var h = '<div style="display:flex;flex-direction:column;gap:4px;">';
+    segments.forEach(function(seg) {
+        h += '<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#8ba3c7;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:' + (seg.color || '#3b82f6') + ';flex-shrink:0;"></span><span>' + (seg.label || '') + '</span><span style="margin-left:auto;font-weight:bold;color:#b8d0f0;">' + (seg.value ?? 0) + '</span></div>';
+    });
+    h += '</div>';
+    return h;
+}
+
+// ============================================================
+// SVG 折线/曲线图（用于时间轴）
+// ============================================================
+function _drawLineChart(svg, ox, oy, w, h, points, color, opts) {
+    if (!points || !points.length) return;
+    var maxVal = opts.maxValue || Math.max.apply(null, points.map(function(p) { return p.value || 0; })) || 1;
+    var minVal = opts.minValue || 0;
+    var range = maxVal - minVal || 1;
+    var stepX = w / (points.length - 1);
+    // Grid
+    for (var i = 0; i <= 4; i++) {
+        var gy = oy + h * i / 4;
+        svg.appendChild(_svg('line', { x1: '' + ox, y1: '' + gy, x2: '' + (ox + w), y2: '' + gy, stroke: chartColors.gridLine, 'stroke-width': '0.5' }));
+    }
+    // Points
+    var coords = points.map(function(p, i) {
+        var px = ox + i * stepX;
+        var py = oy + h - ((p.value - minVal) / range) * h;
+        return px + ',' + py;
+    });
+    svg.appendChild(_svg('polyline', { points: coords.join(' '), fill: 'none', stroke: color || chartColors.primary, 'stroke-width': '2', 'stroke-linejoin': 'round' }));
+    // Area fill
+    var area = [ox + ',' + (oy + h)].concat(coords).concat([(ox + w) + ',' + (oy + h)]);
+    svg.appendChild(_svg('polygon', { points: area.join(' '), fill: color || chartColors.primary, opacity: '0.1' }));
+}
+
+// ============================================================
+// 图表实例变量
+// ============================================================
+var moduleBusinessChart = null;
+var ticketChart = null;
+var workloadTimelineChart = null;
+var networkOrderChart = null;
+var _lastWorkloadData = null;
+
+// ============================================================
+// 模块业务分布 - 柱状图
+// ============================================================
+function initModuleBusinessChart(data) {
+    var el = document.getElementById('moduleBusinessChart');
+    if (!el) return;
+    var def = { labels: ['周计划','设备投退','跳闸','缺陷','重过载','保供电','检修业务','方式单'], values: [0,0,0,0,0,0,0,0] };
+    var d = data || def;
+    el.innerHTML = '';
+    var svg = _makeSVG(300, 180);
+    var bars = d.labels.map(function(l, i) { return { label: l, value: d.values[i] || 0, color: chartColorsList[i % chartColorsList.length] }; });
+    _drawBars(svg, 30, 10, 250, 130, bars, {});
+    el.appendChild(svg);
+}
+
+// ============================================================
+// 故障/缺陷分布 - 环形图
+// ============================================================
+function initTicketChart(data) {
+    var el = document.getElementById('ticketChart');
+    if (!el) return;
+    var def = { labels: ['周计划','设备投退','缺陷','保供电'], values: [0,0,0,0] };
+    var d = data || def;
+    var segs = d.labels.map(function(l, i) { return { label: l, value: d.values[i] || 0, color: chartColorsList[i % chartColorsList.length] }; });
+    el.innerHTML = '';
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;align-items:center;gap:12px;height:100%;padding:8px;';
+    var svg = _makeSVG(130, 130);
+    _drawDoughnut(svg, 65, 65, 50, segs, 0.65);
+    wrap.appendChild(svg);
+    var legend = document.createElement('div');
+    legend.style.cssText = 'flex:1;min-width:0;';
+    legend.innerHTML = _doughnutLegendHtml(segs);
+    wrap.appendChild(legend);
+    el.appendChild(wrap);
+}
+
+// ============================================================
+// 工作量时间轴 - 折线图
+// ============================================================
+function initWorkloadTimelineChart(data) {
+    var el = document.getElementById('workloadTimelineChart');
+    if (!el) return;
+    var points = data && data.length > 0 ? data : [];
+    for (var i = points.length; i < 24; i++) {
+        points.push({ label: i + ':00', value: 0 });
+    }
+    el.innerHTML = '';
+    var svg = _makeSVG(800, 180);
+    _drawLineChart(svg, 40, 10, 720, 130, points, chartColors.cyan, {});
+    // Hour labels
+    var stepX = 720 / 23;
+    for (var i = 0; i < 24; i += 3) {
+        svg.appendChild(_text(points[i].label, 40 + i * stepX, 175, { 'text-anchor': 'middle', 'font-size': '8' }));
+    }
+    el.appendChild(svg);
+}
+
+// ============================================================
+// 网架订单分布 - 环形图
+// ============================================================
+function initNetworkOrderChart(data) {
+    var el = document.getElementById('networkOrderChart');
+    if (!el) return;
+    var def = { labels: ['重过载','跳闸','操作票','其他'], values: [0,0,0,0] };
+    var d = data || def;
+    var segs = d.labels.map(function(l, i) { return { label: l, value: d.values[i] || 0, color: chartColorsList[i % chartColorsList.length] }; });
+    el.innerHTML = '';
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;align-items:center;gap:12px;height:100%;padding:8px;';
+    var svg = _makeSVG(130, 130);
+    _drawDoughnut(svg, 65, 65, 50, segs, 0.6);
+    wrap.appendChild(svg);
+    var legend = document.createElement('div');
+    legend.style.cssText = 'flex:1;min-width:0;';
+    legend.innerHTML = _doughnutLegendHtml(segs);
+    wrap.appendChild(legend);
+    el.appendChild(wrap);
+}
+
+// ============================================================
+// 初始化所有图表
+// ============================================================
+function initAllCharts() {
+    initModuleBusinessChart();
+    initTicketChart();
+    initWorkloadTimelineChart();
+    initNetworkOrderChart();
+}
+
+// ============================================================
+// 更新工作量数据（由 app.js 调用）
+// ============================================================
+function updateWorkloadData(data) {
+    if (!data) return;
+    _lastWorkloadData = data;
+    
+    // 解析 hourly_details 生成图表数据
+    var hourly = data.hourly_details || [];
+    
+    // 1. 模块业务分布
+    var summary = data.summary || {};
+    var bizData = {
+        labels: ['周计划','设备投退','跳闸','缺陷','重过载','保供电','检修业务','方式单'],
+        values: [
+            summary.weekly_plan_count || 0,
+            summary.equipment_count || 0,
+            summary.trip_count || 0,
+            summary.defect_count || 0,
+            summary.overload_count || 0,
+            summary.protect_supply_count || 0,
+            summary.maintenance_count || 0,
+            summary.transfer_count || 0
+        ]
+    };
+    initModuleBusinessChart(bizData);
+    
+    // 2. 故障/缺陷分布
+    var faultData = {
+        labels: ['周计划','设备投退','缺陷','保供电'],
+        values: [
+            summary.weekly_plan_count || 0,
+            summary.equipment_count || 0,
+            summary.defect_count || 0,
+            summary.protect_supply_count || 0
+        ]
+    };
+    initTicketChart(faultData);
+    
+    // 3. 时间轴
+    var timelineData = [];
+    var planMap = {};
+    (hourly || []).forEach(function(h) {
+        planMap[h.hour] = (h.plan_count || 0) + (h.fault_count || 0);
+    });
+    for (var i = 0; i < 24; i++) {
+        timelineData.push({ label: i + ':00', value: planMap[i] || 0 });
+    }
+    initWorkloadTimelineChart(timelineData);
+    
+    // 4. 网架订单
+    var orderData = {
+        labels: ['重过载','跳闸','操作票','其他'],
+        values: [
+            summary.overload_count || 0,
+            summary.trip_count || 0,
+            summary.operation_ticket_count || 0,
+            Math.max(0, (summary.total_plan_count || 0) - (summary.overload_count || 0) - (summary.trip_count || 0) - (summary.operation_ticket_count || 0))
+        ]
+    };
+    initNetworkOrderChart(orderData);
+}
+
+// ============================================================
+// 人员配置条状图（用于弹窗内）
+// ============================================================
+function createStaffingChart(containerId, data) {
+    var el = document.getElementById(containerId);
+    if (!el) return;
+    if (!data || !data.labels) {
+        el.innerHTML = '<div style="color:#5a7a9e;text-align:center;padding:20px;font-size:12px;">暂无数据</div>';
+        return;
+    }
+    var bars = data.labels.map(function(l, i) {
+        return { label: l, value: data.values[i] || 0, color: data.colors ? data.colors[i] : chartColorsList[i % chartColorsList.length] };
+    });
+    el.innerHTML = '';
+    var svg = _makeSVG(Math.max(200, bars.length * 40), 150);
+    _drawBars(svg, 20, 10, Math.max(160, bars.length * 36), 110, bars, {});
+    el.appendChild(svg);
+}
+
+// ============================================================
+// 风险仪表盘（环形进度）
+// ============================================================
+function createRiskGauge(containerId, value) {
+    var el = document.getElementById(containerId);
+    if (!el) return;
+    value = Math.max(0, Math.min(100, value || 0));
+    var color = value < 30 ? chartColors.green : value < 60 ? chartColors.yellow : chartColors.red;
+    el.innerHTML = '';
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;';
+    var svg = _makeSVG(100, 100);
+    _drawDoughnut(svg, 50, 50, 38, [{ label: '风险', value: value, color: color }, { label: '', value: 100 - value, color: chartColors.gridLine }], 0.6);
+    wrap.appendChild(svg);
+    var lbl = document.createElement('div');
+    lbl.style.cssText = 'color:#5a7a9e;font-size:10px;margin-top:4px;';
+    lbl.textContent = value > 60 ? '高风险' : value > 30 ? '中风险' : '低风险';
+    wrap.appendChild(lbl);
+    el.appendChild(wrap);
+}// ============================================================
 // 弹窗和编辑功能
 // ============================================================
 

@@ -274,7 +274,7 @@ function appendToMessage(messageId, content) {
             .replace(/<tool_call>[\s\S]*?<\/tool_call>/g, '')
             .replace(/<tool_call>[\s\S]*$/gm, '')
             .trim();
-        contentDiv.innerHTML = md.render(filteredText);
+        contentDiv.innerHTML = _md ? _md.render(filteredText) : filteredText;
         
         // 滚动到底部
         const container = document.getElementById('messagesContainer');

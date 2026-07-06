@@ -5,7 +5,7 @@ LABEL version="2.0"
 
 WORKDIR /app
 
-# 安装 Python 依赖（只装实际使用的包，避免 torch/prophet 等重型未使用包）
+# 安装 Python 依赖（只装实际使用的包，移除未使用的重型包）
 COPY pyproject.toml ./
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir \
@@ -15,8 +15,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
         pandas numpy \
         python-multipart python-dotenv \
         requests \
-        jinja2 python-pptx pillow opencv-python-headless \
-        cozeloop \
+        jinja2 python-pptx pillow \
     && rm -rf /root/.cache/pip
 
 # 复制项目代码

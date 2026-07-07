@@ -225,6 +225,7 @@ function appendMessage(role, content, isStreaming = false) {
     `;
     
     container.appendChild(messageDiv);
+    _replaceEmojiIcons();
     container.scrollTop = container.scrollHeight;
     
     AppState.messages.push({ id: messageId, role, content, isStreaming });
@@ -568,6 +569,7 @@ function clearChat() {
                 </div>
             </div>
         `;
+        _replaceEmojiIcons();
         AppState.messages = [];
     }
 }
@@ -584,6 +586,7 @@ function setLoading(loading) {
         sendBtn.innerHTML = loading 
             ? '<span>处理中...</span><span class="loading-spinner" style="width: 16px; height: 16px; border-width: 2px;"></span>'
             : '<span>发送</span><span>⚡</span>';
+        if (!loading) _replaceEmojiIcons();
     }
     
     if (overlay) {
@@ -693,6 +696,7 @@ async function updateWeatherData() {
                     icon = '💨';
                 }
                 weatherConditionIconEl.textContent = icon;
+                _replaceEmojiIcons();
             }
         }
     } catch (error) {
@@ -1326,6 +1330,7 @@ function kbShowAdd() {
     document.getElementById('kbEditSource').value = '';
     document.getElementById('kbEditContent').value = '';
     document.getElementById('kbEditModal').style.display = 'flex';
+    _replaceEmojiIcons();
 }
 
 function kbEditDoc(id, source, content) {
@@ -1334,6 +1339,7 @@ function kbEditDoc(id, source, content) {
     document.getElementById('kbEditSource').value = decodeHtml(source);
     document.getElementById('kbEditContent').value = decodeHtml(content);
     document.getElementById('kbEditModal').style.display = 'flex';
+    _replaceEmojiIcons();
 }
 
 function kbCloseEdit() {
@@ -1441,6 +1447,17 @@ var _EMOJI_SVG_MAP = {
     '🌡️': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14,14.76 L14,4 C14,2.9 13.1,2 12,2 C10.9,2 10,2.9 10,4 L10,14.76 C8.8,15.41 8,16.63 8,18 C8,20.21 9.79,22 12,22 C14.21,22 16,20.21 16,18 C16,16.63 15.2,15.41 14,14.76 Z"/><line x1="12" y1="15" x2="12" y2="18"/><line x1="10" y1="18" x2="14" y2="18"/></svg>',
     '💧': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12,2 C12,2 6,8 6,14 C6,17.31 8.69,20 12,20 C15.31,20 18,17.31 18,14 C18,8 12,2 12,2 Z"/></svg>',
     '⚪': '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" opacity="0.3"><circle cx="12" cy="12" r="8"/></svg>',
+    '🤖': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="14" rx="3"/><circle cx="9" cy="10" r="1.5" fill="currentColor"/><circle cx="15" cy="10" r="1.5" fill="currentColor"/><line x1="9" y1="15" x2="15" y2="15"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="8" y1="2" x2="8" y2="4"/><line x1="16" y1="2" x2="16" y2="4"/></svg>',
+    '🧑': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4,22 C4,16 8,14 12,14 C16,14 20,16 20,22"/></svg>',
+    '🌧️': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18,10 C18,6.69 15.31,4 12,4 C9.23,4 6.87,5.94 6.24,8.5 C4.46,8.87 3,10.28 3,12 C3,14.21 4.79,16 7,16 L18,16 C19.66,16 21,14.66 21,13 C21,11.34 19.66,10 18,10 Z"/><line x1="7" y1="19" x2="8" y2="21"/><line x1="11" y1="19" x2="12" y2="21"/><line x1="15" y1="19" x2="16" y2="21"/></svg>',
+    '🌦️': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12,2 L12,4 M18,6 L16,8 M22,12 L20,12 M18,18 L16,16"/><path d="M18,10 C18,6.69 15.31,4 12,4 C9.23,4 6.87,5.94 6.24,8.5 C4.46,8.87 3,10.28 3,12 C3,14.21 4.79,16 7,16 L18,16 C19.66,16 21,14.66 21,13 C21,11.34 19.66,10 18,10 Z"/><line x1="7" y1="19" x2="8" y2="21"/><line x1="11" y1="19" x2="12" y2="21"/></svg>',
+    '⛈️': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18,10 C18,6.69 15.31,4 12,4 C9.23,4 6.87,5.94 6.24,8.5 C4.46,8.87 3,10.28 3,12 C3,14.21 4.79,16 7,16 L18,16 C19.66,16 21,14.66 21,13 C21,11.34 19.66,10 18,10 Z"/><line x1="9" y1="18" x2="10" y2="21"/><line x1="13" y1="18" x2="14" y2="21"/><line x1="11" y1="16" x2="12" y2="19"/><polyline points="12,6 10,10 13,10 11,14"/></svg>',
+    '❄️': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/><line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/></svg>',
+    '🥶': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="9" cy="10" r="1.5" fill="currentColor"/><circle cx="15" cy="10" r="1.5" fill="currentColor"/><path d="M6,17 C7,15 10,14 12,14 C14,14 17,15 18,17"/><path d="M2,8 L4,10 L6,8"/><path d="M18,8 L20,10 L22,8"/></svg>',
+    '🌪️': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12,2 C8,2 5,4 5,7 C5,9 7,10 10,10 C13,10 15,9 15,7 C15,5 13.5,4 12,4"/><path d="M10,10 C7,10 5,12 5,14 C5,16 7,17 10,17 C13,17 15,16 15,14"/><path d="M10,17 C8,17 6,18.5 6,20 C6,21.5 8,22 10,22"/></svg>',
+    '💨': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4,6 C4,4 6,3 8,3 C10,3 12,4 12,6"/><path d="M4,12 C4,10 6,9 9,9 C12,9 14,10 14,12"/><path d="M4,18 C4,16 6,15 9,15 C12,15 14,16 14,18"/><line x1="18" y1="8" x2="22" y2="8"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="18" y1="16" x2="22" y2="16"/></svg>',
+    '✏️': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17,3 C17.55,2.45 18.45,2.45 19,3 L21,5 C21.55,5.55 21.55,6.45 21,7 L19,9 L15,5 L17,3 Z"/><path d="M15,5 L4,16 L3,21 L8,20 L19,9"/></svg>',
+    '➕': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>',
 };
 
 // 替换页面中所有 emoji 图标为 SVG

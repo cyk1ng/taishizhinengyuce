@@ -20,20 +20,23 @@ ORACLE_CONFIG = {
     "password": os.getenv("ORACLE_PASSWORD", "doms_jadp"),
 }
 
-# TNS 连接串（含负载均衡 + 故障转移）
+# TNS 连接串（从环境变量动态生成，含负载均衡 + 故障转移）
+_HOST = ORACLE_CONFIG["host"]
+_PORT = ORACLE_CONFIG["port"]
+_SERVICE = ORACLE_CONFIG["service_name"]
 TNS_CONNECT_STRING = (
-    "(DESCRIPTION="
-    "(ADDRESS_LIST="
-    "(ADDRESS=(PROTOCOL=TCP)(HOST=10.111.134.211)(PORT=1521))"
-    "(ADDRESS=(PROTOCOL=TCP)(HOST=10.111.134.211)(PORT=1521))"
-    "(LOAD_BALANCE=yes)"
-    ")"
-    "(CONNECT_DATA="
-    "(SERVER=DEDICATED)"
-    "(SERVICE_NAME=domsdb)"
-    "(FAILOVER_MODE=(TYPE=SELECT)(METHOD=BASIC)(RETRIES=30)(DELAY=15))"
-    ")"
-    ")"
+    f"(DESCRIPTION="
+    f"(ADDRESS_LIST="
+    f"(ADDRESS=(PROTOCOL=TCP)(HOST={_HOST})(PORT={_PORT}))"
+    f"(ADDRESS=(PROTOCOL=TCP)(HOST={_HOST})(PORT={_PORT}))"
+    f"(LOAD_BALANCE=yes)"
+    f")"
+    f"(CONNECT_DATA="
+    f"(SERVER=DEDICATED)"
+    f"(SERVICE_NAME={_SERVICE})"
+    f"(FAILOVER_MODE=(TYPE=SELECT)(METHOD=BASIC)(RETRIES=30)(DELAY=15))"
+    f")"
+    f")"
 )
 
 

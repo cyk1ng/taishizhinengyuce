@@ -139,9 +139,12 @@ def build_agent(ctx=None):
     with open(config_path, 'r', encoding='utf-8') as f:
         cfg = json.load(f)
 
-    # 获取模型配置
+    # 获取模型配置（环境变量优先，JSON配置兜底）
     model_cfg = cfg['config']
-    model_name = model_cfg.get("model", "qwen2.5:14b")
+    model_name = os.getenv("COZE_MODEL_NAME") or model_cfg.get("model", "qwen2.5:14b")
+    temperature = float(os.getenv("COZE_TEMPERATURE") or model_cfg.get('temperature', 0.7))
+    max_tokens = int(os.getenv("COZE_MAX_TOKENS") or model_cfg.get('max_tokens', 8000))
+    timeout = int(os.getenv("COZE_TIMEOUT") or model_cfg.get('timeout', 600))
     is_ollama = model_cfg.get("ollama", False)
 
     # 获取认证信息
@@ -160,18 +163,15 @@ def build_agent(ctx=None):
         model=model_name,
         api_key=api_key,
         base_url=base_url,
-        temperature=model_cfg.get('temperature', 0.7),
-        max_tokens=model_cfg.get('max_tokens', 8000),
+        temperature=temperature,
+        max_tokens=max_tokens,
         streaming=False,
-        timeout=model_cfg.get('timeout', 600),
+        timeout=timeout,
     )
 
     logger.info(
         "模型请求参数: model=%s, base_url=%s, temperature=%s, max_tokens=%s, ollama=%s",
-        model_name, base_url,
-        model_cfg.get('temperature', 0.7),
-        model_cfg.get('max_tokens', 8000),
-        is_ollama
+        model_name, base_url, temperature, max_tokens, is_ollama
     )
 
     # 注册全部工具（从 config 中加载工具列表）

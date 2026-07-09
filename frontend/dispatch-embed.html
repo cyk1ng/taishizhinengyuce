@@ -193,6 +193,11 @@
 
             var path = window.location.pathname;
 
+            // 本地测试：页面来自 localhost 则 iframe 直接加载同源根路径
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                return window.location.origin + '/';
+            }
+
             // 如果当前页面 URL 包含 /dispatch/，说明走 nginx 代理
             if (path.indexOf('/dispatch/') === 0) {
                 return '/dispatch/';

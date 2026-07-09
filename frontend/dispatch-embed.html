@@ -200,16 +200,16 @@
 
             // 如果当前页面 URL 包含 /dispatch/，说明走 nginx 代理
             if (path.indexOf('/dispatch/') === 0) {
-                return '/dispatch/';
+                return '/dispatch/?base_path=/dispatch';
             }
 
             // 如果通过 Java 系统访问（如 /aiagent/dispatchembed.html），
             // 自动走 nginx 代理，路径从 /aiagent/ 改为 /aiagent/dispatch/
             if (path.indexOf('/aiagent/') === 0) {
-                return '/aiagent/dispatch/';
+                return '/aiagent/dispatch/?base_path=/aiagent/dispatch';
             }
             if (path.indexOf('/doms/') === 0) {
-                return '/dispatch/';
+                return '/dispatch/?base_path=/dispatch';
             }
 
             // 否则直接连接内网地址

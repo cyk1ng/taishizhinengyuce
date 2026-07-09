@@ -15,11 +15,12 @@ function _ensureMd() {
             resolve(_md);
             return;
         }
+        var _bp = (window.BASE_PATH || '');
         var s = document.createElement('script');
-        s.src = '/vendor/markdown-it.min.js';
+        s.src = _bp + '/vendor/markdown-it.min.js';
         s.onload = function() {
             var s2 = document.createElement('script');
-            s2.src = '/vendor/highlight.min.js';
+            s2.src = _bp + '/vendor/highlight.min.js';
             s2.onload = function() { _initMd(); resolve(_md); };
             document.head.appendChild(s2);
         };
@@ -71,8 +72,8 @@ async function sendMessage() {
     // 懒加载 markdown-it 和 highlight.js（用户在打字时后台下载）
     if (!_md && !window.__loadingMd) {
         window.__loadingMd = true;
-        _loadScript('/vendor/markdown-it.min.js').then(function() {
-            _loadScript('/vendor/highlight.min.js').then(function() {
+        _loadScript((window.BASE_PATH || '') + '/vendor/markdown-it.min.js').then(function() {
+            _loadScript((window.BASE_PATH || '') + '/vendor/highlight.min.js').then(function() {
                 _ensureMd();
             });
         });
@@ -460,7 +461,7 @@ async function loadRealTimeData() {
         }
         
         // 发送请求给后端获取数据
-        const response = await fetch(`${window.location.origin}/api/workload_dashboard`);
+        const response = await fetch(`${window.BASE_PATH}/api/workload_dashboard`);
         
         if (response.ok) {
             const result = await response.json();
@@ -645,7 +646,7 @@ function updateCurrentTime() {
  */
 async function updateWeatherData() {
     try {
-        const response = await fetch('/api/weather');
+        const response = await fetch(`${window.BASE_PATH}/api/weather`);
         const result = await response.json();
 
         if (result.success && result.data) {
@@ -950,7 +951,7 @@ function showPlanWorkloadModal(event) {
     event.stopPropagation();
     
     // 调用后端API获取数据
-    fetch('/api/plan_workload_detail')
+    fetch(`${window.BASE_PATH}/api/plan_workload_detail`)
         .then(res => res.json())
         .then(data => {
             if (data.success && data.details) {
@@ -1046,7 +1047,7 @@ function showNonPlanWorkloadModal(event) {
     event.stopPropagation();
     
     // 调用后端API获取数据
-    fetch('/api/nonplan_workload_detail')
+    fetch(`${window.BASE_PATH}/api/nonplan_workload_detail`)
         .then(res => res.json())
         .then(data => {
             if (data.success && data.details) {
@@ -1119,7 +1120,7 @@ function closeModal(modalId) {
  */
 async function updateWorkloadStats() {
     try {
-        const response = await fetch(`${window.location.origin}/api/workload_dashboard`);
+        const response = await fetch(`${window.BASE_PATH}/api/workload_dashboard`);
         if (response.ok) {
             const data = await response.json();
             if (data.success) {
@@ -1213,7 +1214,7 @@ function toggleTodo(el) {
 
 let kbCurrentPage = 1;
 let kbTotalPages = 1;
-const KB_API_BASE = '/api/knowledge';
+const KB_API_BASE = (window.BASE_PATH || '') + '/api/knowledge';
 
 function openKnowledgeModal() {
     document.getElementById('knowledgeModal').style.display = 'flex';

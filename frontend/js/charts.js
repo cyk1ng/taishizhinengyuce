@@ -1074,7 +1074,7 @@ function saveWeather() {
         closeModal('weatherModal');
 
         // 调用后端API保存数据
-        fetch('/api/weather', {
+        fetch((window.BASE_PATH || '') + '/api/weather', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1524,7 +1524,7 @@ const FALLBACK_STAFF_DATA = {
 async function loadStaffData(teamName = '') {
     try {
         const dateStr = new Date().toISOString().slice(0, 10);
-        const url = `/api/staff/detail?team_name=${encodeURIComponent(teamName)}&date_str=${dateStr}`;
+        const url = (window.BASE_PATH || '') + `/api/staff/detail?team_name=${encodeURIComponent(teamName)}&date_str=${dateStr}`;
         const resp = await fetch(url);
         const result = await resp.json();
         if (result.success && result.data && result.data.teams && result.data.teams.length > 0) {
@@ -1895,7 +1895,7 @@ async function setStaffRest(personId) {
         return;
     }
     try {
-        const resp = await fetch('/api/staff/temp/remove', {
+        const resp = await fetch((window.BASE_PATH || '') + '/api/staff/temp/remove', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ record_id: dutyTeam.record_id, person_id: personId })
         });
@@ -1933,7 +1933,7 @@ async function setStaffOnDuty(personId, personName, homeTeamName) {
         return;
     }
     try {
-        const resp = await fetch('/api/staff/temp/add', {
+        const resp = await fetch((window.BASE_PATH || '') + '/api/staff/temp/add', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ record_id: dutyTeam.record_id, person_id: personId, person_name: personName, home_team_name: homeTeamName })
         });
@@ -2067,7 +2067,7 @@ window.savePlanWorkloadOverride = function() {
     btn.textContent = '⏳ 保存中...';
     btn.disabled = true;
     
-    fetch('/api/save_workload_override', {
+    fetch((window.BASE_PATH || '') + '/api/save_workload_override', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(payload)
@@ -2124,7 +2124,7 @@ window.saveNonPlanWorkloadOverride = function() {
     btn.textContent = '⏳ 保存中...';
     btn.disabled = true;
     
-    fetch('/api/save_workload_override', {
+    fetch((window.BASE_PATH || '') + '/api/save_workload_override', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(payload)
@@ -2242,7 +2242,7 @@ function showToast(message, type) {
  */
 function checkWorkloadUpdates() {
     const today = new Date().toISOString().slice(0, 10);
-    fetch('/api/check_workload_updates?target_date=' + today)
+    fetch((window.BASE_PATH || '') + '/api/check_workload_updates?target_date=' + today)
         .then(res => res.json())
         .then(result => {
             if (result.success && result.has_updates) {
@@ -2251,7 +2251,7 @@ function checkWorkloadUpdates() {
                 
                 if (userConfirmed) {
                     // 用户选择覆盖更新
-                    fetch('/api/apply_workload_updates', {
+                    fetch((window.BASE_PATH || '') + '/api/apply_workload_updates', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({target_date: today})

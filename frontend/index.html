@@ -5,6 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>业务态势感知智能体 - 工作量自动统计看板</title>
     
+    <script>
+    // BASE_PATH：从 URL 参数 ?base_path= 获取，用于 nginx 反向代理时路径前缀
+    window.BASE_PATH = (function() {
+        var m = location.search.match(/[?&]base_path=([^&]+)/);
+        if (m) {
+            var p = '/' + m[1].replace(/^\/+|\/+$/g, '') + '/';
+            return p.replace(/\/+/g, '/');
+        }
+        return '';
+    })();
+    window._p = function(path) {
+        return window.BASE_PATH + path.replace(/^\//, '');
+    };
+    </script>
+    
     <!-- 本地 Vendor 库样式 -->
     <link rel="stylesheet" href="/vendor/github-dark.min.css">
     

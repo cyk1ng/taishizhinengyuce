@@ -3,12 +3,13 @@
  */
 
 // API 基础配置
+const BASE_PATH = (window.BASE_PATH || '');
 const API_CONFIG = {
-    BASE_URL: window.location.origin,
+    BASE_URL: window.location.origin + BASE_PATH,
     ENDPOINTS: {
-        STREAM_RUN: '/stream_run',
-        RUN: '/run',
-        HEALTH: '/health'
+        STREAM_RUN: BASE_PATH + 'stream_run',
+        RUN: BASE_PATH + 'run',
+        HEALTH: BASE_PATH + 'health'
     }
 };
 

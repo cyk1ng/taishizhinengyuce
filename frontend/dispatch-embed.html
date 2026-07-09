@@ -184,25 +184,28 @@
         //  配置区域 —— 按实际部署地址修改
         // ============================================================
         var DISPATCH_URL = (function() {
-            // 按优先级依次尝试：
-            var urls = [
-                // 1. 内网部署地址（Docker 部署时）
-                'http://10.180.144.249:5000',
-                // 2. 本地开发地址
-                'http://localhost:5000',
-                // 3. 通过 nginx 反向代理的统一入口
-                // '/dispatch/'
-            ];
+            // 支持 URL 参数覆盖：?target=http://xxx 或 ?target=/dispatch/
+            var params = new URLSearchParams(window.location.search);
+            var urlParam = params.get('target');
+            if (urlParam) {
+                return urlParam;
+            }
+
+            var path = window.location.pathname;
+
             // 如果当前页面 URL 包含 /dispatch/，说明走 nginx 代理
-            if (window.location.pathname.indexOf('/dispatch/') === 0) {
+            if (path.indexOf('/dispatch/') === 0) {
                 return '/dispatch/';
             }
-            // 否则尝试配置的地址
-            for (var i = 0; i < urls.length; i++) {
-                // 这里不实际检测，直接用第一个
-                return urls[0];
+
+            // 如果通过 Java 系统访问（如 /doms/aiagent/dispatchembed.html），默认走 nginx 代理
+            // 需要在 Java 服务器上配置 nginx 将 /dispatch/ 代理到调度系统
+            if (path.indexOf('/doms/') === 0 || path.indexOf('/aiagent/') === 0) {
+                return '/dispatch/';
             }
-            return urls[0];
+
+            // 否则直接连接内网地址
+            return 'http://10.180.144.249:5000';
         })();
 
         var iframe = document.getElementById('dispatchFrame');

@@ -198,9 +198,12 @@
                 return '/dispatch/';
             }
 
-            // 如果通过 Java 系统访问（如 /doms/aiagent/dispatchembed.html），默认走 nginx 代理
-            // 需要在 Java 服务器上配置 nginx 将 /dispatch/ 代理到调度系统
-            if (path.indexOf('/doms/') === 0 || path.indexOf('/aiagent/') === 0) {
+            // 如果通过 Java 系统访问（如 /aiagent/dispatchembed.html），
+            // 自动走 nginx 代理，路径从 /aiagent/ 改为 /aiagent/dispatch/
+            if (path.indexOf('/aiagent/') === 0) {
+                return '/aiagent/dispatch/';
+            }
+            if (path.indexOf('/doms/') === 0) {
                 return '/dispatch/';
             }
 

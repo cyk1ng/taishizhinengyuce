@@ -10,19 +10,19 @@ services:
       # LLM 配置（Docker 内用 Ollama）
       - COZE_LLM_CONFIG=config/agent_llm_config_docker.json
       - COZE_INTEGRATION_MODEL_BASE_URL=http://host.docker.internal:11434/v1
-      # Oracle 数据库（改成你实际的地址）
-      - DATABASE_URL=oracle+oracledb://DOMS_JADP:doms_jadp@10.111.134.211:1521/?service_name=domsdb
+      # Oracle 数据库（与 Java 系统共用，10.111.134.209:1521/omscsdb）
+      - DATABASE_URL=oracle+oracledb://OMSCS1:omscs_oms123@10.111.134.209:1521/?service_name=omscsdb
       - DB_TYPE=oracle
-      - DB_HOST=10.111.134.211
+      - DB_HOST=10.111.134.209
       - DB_PORT=1521
-      - DB_NAME=domsdb
-      - DB_USER=DOMS_JADP
-      - DB_PASSWORD=doms_jadp
-      - ORACLE_HOST=10.111.134.211
+      - DB_NAME=omscsdb
+      - DB_USER=OMSCS1
+      - DB_PASSWORD=omscs_oms123
+      - ORACLE_HOST=10.111.134.209
       - ORACLE_PORT=1521
-      - ORACLE_SERVICE_NAME=domsdb
-      - ORACLE_USER=DOMS_JADP
-      - ORACLE_PASSWORD=doms_jadp
+      - ORACLE_SERVICE_NAME=omscsdb
+      - ORACLE_USER=OMSCS1
+      - ORACLE_PASSWORD=omscs_oms123
       # 天气 API
       - WEATHER_API_KEY=44ff4071f86641979f59da2daed5505e
       - WEATHER_API_ENDPOINT=https://devapi.qweather.com/v7

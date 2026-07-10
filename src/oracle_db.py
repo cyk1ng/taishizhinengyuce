@@ -1,7 +1,7 @@
 """
 Oracle 数据库连接模块
 =====================
-连接 10.111.134.211:1521/domsdb（DOMS_JADP 库），
+连接 10.111.134.209:1521/omscsdb（OMSCS1 库，与 Java 系统共用），
 替代当前内存模拟数据。连接失败时自动降级到 mock 数据。
 """
 
@@ -13,11 +13,11 @@ from typing import Optional
 # Oracle 连接配置（从环境变量读取）
 # ═══════════════════════════════════════
 ORACLE_CONFIG = {
-    "host": os.getenv("ORACLE_HOST", "10.111.134.211"),
+    "host": os.getenv("ORACLE_HOST", "10.111.134.209"),
     "port": int(os.getenv("ORACLE_PORT", "1521")),
-    "service_name": os.getenv("ORACLE_SERVICE_NAME", "domsdb"),
-    "user": os.getenv("ORACLE_USER", "DOMS_JADP"),
-    "password": os.getenv("ORACLE_PASSWORD", "doms_jadp"),
+    "service_name": os.getenv("ORACLE_SERVICE_NAME", "omscsdb"),
+    "user": os.getenv("ORACLE_USER", "OMSCS1"),
+    "password": os.getenv("ORACLE_PASSWORD", "omscs_oms123"),
 }
 
 # TNS 连接串（从环境变量动态生成，含负载均衡 + 故障转移）

@@ -35,11 +35,11 @@ def _check_oracle() -> bool:
     try:
         # 短超时快速检查
         import oracledb
-        host = os.getenv("ORACLE_HOST", "10.111.134.211")
+        host = os.getenv("ORACLE_HOST", "10.111.134.209")
         port = int(os.getenv("ORACLE_PORT", "1521"))
-        service_name = os.getenv("ORACLE_SERVICE_NAME", "domsdb")
-        user = os.getenv("ORACLE_USER", "DOMS_JADP")
-        password = os.getenv("ORACLE_PASSWORD", "doms_jadp")
+        service_name = os.getenv("ORACLE_SERVICE_NAME", "omscsdb")
+        user = os.getenv("ORACLE_USER", "OMSCS1")
+        password = os.getenv("ORACLE_PASSWORD", "omscs_oms123")
 
         conn = oracledb.connect(
             user=user,

@@ -441,6 +441,9 @@ function refreshData() {
     
     // 更新最后更新时间
     updateLastUpdate();
+    
+    // 页面数据加载完成 → 自动保存快照（AI 分析时使用）
+    setTimeout(savePageSnapshot, 500);
 }
 
 /**
@@ -1403,6 +1406,129 @@ async function kbDeleteDoc(id) {
     } catch (e) {
         alert('删除失败: ' + e.message);
     }
+}
+
+// ========== 页面数据快照 ==========
+
+/**
+ * 保存当前页面数据快照。
+ * 页面加载数据后、用户修改数据后自动调用，
+ * 确保 AI 分析时读取的是用户当前看到的页面数据。
+ */
+function savePageSnapshot() {
+    var bp = window.BASE_PATH || '';
+    var today = new Date().toISOString().slice(0, 10);
+
+    // 收集页面上的关键数据
+    var snapshot = {
+        plan_workload: {
+            maintenance: { in_progress: 0, completed: 0 },
+            transfer: { in_progress: 0, completed: 0 },
+            equipment: { in_progress: 0, completed: 0 },
+            weekly_plan: { in_progress: 0, completed: 0 },
+            protect: { in_progress: 0, completed: 0 }
+        },
+        non_plan_workload: {
+            fault: { count: 0 },
+            defect: { count: 0 },
+            overload: { count: 0 }
+        },
+        weather: {
+            temperature: '',
+            precipitation: '',
+            wind: '',
+            extreme: ''
+        },
+        staff: {
+            current_staff: '',
+            on_duty_team: '',
+            overload_status: ''
+        },
+        statistics: {
+            total_plan: 0,
+            in_progress: 0,
+            completed: 0,
+            total_non_plan: 0,
+            fault_count: 0,
+            defect_count: 0,
+            overload_count: 0
+        },
+        captured_at: new Date().toISOString()
+    };
+
+    // 收集统计卡片数据
+    var statPlanTotal = document.getElementById('stat-plan-total');
+    var statPlanInProgress = document.getElementById('stat-plan-in-progress');
+    var statPlanCompleted = document.getElementById('stat-plan-completed');
+    var statNonPlanFault = document.getElementById('stat-non-plan-fault');
+    var statNonPlanDefect = document.getElementById('stat-non-plan-defect');
+    var statNonPlanOverload = document.getElementById('stat-non-plan-overload');
+
+    if (statPlanTotal) snapshot.statistics.total_plan = parseInt(statPlanTotal.textContent) || 0;
+    if (statPlanInProgress) snapshot.statistics.in_progress = parseInt(statPlanInProgress.textContent) || 0;
+    if (statPlanCompleted) snapshot.statistics.completed = parseInt(statPlanCompleted.textContent) || 0;
+    if (statNonPlanFault) snapshot.statistics.fault_count = parseInt(statNonPlanFault.textContent) || 0;
+    if (statNonPlanDefect) snapshot.statistics.defect_count = parseInt(statNonPlanDefect.textContent) || 0;
+    if (statNonPlanOverload) snapshot.statistics.overload_count = parseInt(statNonPlanOverload.textContent) || 0;
+    snapshot.statistics.total_non_plan = snapshot.statistics.fault_count + snapshot.statistics.defect_count + snapshot.statistics.overload_count;
+
+    // 收集人员信息
+    var staffEl = document.getElementById('currentStaff');
+    var teamEl = document.getElementById('onDutyTeamName');
+    var overloadEl = document.getElementById('overloadStatus');
+    if (staffEl) snapshot.staff.current_staff = staffEl.textContent;
+    if (teamEl) snapshot.staff.on_duty_team = teamEl.textContent;
+    if (overloadEl) snapshot.staff.overload_status = overloadEl.textContent;
+
+    // 收集天气数据
+    var tempEl = document.getElementById('weatherTempDisplay');
+    var precipEl = document.getElementById('weatherPrecipDisplay');
+    var windEl = document.getElementById('weatherWindDisplay');
+    var extremeEl = document.getElementById('weatherExtremeDisplay');
+    if (tempEl) snapshot.weather.temperature = tempEl.textContent.trim();
+    if (precipEl) snapshot.weather.precipitation = precipEl.textContent.replace('降水量: ', '').trim();
+    if (windEl) snapshot.weather.wind = windEl.textContent.replace('风力: ', '').trim();
+    if (extremeEl && extremeEl.classList.contains('show')) {
+        snapshot.weather.extreme = extremeEl.textContent.replace('⚠️ ', '').trim();
+    }
+
+    // 收集计划工作量弹窗数据（如果有打开过已加载到 DOM 中）
+    _collectModalData('planWorkloadModal', snapshot.plan_workload);
+    _collectModalData('nonPlanWorkloadModal', snapshot.non_plan_workload);
+
+    // 发送到后端保存
+    fetch(bp + '/api/save_page_snapshot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            page_data: snapshot,
+            target_date: today
+        })
+    }).then(function(r) { return r.json(); }).then(function(result) {
+        if (result.success) {
+            console.log('[snapshot] 页面快照已保存');
+        }
+    }).catch(function(err) {
+        console.warn('[snapshot] 保存快照失败:', err);
+    });
+}
+
+/** 从弹窗 DOM 中收集各分类数据 */
+function _collectModalData(modalId, target) {
+    var modal = document.getElementById(modalId);
+    if (!modal) return;
+    var cards = modal.querySelectorAll('.editable-card');
+    cards.forEach(function(card) {
+        var cat = card.getAttribute('data-category');
+        if (!cat || !target[cat]) return;
+        var fields = card.querySelectorAll('.field-value');
+        fields.forEach(function(el) {
+            var field = el.getAttribute('data-field');
+            if (field) {
+                target[cat][field] = parseInt(el.textContent) || 0;
+            }
+        });
+    });
 }
 
 // ========== 工具函数 ==========

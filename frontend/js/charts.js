@@ -1091,6 +1091,8 @@ function saveWeather() {
         .then(data => {
             if (data.success) {
                 console.log('天气信息保存成功:', data);
+                // 保存后更新快照（AI 分析时使用）
+                if (typeof savePageSnapshot === 'function') setTimeout(savePageSnapshot, 300);
                 alert('天气信息保存成功');
             } else {
                 console.error('天气信息保存失败:', data.error);
@@ -2082,6 +2084,8 @@ window.savePlanWorkloadOverride = function() {
                 btn.disabled = false;
             }, 2000);
             showToast('计划工作量已保存', 'success');
+            // 保存后更新快照（AI 分析时使用）
+            if (typeof savePageSnapshot === 'function') setTimeout(savePageSnapshot, 300);
         } else {
             btn.textContent = '❌ 保存失败';
             setTimeout(() => {
@@ -2139,6 +2143,8 @@ window.saveNonPlanWorkloadOverride = function() {
                 btn.disabled = false;
             }, 2000);
             showToast('非计划工作量已保存', 'success');
+            // 保存后更新快照（AI 分析时使用）
+            if (typeof savePageSnapshot === 'function') setTimeout(savePageSnapshot, 300);
         } else {
             btn.textContent = '❌ 保存失败';
             setTimeout(() => {

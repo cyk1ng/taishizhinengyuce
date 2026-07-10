@@ -894,6 +894,52 @@ async def save_workload_override(request: Request):
         logger.error(f"保存工作量覆盖数据失败: {e}")
         return {"success": False, "error": str(e)}
 
+
+# ===== 页面数据快照接口 =====
+
+@app.post("/api/save_page_snapshot")
+async def save_page_snapshot(request: Request):
+    """
+    保存当前页面数据快照。
+    前端在页面加载完成、数据修改后自动调用。
+    请求体：{ "page_data": {...}, "target_date": "2026-06-26" }
+    """
+    try:
+        body = await request.json()
+        page_data = body.get("page_data", {})
+        target_date = body.get("target_date", datetime.now().strftime("%Y-%m-%d"))
+
+        if not page_data:
+            return {"success": False, "error": "page_data 不能为空"}
+
+        from snapshot_manager import save_snapshot
+        ok = save_snapshot(page_data, target_date)
+
+        return {"success": ok, "message": "快照已保存" if ok else "保存失败"}
+    except Exception as e:
+        logger.error(f"保存页面快照失败: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/get_page_snapshot")
+async def get_page_snapshot(target_date: str = ""):
+    """
+    获取指定日期的页面数据快照。
+    AI 分析时调用此接口读取当前页面数据。
+    """
+    try:
+        from snapshot_manager import get_snapshot
+        date = target_date or datetime.now().strftime("%Y-%m-%d")
+        data = get_snapshot(date)
+        if data:
+            return {"success": True, "data": data, "date": date}
+        else:
+            return {"success": False, "message": f"{date} 暂无快照数据", "date": date}
+    except Exception as e:
+        logger.error(f"获取页面快照失败: {e}")
+        return {"success": False, "error": str(e)}
+
+
 # ===== 工作量数据统一管理接口 =====
 
 @app.get("/api/workload_data")

@@ -111,6 +111,7 @@ from tools.weather_manager import (
 )
 # 导入知识库搜索工具
 from tools.knowledge_search import search_knowledge, import_knowledge
+from tools.snapshot_reader import read_page_snapshot
 
 
 logger = logging.getLogger(__name__)
@@ -176,6 +177,7 @@ def build_agent(ctx=None):
 
     # 注册全部工具（从 config 中加载工具列表）
     _tool_map = {
+        'read_page_snapshot': read_page_snapshot,
         'get_historical_dispatch_data': get_historical_dispatch_data,
         'get_weather_forecast': get_weather_forecast,
         'get_holiday_info': get_holiday_info,

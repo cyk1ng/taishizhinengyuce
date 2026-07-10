@@ -11,7 +11,7 @@
         // 1. URL 参数优先
         var m = location.search.match(/[?&]base_path=([^&]+)/);
         if (m) {
-            var p = '/' + m[1].replace(/^\/+|\/+$/g, '') + '/';
+            var p = '/' + m[1].replace(/^\/+|\/+$/g, '');
             return p.replace(/\/+/g, '/');
         }
         // 2. 自动检测路径前缀（如 /aiagent/dispatch/、/dispatch/）
@@ -19,13 +19,13 @@
         var prefixes = ['/aiagent/dispatch/', '/dispatch/', '/doms/aiagent/dispatch/'];
         for (var i = 0; i < prefixes.length; i++) {
             if (path.indexOf(prefixes[i]) >= 0) {
-                return '/' + prefixes[i].replace(/^\/+|\/+$/g, '') + '/';
+                return '/' + prefixes[i].replace(/^\/+|\/+$/g, '');
             }
         }
         return '';
     })();
     window._p = function(path) {
-        return window.BASE_PATH + path.replace(/^\//, '');
+        return (window.BASE_PATH || '') + '/' + path.replace(/^\//, '');
     };
     </script>
     

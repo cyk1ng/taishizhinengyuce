@@ -10,7 +10,7 @@ function ensureChart(callback) {
     if (!_chartLoading) {
         _chartLoading = new Promise(function(resolve) {
             var s = document.createElement('script');
-            s.src = '/vendor/chart.umd.min.js';
+            s.src = (window.BASE_PATH || '') + '/vendor/chart.umd.min.js';
             s.onload = resolve;
             document.head.appendChild(s);
         });

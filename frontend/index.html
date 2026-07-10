@@ -6,12 +6,21 @@
     <title>业务态势感知智能体 - 工作量自动统计看板</title>
     
     <script>
-    // BASE_PATH：从 URL 参数 ?base_path= 获取，用于 nginx 反向代理时路径前缀
+    // BASE_PATH：优先从 URL 参数 ?base_path= 获取，其次自动检测路径前缀
     window.BASE_PATH = (function() {
+        // 1. URL 参数优先
         var m = location.search.match(/[?&]base_path=([^&]+)/);
         if (m) {
             var p = '/' + m[1].replace(/^\/+|\/+$/g, '') + '/';
             return p.replace(/\/+/g, '/');
+        }
+        // 2. 自动检测路径前缀（如 /aiagent/dispatch/、/dispatch/）
+        var path = location.pathname;
+        var prefixes = ['/aiagent/dispatch/', '/dispatch/', '/doms/aiagent/dispatch/'];
+        for (var i = 0; i < prefixes.length; i++) {
+            if (path.indexOf(prefixes[i]) >= 0) {
+                return '/' + prefixes[i].replace(/^\/+|\/+$/g, '') + '/';
+            }
         }
         return '';
     })();
@@ -20,8 +29,8 @@
     };
     </script>
     
-    <!-- 本地 Vendor 库样式 -->
-    <link rel="stylesheet" href="/vendor/github-dark.min.css">
+    <!-- Vendor 库样式（使用 BASE_PATH 支持路径前缀） -->
+    <script>document.write('<link rel="stylesheet" href="' + window._p('vendor/github-dark.min.css') + '">');</script>
     
     <!-- Custom Styles -->
     <link rel="stylesheet" href="css/style.css">

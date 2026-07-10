@@ -1,10 +1,15 @@
 -- 页面数据快照表
--- 用于存储当前页面展示的数据，用户在界面上修改后也更新此表
--- AI 分析时从此表读取数据，而非从原始数据库表重新查询
+-- 存储当前页面展示的数据快照，用户修改后也更新此快照。
+-- AI 分析时从此表读取数据，确保分析的是用户当前看到的页面数据。
 CREATE TABLE DISPATCH_PAGE_SNAPSHOT (
-    snapshot_date DATE PRIMARY KEY,
-    page_data CLOB,          -- 完整页面数据 JSON
-    data_hash VARCHAR2(64),  -- 数据哈希，用于快速比较
-    created_at TIMESTAMP DEFAULT SYSTIMESTAMP,
-    updated_at TIMESTAMP DEFAULT SYSTIMESTAMP
+    MK_ID            VARCHAR2(64) PRIMARY KEY,
+    DIS_ORG_ID       VARCHAR2(64),
+    DIS_ORG_NAME     VARCHAR2(256),
+    COUNTY_DEPT_ID   VARCHAR2(64),
+    COUNTY_DEPT_NAME VARCHAR2(256),
+    SNAPSHOT_DATE    DATE,
+    PAGE_DATA        CLOB,
+    DATA_HASH        VARCHAR2(64),
+    CREATED_AT       TIMESTAMP DEFAULT SYSTIMESTAMP,
+    UPDATED_AT       TIMESTAMP DEFAULT SYSTIMESTAMP
 );

@@ -902,18 +902,31 @@ async def save_page_snapshot(request: Request):
     """
     保存当前页面数据快照。
     前端在页面加载完成、数据修改后自动调用。
-    请求体：{ "page_data": {...}, "target_date": "2026-06-26" }
+    请求体：{
+      "page_data": {...},
+      "target_date": "2026-06-26",
+      "dis_org_id": "xxx", "dis_org_name": "xxx",
+      "county_dept_id": "xxx", "county_dept_name": "xxx"
+    }
     """
     try:
         body = await request.json()
         page_data = body.get("page_data", {})
         target_date = body.get("target_date", datetime.now().strftime("%Y-%m-%d"))
+        dis_org_id = body.get("dis_org_id", "")
+        dis_org_name = body.get("dis_org_name", "")
+        county_dept_id = body.get("county_dept_id", "")
+        county_dept_name = body.get("county_dept_name", "")
 
         if not page_data:
             return {"success": False, "error": "page_data 不能为空"}
 
         from snapshot_manager import save_snapshot
-        ok = save_snapshot(page_data, target_date)
+        ok = save_snapshot(
+            page_data, target_date,
+            dis_org_id=dis_org_id, dis_org_name=dis_org_name,
+            county_dept_id=county_dept_id, county_dept_name=county_dept_name
+        )
 
         return {"success": ok, "message": "快照已保存" if ok else "保存失败"}
     except Exception as e:

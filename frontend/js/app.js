@@ -732,7 +732,7 @@ function showWeatherModal(event) {
         <div class="modal-content weather-modal-content" id="weather-modal">
             <div class="modal-header">
                 <h2 id="weather-modal-title">天气详情</h2>
-                <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">✕</button>
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
             </div>
             <div class="modal-body" id="weather-modal-body">
                 <!-- 查看模式 -->

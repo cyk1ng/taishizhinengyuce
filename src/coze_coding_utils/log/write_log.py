@@ -4,7 +4,7 @@ import os
 from typing import Optional
 
 
-LOG_FILE = "/tmp/work/logs/bypass/app.log"
+LOG_FILE = "/app/logs/dispatch/app.log"
 LOG_LEVEL = "INFO"
 
 

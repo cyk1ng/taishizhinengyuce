@@ -26,16 +26,33 @@ _DB_PORT = ORACLE_CONFIG["port"]
 _DB_SERVICE = ORACLE_CONFIG["service_name"]
 EZCONNECT_STRING = f"{_DB_HOST}:{_DB_PORT}/{_DB_SERVICE}"
 
+# 初始化 Oracle Client（thick 模式，支持 Oracle 11g+）
+_oracle_initialized = False
+
+
+def _init_oracle_client():
+    """初始化 Oracle Client 厚模式（只需调用一次）"""
+    global _oracle_initialized
+    if _oracle_initialized:
+        return
+    try:
+        import oracledb
+        oracledb.init_oracle_client()
+        _oracle_initialized = True
+    except Exception as e:
+        print(f"[OracleDB] Oracle Client 初始化失败: {e}")
+
 
 def is_oracle_available() -> bool:
     """检查 Oracle 是否可达（每次调用都重新检测，不缓存失败结果）"""
     try:
         import oracledb
+        _init_oracle_client()
+        oracledb.defaults.connect_timeout = 10
         conn = oracledb.connect(
             user=ORACLE_CONFIG["user"],
             password=ORACLE_CONFIG["password"],
             dsn=EZCONNECT_STRING,
-            timeout=10,
         )
         conn.close()
         return True
@@ -45,13 +62,14 @@ def is_oracle_available() -> bool:
 
 
 def get_oracle_connection():
-    """获取 Oracle 数据库连接（oracledb 驱动 thin 模式，10秒超时）"""
+    """获取 Oracle 数据库连接（oracledb 驱动 thick 模式，10秒超时）"""
     import oracledb
+    _init_oracle_client()
+    oracledb.defaults.connect_timeout = 10
     return oracledb.connect(
         user=ORACLE_CONFIG["user"],
         password=ORACLE_CONFIG["password"],
         dsn=EZCONNECT_STRING,
-        timeout=10,
     )
 
 

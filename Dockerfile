@@ -5,6 +5,22 @@ LABEL version="2.0"
 
 WORKDIR /app
 
+# 安装系统依赖 + Oracle Instant Client 19.x（支持 Oracle 11g+）
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libaio1 \
+        wget \
+        unzip \
+        curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && wget -q https://download.oracle.com/otn_software/linux/instantclient/1924000/instantclient-basiclite-linux.x64-19.24.0.0.0dbru.zip \
+        -O /tmp/instantclient.zip \
+    && unzip -q /tmp/instantclient.zip -d /opt/oracle \
+    && rm /tmp/instantclient.zip \
+    && echo /opt/oracle/instantclient_19_24 > /etc/ld.so.conf.d/oracle-instantclient.conf \
+    && ldconfig
+
+ENV LD_LIBRARY_PATH=/opt/oracle/instantclient_19_24:${LD_LIBRARY_PATH}
+
 # 安装 Python 依赖（只装实际使用的包，移除未使用的重型包）
 COPY pyproject.toml ./
 RUN pip install --no-cache-dir --upgrade pip && \

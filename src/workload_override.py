@@ -18,6 +18,20 @@ _in_memory_store: dict[str, dict] = {}
 
 # Oracle 可用性缓存：第一次连不上就整会话跳过
 _oracle_available: Optional[bool] = None
+_oracle_initialized: bool = False
+
+
+def _init_oracle_client():
+    """初始化 Oracle Client 厚模式（只需调用一次）"""
+    global _oracle_initialized
+    if _oracle_initialized:
+        return
+    try:
+        import oracledb
+        oracledb.init_oracle_client()
+        _oracle_initialized = True
+    except Exception as e:
+        print(f"[WorkloadOverride] Oracle Client 初始化失败: {e}")
 
 # 唯一键： workload_type + category + field_name + target_date
 def _make_key(wl_type: str, category: str, field: str, target_date: str) -> str:
@@ -35,6 +49,7 @@ def _check_oracle() -> bool:
     try:
         # 短超时快速检查
         import oracledb
+        _init_oracle_client()
         host = os.getenv("ORACLE_HOST", "10.111.134.209")
         port = int(os.getenv("ORACLE_PORT", "1521"))
         service_name = os.getenv("ORACLE_SERVICE_NAME", "omscsdb")

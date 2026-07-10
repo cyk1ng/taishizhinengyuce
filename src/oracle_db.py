@@ -20,61 +20,38 @@ ORACLE_CONFIG = {
     "password": os.getenv("ORACLE_PASSWORD", "omscs_oms123"),
 }
 
-# TNS 连接串（从环境变量动态生成，含负载均衡 + 故障转移）
-_HOST = ORACLE_CONFIG["host"]
-_PORT = ORACLE_CONFIG["port"]
-_SERVICE = ORACLE_CONFIG["service_name"]
-TNS_CONNECT_STRING = (
-    f"(DESCRIPTION="
-    f"(ADDRESS_LIST="
-    f"(ADDRESS=(PROTOCOL=TCP)(HOST={_HOST})(PORT={_PORT}))"
-    f"(ADDRESS=(PROTOCOL=TCP)(HOST={_HOST})(PORT={_PORT}))"
-    f"(LOAD_BALANCE=yes)"
-    f")"
-    f"(CONNECT_DATA="
-    f"(SERVER=DEDICATED)"
-    f"(SERVICE_NAME={_SERVICE})"
-    f"(FAILOVER_MODE=(TYPE=SELECT)(METHOD=BASIC)(RETRIES=30)(DELAY=15))"
-    f")"
-    f")"
-)
-
-
-_ORACLE_AVAILABLE = None  # None=未检测, True=可用, False=不可用
+# 简单 EZConnect 格式（与 Java 的 jdbc:oracle:thin:@host:port/service 一致）
+_DB_HOST = ORACLE_CONFIG["host"]
+_DB_PORT = ORACLE_CONFIG["port"]
+_DB_SERVICE = ORACLE_CONFIG["service_name"]
+EZCONNECT_STRING = f"{_DB_HOST}:{_DB_PORT}/{_DB_SERVICE}"
 
 
 def is_oracle_available() -> bool:
-    """检查 Oracle 是否可达（缓存结果，避免重复超时等待）"""
-    global _ORACLE_AVAILABLE
-    if _ORACLE_AVAILABLE is not None:
-        return _ORACLE_AVAILABLE
+    """检查 Oracle 是否可达（每次调用都重新检测，不缓存失败结果）"""
     try:
         import oracledb
         conn = oracledb.connect(
             user=ORACLE_CONFIG["user"],
             password=ORACLE_CONFIG["password"],
-            dsn=TNS_CONNECT_STRING,
-            expire_time=3,
+            dsn=EZCONNECT_STRING,
+            timeout=10,
         )
         conn.close()
-        _ORACLE_AVAILABLE = True
         return True
-    except Exception:
-        _ORACLE_AVAILABLE = False
+    except Exception as e:
+        print(f"[OracleDB] 连接失败: {e}")
         return False
 
 
 def get_oracle_connection():
-    """获取 Oracle 数据库连接（oracledb 驱动 thin 模式，3秒超时）"""
+    """获取 Oracle 数据库连接（oracledb 驱动 thin 模式，10秒超时）"""
     import oracledb
-    if _ORACLE_AVAILABLE is False:
-        raise ConnectionError("Oracle 数据库不可用（已缓存）")
-
     return oracledb.connect(
         user=ORACLE_CONFIG["user"],
         password=ORACLE_CONFIG["password"],
-        dsn=TNS_CONNECT_STRING,
-        expire_time=3,
+        dsn=EZCONNECT_STRING,
+        timeout=10,
     )
 
 

@@ -5,16 +5,15 @@ LABEL version="2.0"
 
 WORKDIR /app
 
-# 安装系统依赖 + Oracle Instant Client 19.x（支持 Oracle 11g+）
+# 安装系统依赖（libaio1 是 Oracle Instant Client 需要的）
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libaio1 \
-        wget \
         unzip \
-    && rm -rf /var/lib/apt/lists/* \
-    && wget -q --tries=3 --timeout=120 \
-        https://download.oracle.com/otn_software/linux/instantclient/1921000/instantclient-basiclite-linux.x64-19.21.0.0.0dbru.zip \
-        -O /tmp/instantclient.zip \
-    && unzip -q /tmp/instantclient.zip -d /opt/oracle \
+    && rm -rf /var/lib/apt/lists/*
+
+# 复制本地下载的 Oracle Instant Client 19.21（支持 Oracle 11g+）
+COPY instantclient-basiclite-linux.x64-19.21.0.0.0dbru.zip /tmp/instantclient.zip
+RUN unzip -q /tmp/instantclient.zip -d /opt/oracle \
     && rm /tmp/instantclient.zip \
     && echo /opt/oracle/instantclient_19_21 > /etc/ld.so.conf.d/oracle-instantclient.conf \
     && ldconfig

@@ -82,7 +82,7 @@ def query_teams() -> list[dict]:
 
     返回字段：
         team_id, team_name, team_leader_id, team_leader_name,
-        person_ids, person_names,
+        person_ids(对应数据库 OTHER_PERSON_IDS), person_names(对应数据库 OTHER_PERSON_NAMES),
         create_busi_dept_id, create_busi_dept_name
     """
     try:

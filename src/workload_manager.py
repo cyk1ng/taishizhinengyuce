@@ -404,7 +404,9 @@ def predict_workload(target_date: str = None) -> dict:
     on_duty_shifts = []
     for r in records:
         if r.schedule_status == 'Y':
-            on_duty_shifts.append(f"{r.team_name}:{r.shift_type}({r.on_duty_time})")
+            from tools.scheduling import detect_shift_type
+            st = detect_shift_type(r.on_duty_time)
+            on_duty_shifts.append(f"{r.team_name}:{st}({r.on_duty_time})")
 
     # 调用大模型预测
     try:

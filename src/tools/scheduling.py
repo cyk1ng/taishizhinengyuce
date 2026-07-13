@@ -403,7 +403,7 @@ class ScheduleDataProvider:
                 raise ConnectionError("Oracle 不可用，跳过查询")
 
             from oracle_db import query_teams as oracle_query_teams
-            oracle_teams = oracle_query_teams(city_dept_id)
+            oracle_teams = oracle_query_teams()
             if oracle_teams:
                 result = []
                 for t in oracle_teams:
@@ -444,7 +444,7 @@ class ScheduleDataProvider:
                 raise ConnectionError("Oracle 不可用，跳过查询")
 
             from oracle_db import query_records as oracle_query_records
-            oracle_records = oracle_query_records(start_date, end_date, city_dept_id)
+            oracle_records = oracle_query_records(start_date, end_date)
             if oracle_records:
                 result = []
                 for r in oracle_records:

@@ -76,13 +76,13 @@ def get_oracle_connection():
 # ═══════════════════════════════════════
 # 查询班组 (OC_SCHEDULE_TEAM)
 # ═══════════════════════════════════════
-def query_teams(city_dept_id: str = "") -> list[dict]:
+def query_teams() -> list[dict]:
     """
     查询 OC_SCHEDULE_TEAM 表，返回所有启用的班组。
 
     返回字段：
         team_id, team_name, team_leader_id, team_leader_name,
-        person_ids, person_names, suggested_count, city_dept_id, shift_type,
+        person_ids, person_names,
         create_busi_dept_id, create_busi_dept_name
     """
     try:
@@ -97,21 +97,14 @@ def query_teams(city_dept_id: str = "") -> list[dict]:
                 NVL(TEAM_LEADER_NAME, '') AS TEAM_LEADER_NAME,
                 NVL(OTHER_PERSON_IDS, '') AS OTHER_PERSON_IDS,
                 NVL(OTHER_PERSON_NAMES, '') AS OTHER_PERSON_NAMES,
-                NVL(SUGGESTED_COUNT, 0) AS SUGGESTED_COUNT,
-                NVL(CITY_DEPT_ID, '') AS CITY_DEPT_ID,
-                NVL(SHIFT_TYPE, '') AS SHIFT_TYPE,
                 NVL(CREATE_BUSI_DEPT_ID, '') AS CREATE_BUSI_DEPT_ID,
                 NVL(CREATE_BUSI_DEPT_NAME, '') AS CREATE_BUSI_DEPT_NAME
             FROM OC_SCHEDULE_TEAM
             WHERE ENABLE_FLAG = 'Y'
         """
-        params = []
-        if city_dept_id:
-            sql += " AND CITY_DEPT_ID = :1"
-            params.append(city_dept_id)
 
         sql += " ORDER BY TEAM_NAME"
-        cursor.execute(sql, params)
+        cursor.execute(sql)
 
         teams = []
         for row in cursor.fetchall():
@@ -122,11 +115,8 @@ def query_teams(city_dept_id: str = "") -> list[dict]:
                 "team_leader_name": row[3],
                 "person_ids": row[4],
                 "person_names": row[5],
-                "suggested_count": int(row[6]) if row[6] else 0,
-                "city_dept_id": row[7],
-                "shift_type": row[8],
-                "create_busi_dept_id": row[9],
-                "create_busi_dept_name": row[10],
+                "create_busi_dept_id": row[6],
+                "create_busi_dept_name": row[7],
             })
 
         cursor.close()
@@ -144,7 +134,6 @@ def query_teams(city_dept_id: str = "") -> list[dict]:
 def query_records(
     start_date: datetime.date,
     end_date: datetime.date,
-    city_dept_id: str = ""
 ) -> list[dict]:
     """
     查询 OC_SCHEDULE_RECORD 表，获取指定日期范围的排班记录。
@@ -161,7 +150,6 @@ def query_records(
                 NVL(TEAM_ID, '') AS TEAM_ID,
                 NVL(TEAM_NAME, '') AS TEAM_NAME,
                 SCHEDULE_DATE,
-                NVL(SHIFT_TYPE, '') AS SHIFT_TYPE,
                 ON_DUTY_TIME,
                 OFF_DUTY_TIME,
                 NVL(SCHEDULE_STATUS, 'N') AS SCHEDULE_STATUS,
@@ -169,7 +157,6 @@ def query_records(
                 NVL(TEAM_LEADER_NAME, '') AS TEAM_LEADER_NAME,
                 NVL(OTHER_PERSON_IDS, '') AS OTHER_PERSON_IDS,
                 NVL(OTHER_PERSON_NAMES, '') AS OTHER_PERSON_NAMES,
-                NVL(CITY_DEPT_ID, '') AS CITY_DEPT_ID,
                 NVL(TEMP_PERSON_IDS, '') AS TEMP_PERSON_IDS,
                 NVL(TEMP_PERSON_NAMES, '') AS TEMP_PERSON_NAMES
             FROM OC_SCHEDULE_RECORD
@@ -177,10 +164,6 @@ def query_records(
               AND SCHEDULE_DATE <= :2
         """
         params = [start_date, end_date]
-
-        if city_dept_id:
-            sql += " AND CITY_DEPT_ID = :3"
-            params.append(city_dept_id)
 
         sql += " ORDER BY SCHEDULE_DATE, TEAM_NAME"
         cursor.execute(sql, params)
@@ -194,17 +177,15 @@ def query_records(
                 "team_id": row[3],
                 "team_name": row[4],
                 "schedule_date": row[5],
-                "shift_type": row[6],
-                "on_duty_time": row[7],
-                "off_duty_time": row[8],
-                "schedule_status": row[9],
-                "team_leader_id": row[10],
-                "team_leader_name": row[11],
-                "other_person_ids": row[12],
-                "other_person_names": row[13],
-                "city_dept_id": row[14],
-                "temp_person_ids": row[15],
-                "temp_person_names": row[16],
+                "on_duty_time": row[6],
+                "off_duty_time": row[7],
+                "schedule_status": row[8],
+                "team_leader_id": row[9],
+                "team_leader_name": row[10],
+                "other_person_ids": row[11],
+                "other_person_names": row[12],
+                "temp_person_ids": row[13],
+                "temp_person_names": row[14],
             })
 
         cursor.close()

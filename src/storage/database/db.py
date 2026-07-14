@@ -1,10 +1,19 @@
 import os
 import time
+import oracledb
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError
 import logging
 logger = logging.getLogger(__name__)
+
+# 初始化 Oracle 客户端厚模式（支持 Oracle 11g 等老版本）
+try:
+    oracledb.init_oracle_client()
+    logger.info("oracledb thick mode initialized successfully")
+except Exception as e:
+    logger.warning(f"oracledb thick mode init skipped (will use thin mode): {e}")
+    # 如果 Instant Client 未安装，厚模式初始化会失败，fallback 到薄模式
 
 MAX_RETRY_TIME = 20  # 连接最大重试时间（秒）
 

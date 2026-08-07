@@ -3,742 +3,267 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>业务态势感知智能体 - 工作量自动统计看板</title>
-    
-    <script>
-    // BASE_PATH：优先从 URL 参数 ?base_path= 获取，其次自动检测路径前缀
-    window.BASE_PATH = (function() {
-        // 1. URL 参数优先
-        var m = location.search.match(/[?&]base_path=([^&]+)/);
-        if (m) {
-            var p = '/' + m[1].replace(/^\/+|\/+$/g, '');
-            return p.replace(/\/+/g, '/');
-        }
-        // 2. 自动检测路径前缀（如 /aiagent/dispatch/、/dispatch/）
-        var path = location.pathname;
-        var prefixes = ['/aiagent/dispatch/', '/dispatch/', '/doms/aiagent/dispatch/'];
-        for (var i = 0; i < prefixes.length; i++) {
-            if (path.indexOf(prefixes[i]) >= 0) {
-                return '/' + prefixes[i].replace(/^\/+|\/+$/g, '');
-            }
-        }
-        return '';
-    })();
-    window._p = function(path) {
-        return (window.BASE_PATH || '') + '/' + path.replace(/^\//, '');
-    };
-    </script>
-    
-    <!-- Vendor 库样式（使用 BASE_PATH 支持路径前缀） -->
-    <script>document.write('<link rel="stylesheet" href="' + window._p('vendor/github-dark.min.css') + '">');</script>
-    
-    <!-- Custom Styles -->
+    <title>业务态势感知智能体</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/workload-modal.css">
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+    <link rel="stylesheet" href="vendor/github-dark.min.css">
 </head>
 <body>
-    <!-- 科技感背景网格 -->
-    <div class="tech-grid-bg"></div>
-    
-    <!-- 电流动画线 -->
-    <div class="power-lines">
-        <div class="power-line"></div>
-        <div class="power-line"></div>
-        <div class="power-line"></div>
-        <div class="power-line"></div>
+    <!-- 背景装饰元素 -->
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+    <div class="bg-glow bg-glow-3"></div>
+    <div class="electric-line electric-line-1"></div>
+    <div class="electric-line electric-line-2"></div>
+    <div class="electric-line electric-line-3"></div>
+
+    <!-- 加载遮罩 -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">AI 正在思考中...</div>
     </div>
-    
-    <!-- 顶部导航栏 -->
-    <header class="header">
-        <div class="header-content">
+
+    <!-- ==================== 主仪表盘（新布局） ==================== -->
+    <div class="dashboard">
+        <!-- 顶部导航栏 -->
+        <header class="header">
             <div class="header-left">
-                <span class="logo">⚡</span>
-                <div class="header-title">
-                    <h1>业务态势感知智能体</h1>
+                <span class="header-icon">⚡</span>
+                <h1 class="header-title">业务态势感知智能体</h1>
+            </div>
+            <div class="header-center">
+                <div class="on-duty-badge" id="onDutyTeamCard">
+                    <span class="badge-icon">👥</span>
+                    <span class="badge-text">当值班组</span>
+                    <span class="badge-hint">点击查看详情</span>
                 </div>
             </div>
-            
             <div class="header-right">
-                <button class="header-btn" onclick="refreshData()">
-                    <span>🔄</span>
-                    <span>刷新</span>
-                </button>
-                <button class="header-btn primary" onclick="quickAction('staffing')">
-                    <span>📊</span>
-                    <span>柔性值班计算</span>
-                </button>
+                <button class="header-btn refresh-btn" onclick="location.reload()" title="刷新">🔄</button>
+                <button class="header-btn" id="flexibleDutyBtn" title="柔性值班计算"></button>
+                <div class="clock" id="currentTime">--:--:--</div>
+            </div>
+        </header>
 
+        <!-- 第二行：5张核心数据卡片 -->
+        <div class="stats-row">
+            <!-- 卡片1：计划工作量 -->
+            <div class="stat-card stat-plan">
+                <div class="stat-header">
+                    <span class="stat-icon">📋</span>
+                    <span class="stat-title">计划工作量</span>
+                </div>
+                <div class="stat-total">
+                    <span class="stat-number green" id="stat-plan-total">--<span class="unit">单</span></span>
+                </div>
+                <div class="stat-sub-label">开展中 / 已终结</div>
+                <div class="stat-detail-row">
+                    <span class="stat-detail-val" id="stat-plan-in-progress">--</span>
+                    <span class="stat-detail-sep">/</span>
+                    <span class="stat-detail-val" id="stat-plan-completed">--</span>
+                </div>
+            </div>
 
-                <!-- 时间显示 -->
-                <div class="time-display">
-                    <span class="time-icon">🕐</span>
-                    <span class="time-value" id="currentTime">--:--:--</span>
+            <!-- 卡片2：非计划工作量 -->
+            <div class="stat-card stat-non-plan">
+                <div class="stat-header">
+                    <span class="stat-icon"></span>
+                    <span class="stat-title">非计划工作量</span>
+                </div>
+                <div class="stat-total">
+                    <span class="stat-number red" id="stat-non-plan-total">--<span class="unit">起</span></span>
+                </div>
+                <div class="stat-sub-label">故障日志 / 异常缺陷 / 重过载</div>
+                <div class="stat-detail-row triple">
+                    <span class="stat-detail-val" id="stat-non-plan-fault">--</span>
+                    <span class="stat-detail-sep">/</span>
+                    <span class="stat-detail-val" id="stat-non-plan-defect">--</span>
+                    <span class="stat-detail-sep">/</span>
+                    <span class="stat-detail-val" id="stat-non-plan-overload">--</span>
+                </div>
+            </div>
+
+            <!-- 卡片3：当值班组 -->
+            <div class="stat-card stat-team">
+                <div class="stat-header">
+                    <span class="stat-icon"></span>
+                    <span class="stat-title">当值班组</span>
+                </div>
+                <div class="stat-info-row">
+                    <span class="stat-info-label">班组</span>
+                    <span class="stat-info-value team-name" id="onDutyTeamName">--</span>
+                </div>
+                <div class="stat-info-row">
+                    <span class="stat-info-label">当值人数</span>
+                    <span class="stat-info-value cyan" id="currentStaff">--人</span>
+                </div>
+            </div>
+
+            <!-- 卡片4：人员配置 -->
+            <div class="stat-card stat-capacity">
+                <div class="stat-header">
+                    <span class="stat-icon">📊</span>
+                    <span class="stat-title">人员配置</span>
+                </div>
+                <div class="stat-info-row">
+                    <span class="stat-info-label">建议人数</span>
+                    <span class="stat-info-value" id="suggestedStaff">--人</span>
+                </div>
+                <div class="stat-info-row">
+                    <span class="stat-info-label">超负荷</span>
+                    <span class="stat-info-value" id="overloadStatus">--</span>
+                </div>
+            </div>
+
+            <!-- 卡片5：天气状况 -->
+            <div class="stat-card stat-weather" id="weather-card">
+                <div class="stat-header">
+                    <span class="stat-icon">🌤️</span>
+                    <span class="stat-title">天气状况</span>
+                </div>
+                <div class="weather-main-row">
+                    <span class="weather-condition-icon" id="weather-condition-icon">☀️</span>
+                    <span class="weather-temp-display" id="weather-temp">--</span>
+                </div>
+                <div class="weather-detail-row">
+                    <span class="weather-item">降水量: <strong id="weather-precipitation">--</strong></span>
+                    <span class="weather-item">风力: <strong id="weather-wind">--</strong></span>
+                    <span class="weather-item">极端天气: <strong id="weather-extreme">无</strong></span>
                 </div>
             </div>
         </div>
-    </header>
 
-    <!-- 核心数据概览卡片 -->
-    <section class="stats-overview">
-        <div class="stats-grid">
-            <!-- 计划工作量 -->
-            <div class="stat-card plan-card" onclick="showPlanWorkloadModal(event)" style="cursor: pointer;">
-                <div class="stat-header">
-                    <div class="stat-title">
-                        <span class="title-icon">📋</span>
-                        <span class="title-text">计划工作量</span>
-                    </div>
-                    </div>
-                <div class="stat-content">
-                    <div class="stat-value green" id="stat-plan-total">0<span class="unit">单</span></div>
-                    <div class="stat-detail">
-                        <div class="detail-item">
-                            <span class="detail-label">开展中</span>
-                            <span class="detail-value" id="stat-plan-in-progress">0</span>
+        <!-- 第三行：图表区 + 右侧面板 -->
+        <div class="main-row">
+            <!-- 左侧图表区（~70%） -->
+            <div class="charts-area">
+                <div class="charts-row charts-row-top">
+                    <div class="chart-box chart-bar-box">
+                        <div class="chart-title-bar">
+                            <h3>各模块业务情况</h3>
+                            <span class="realtime-badge">实时更新</span>
                         </div>
-                        <div class="detail-item">
-                            <span class="detail-label">已终结</span>
-                            <span class="detail-value" id="stat-plan-completed">0</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 非计划工作量 -->
-            <div class="stat-card non-plan-card" onclick="showNonPlanWorkloadModal(event)" style="cursor: pointer;">
-                <div class="stat-header">
-                    <div class="stat-title">
-                        <span class="title-icon">⚡</span>
-                        <span class="title-text">非计划工作量</span>
-                    </div>
-                    </div>
-                <div class="stat-content">
-                    <div class="stat-value red" id="stat-non-plan-total">0<span class="unit">起</span></div>
-                    <div class="stat-detail">
-                        <div class="detail-item">
-                            <span class="detail-label">故障日志</span>
-                            <span class="detail-value" id="stat-non-plan-fault">0</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">异常缺陷</span>
-                            <span class="detail-value" id="stat-non-plan-defect">0</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">重过载</span>
-                            <span class="detail-value" id="stat-non-plan-overload">0</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 天气状况 -->
-            <div id="weather-card" class="stat-card weather-card" style="cursor: pointer;">
-                <div class="stat-header">
-                    <div class="stat-title">
-                        <span class="title-icon">🌤️</span>
-                        <span class="title-text">天气状况</span>
-                    </div>
-                    <!-- 天气状况图标 -->
-                </div>
-                <div class="stat-content">
-                    <div class="weather-info" id="weather-info">
-                        <div class="weather-condition-icon" id="weather-condition-icon">☀️</div>
-                        <div class="weather-details">
-                            <div class="weather-detail-item">
-                                <span class="weather-label">温度：</span>
-                                <span class="weather-value" id="weather-temp">--~--℃</span>
-                            </div>
-                            <div class="weather-detail-item">
-                                <span class="weather-label">降水量：</span>
-                                <span class="weather-value" id="weather-precipitation">--</span>
-                            </div>
-                            <div class="weather-detail-item">
-                                <span class="weather-label">风力：</span>
-                                <span class="weather-value" id="weather-wind">--</span>
-                            </div>
-                            <div class="weather-detail-item">
-                                <span class="weather-label">极端天气：</span>
-                                <span class="weather-value" id="weather-extreme">--</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- 主内容区 - 重新设计布局 -->
-    <main class="main-container">
-        <!-- 上半部分：图表区域 -->
-        <section class="charts-section">
-            <!-- 第二行：左侧2个折线图 + 右侧2个饼图 -->
-            <div class="charts-row">
-                <!-- 左侧：折线图区域 -->
-                <div class="charts-column-left">
-                    <!-- 各模块业务情况 -->
-                    <div class="card chart-card">
-                        <div class="card-header">
-                            <span class="icon">📊</span>
-                            <span class="title">各模块业务情况</span>
-                            <span class="smart-badge">实时更新</span>
-                        </div>
-                        <div class="card-body">
+                        <div class="chart-canvas-wrap">
                             <canvas id="moduleBusinessChart"></canvas>
                         </div>
                     </div>
-
-                    <!-- 各阶段工作业务当量 -->
-                    <div class="card workload-card">
-                        <div class="card-header">
-                            <span class="icon">📈</span>
-                            <span class="title">各阶段业务工作量</span>
-                            <div class="chart-legend">
-                                <span class="legend-item"><span class="dot cyan"></span>工作任务总当量</span>
-                                <span class="legend-item"><span class="dot yellow"></span>班组人员工作当量</span>
-                                <span class="legend-item"><span class="dot green"></span>计划任务当量</span>
-                                <span class="legend-item"><span class="dot orange"></span>非计划任务当量</span>
-                            </div>
+                    <div class="chart-box chart-pie-box">
+                        <div class="chart-title-bar">
+                            <h3>📋 操作票情况</h3>
                         </div>
-                        <div class="card-body">
-                            <canvas id="workloadTimelineChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 右侧：饼图区域 -->
-                <div class="charts-column-right">
-                    <!-- 操作票情况 -->
-                    <div class="card chart-card">
-                        <div class="card-header">
-                            <span class="icon">📋</span>
-                            <span class="title">操作票情况</span>
-                        </div>
-                        <div class="card-body">
+                        <div class="chart-canvas-wrap">
                             <canvas id="ticketChart"></canvas>
                         </div>
                     </div>
-
-                    <!-- 网络发令情况 -->
-                    <div class="card chart-card">
-                        <div class="card-header">
-                            <span class="icon">🌐</span>
-                            <span class="title">网络发令情况</span>
+                </div>
+                <div class="charts-row charts-row-bottom">
+                    <div class="chart-box chart-line-box">
+                        <div class="chart-title-bar">
+                            <h3>各阶段业务工作量</h3>
                         </div>
-                        <div class="card-body">
+                        <div class="chart-canvas-wrap">
+                            <canvas id="workloadTimelineChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-box chart-ring-box">
+                        <div class="chart-title-bar">
+                            <h3>🌐 网络发令情况</h3>
+                        </div>
+                        <div class="chart-canvas-wrap">
                             <canvas id="networkOrderChart"></canvas>
                         </div>
                     </div>
                 </div>
             </div>
-        </section>
-        
-        <!-- 下半部分：左侧控制 + 中间对话 + 右侧状态 -->
-        <section class="control-section">
-            <!-- 左侧：快速操作 -->
-            <div class="left-controls">
-                <div class="card control-card">
-                    <div class="card-header">
-                        <span class="icon">⚡</span>
-                        <span class="title">快速操作</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="quick-btns">
-                            <button onclick="quickAction('staffing')" class="quick-btn">
-                                <span>👥</span>
+
+            <!-- 右侧面板（~30%） -->
+            <div class="right-panel">
+                <div class="right-top-row">
+                    <!-- 快速操作 -->
+                    <div class="quick-actions-box">
+                        <div class="panel-title-bar">
+                            <h3>⚡ 快速操作</h3>
+                        </div>
+                        <div class="qa-grid">
+                            <button class="qa-btn" id="quickActionBtn">
+                                <span class="qa-icon">👥</span>
                                 <span>人员建议</span>
                             </button>
-                            <button onclick="quickAction('risk')" class="quick-btn">
-                                <span>⚠️</span>
+                            <button class="qa-btn" id="riskWarningBtn">
+                                <span class="qa-icon">⚠️</span>
                                 <span>风险预警</span>
                             </button>
-                            <button onclick="quickAction('workload')" class="quick-btn">
-                                <span>📉</span>
+                            <button class="qa-btn" id="workloadStatsBtn">
+                                <span class="qa-icon">📉</span>
                                 <span>工作量统计</span>
                             </button>
-                            <button onclick="quickAction('report')" class="quick-btn">
-                                <span>📋</span>
+                            <button class="qa-btn" id="decisionReportBtn">
+                                <span class="qa-icon"></span>
                                 <span>决策报告</span>
                             </button>
                         </div>
                     </div>
-                </div>
-                
-                <!-- 当值班组信息 -->
-                <div class="card control-card" onclick="showStaffDetail()">
-                    <div class="card-header">
-                        <span class="icon">👥</span>
-                        <span class="title">当值班组</span>
-                        <span class="click-hint">点击查看详情</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="staff-info">
-                            <div class="staff-row">
-                                <span class="staff-label">班组</span>
-                                <span class="staff-value" id="onDutyTeamName">A班</span>
-                            </div>
-                            <div class="staff-row">
-                                <span class="staff-label">当值人数</span>
-                                <span class="staff-value highlight" id="currentStaff">4人</span>
-                            </div>
-                            <div class="staff-row">
-                                <span class="staff-label">建议人数</span>
-                                <span class="staff-value" id="suggestedStaff">4人</span>
-                            </div>
-                            <div class="staff-row">
-                                <span class="staff-label">超负荷</span>
-                                <span class="staff-value success" id="overloadStatus">否</span>
-                            </div>
+                    <!-- 风险预警 -->
+                    <div class="risk-alerts-box">
+                        <div class="panel-title-bar">
+                            <h3>⚠️ 风险预警</h3>
+                            <span class="risk-link" onclick="showRiskModal()">点击查看详情</span>
+                        </div>
+                        <div class="risk-list" id="riskAlerts">
+                            <!-- 动态内容 -->
                         </div>
                     </div>
                 </div>
-                
-                <!-- 系统状态 -->
-                <div class="card control-card">
-                    <div class="card-header">
-                        <span class="icon">🔋</span>
-                        <span class="title">系统状态</span>
+                <!-- 智能对话 -->
+                <div class="chat-box">
+                    <div class="panel-title-bar">
+                        <h3>💬 智能对话</h3>
                     </div>
-                    <div class="card-body">
-                        <div class="system-status">
-                            <div class="status-row">
-                                <span class="status-label">数据采集</span>
-                                <span class="status-dot success"></span>
-                                <span class="status-text">正常</span>
-                            </div>
-                            <div class="status-row">
-                                <span class="status-label">AI 模型</span>
-                                <span class="status-dot success"></span>
-                                <span class="status-text">运行中</span>
-                            </div>
-                            <div class="status-row">
-                                <span class="status-label">数据同步</span>
-                                <span class="status-dot success"></span>
-                                <span class="status-text">实时</span>
-                            </div>
-                            <div class="status-row">
-                                <span class="status-label">最后更新</span>
-                                <span class="status-text" id="lastUpdate">16:20</span>
-                            </div>
-                            <div class="status-row" style="margin-top:8px;border-top:1px solid var(--border-color);padding-top:8px;">
-                                <button class="kb-btn" onclick="openKnowledgeModal()">
-                                    <span class="icon">📚</span> 向量知识库
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 中间：智能对话 -->
-            <div class="chat-area">
-                <div class="card chat-card">
-                    <div class="card-header">
-                        <span class="icon">💬</span>
-                        <span class="title">智能对话</span>
-                        <span class="smart-badge">🤖 AI 驱动</span>
-                    </div>
-                    <div class="card-body chat-body">
-                        <div class="chat-messages" id="messagesContainer">
-                            <div class="message">
-                                <div class="message-avatar bot">🤖</div>
-                                <div class="message-content">
-                                    <p class="welcome-title">⚡ 配网调度智能助手已就绪</p>
+                    <div class="chat-messages" id="messagesContainer">
+                        <div class="message ai-message">
+                            <div class="message-avatar">🤖</div>
+                            <div class="message-content">
+                                <div class="message-bubble">
+                                    <p>⚡ 配网调度智能助手已就绪</p>
                                     <p>我可以为您提供：业务量预测、人员配置建议、风险预警、工作量统计等服务。</p>
-                                    <p class="hint">💡 请输入需求或使用左侧快速操作按钮</p>
+                                    <p class="message-hint">💡 请输入需求或使用上方快速操作按钮</p>
                                 </div>
                             </div>
                         </div>
-                        <div class="chat-input-area">
-                            <textarea 
-                                id="userInput" 
-                                placeholder="输入预测需求或问题..."
-                                rows="1"
-                                onkeydown="handleKeyDown(event)"
-                            ></textarea>
-                            <button class="send-btn" onclick="sendMessage()" id="sendBtn">
-                                <span>发送</span>
-                                <span>⚡</span>
-                            </button>
-                        </div>
+                    </div>
+                    <div class="chat-input-bar">
+                        <input type="text" id="userInput" placeholder="输入您的需求或问题..." onkeydown="handleInputKeydown(event)">
+                        <button class="send-btn" id="sendBtn" onclick="sendMessage()">发送</button>
                     </div>
                 </div>
             </div>
-            
-            <!-- 右侧：预警信息 -->
-            <div class="right-panel">
-                <div class="card alert-card" onclick="showRiskModal()" style="cursor: pointer;">
-                    <div class="card-header">
-                        <span class="icon">⚠️</span>
-                        <span class="title">风险预警</span>
-                        <span class="click-hint">点击查看详情</span>
-                    </div>
-                    <div class="card-body" id="riskAlerts">
-                        <div class="alert-item warning">
-                            <span class="alert-icon">⚠️</span>
-                            <div class="alert-content">
-                                <div class="alert-title">明日预测工作量偏高</div>
-                                <div class="alert-desc">预计工作量指数 85，建议增加 1 名值班人员</div>
-                            </div>
-                        </div>
-                        <div class="alert-item success">
-                            <span class="alert-icon">✓</span>
-                            <div class="alert-content">
-                                <div class="alert-title">人员配置合理</div>
-                                <div class="alert-desc">当前班组覆盖良好，满足值班需求</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="card alert-card" onclick="showTodoModal()" style="cursor: pointer;">
-                    <div class="card-header">
-                        <span class="icon">📋</span>
-                        <span class="title">今日待办</span>
-                        <span class="click-hint">点击查看详情</span>
-                    </div>
-                    <div class="card-body" id="todoList">
-                        <div class="alert-item warning">
-                            <span class="alert-icon">📝</span>
-                            <div class="alert-content">
-                                <div class="alert-title">审核调度计划</div>
-                                <div class="alert-desc">明日调度计划 A1-A3 待审核确认</div>
-                            </div>
-                        </div>
-                        <div class="alert-item success">
-                            <span class="alert-icon">✓</span>
-                            <div class="alert-content">
-                                <div class="alert-title">设备巡检完成</div>
-                                <div class="alert-desc">110kV 变电站巡检已完成，无异常</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- 加载遮罩 -->
-    <div id="loadingOverlay" class="modal-overlay hidden">
-        <div class="loading-content">
-            <div class="loading-spinner"></div>
-            <p class="loading-title">🤖 AI 正在分析中...</p>
-            <p class="loading-desc">正在处理多源数据，请稍候...</p>
         </div>
-    </div>
 
-    <!-- 天气编辑弹窗 -->
-    <div id="weatherModal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>🌤️ 编辑天气信息</h3>
-                <button class="modal-close" onclick="closeModal('weatherModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>温度区段 (°C)</label>
-                    <div class="form-row">
-                        <div class="form-col">
-                            <input type="number" id="weatherTempMin" class="form-input" value="25" min="-50" max="60" placeholder="最低温度">
-                        </div>
-                        <span class="form-separator">-</span>
-                        <div class="form-col">
-                            <input type="number" id="weatherTempMax" class="form-input" value="35" min="-50" max="60" placeholder="最高温度">
-                        </div>
-                    </div>
+        <!-- 系统状态栏（紧凑版） -->
+        <div class="system-status-bar">
+            <div class="status-group">
+                <div class="status-item">
+                    <span class="status-dot green" id="systemStatusDot-data"></span>
+                    <span class="status-label">数据采集</span>
                 </div>
-
-                <div class="form-group">
-                    <label>降水量</label>
-                    <select id="weatherPrecipitation" class="form-select">
-                        <option value="小">小 (9.9mm以下)</option>
-                        <option value="中">中 (10-24.9mm)</option>
-                        <option value="大">大 (25mm以上)</option>
-                    </select>
+                <div class="status-item">
+                    <span class="status-dot green" id="systemStatusDot-ai"></span>
+                    <span class="status-label">AI模型</span>
                 </div>
-
-                <div class="form-group">
-                    <label>风力</label>
-                    <select id="weatherWind" class="form-select">
-                        <option value="小">小 (6级及以下)</option>
-                        <option value="中">中 (7-10级)</option>
-                        <option value="大">大 (11级及以上)</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>极端天气情况</label>
-                    <select id="weatherExtreme" class="form-select">
-                        <option value="">无</option>
-                        <option value="寒潮">寒潮</option>
-                        <option value="冰雹">冰雹</option>
-                        <option value="雷雨">雷雨</option>
-                        <option value="暴雨">暴雨</option>
-                        <option value="台风">台风</option>
-                        <option value="暴雪">暴雪</option>
-                        <option value="大风">大风</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>智能填充</label>
-                    <div class="form-row">
-                        <select id="weatherMonth" class="form-select" style="flex: 1;">
-                            <option value="">选择月份...</option>
-                            <option value="1">1月</option>
-                            <option value="2">2月</option>
-                            <option value="3">3月</option>
-                            <option value="4">4月</option>
-                            <option value="5">5月</option>
-                            <option value="6">6月</option>
-                            <option value="7">7月</option>
-                            <option value="8">8月</option>
-                            <option value="9">9月</option>
-                            <option value="10">10月</option>
-                            <option value="11">11月</option>
-                            <option value="12">12月</option>
-                        </select>
-                        <button type="button" class="btn btn-secondary" onclick="autoFillWeather()" style="flex: 1;">自动填充</button>
-                    </div>
+                <div class="status-item">
+                    <span class="status-dot green" id="systemStatusDot-sync"></span>
+                    <span class="status-label">数据同步</span>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('weatherModal')">取消</button>
-                <button class="btn btn-primary" onclick="saveWeather()">保存</button>
+            <div class="status-right">
+                <span class="status-update-text">最后更新: <span id="lastUpdate">刚刚</span></span>
+                <button class="kb-btn" onclick="showKnowledgeModal()">📚 向量知识库</button>
             </div>
         </div>
     </div>
 
-    <!-- 计划工作量详情弹窗 -->
-    <div id="planWorkloadModal" class="modal-overlay hidden">
-        <div class="modal-content large">
-            <div class="modal-header">
-                <h3>📋 计划工作量详情</h3>
-                <button class="modal-close" onclick="closeModal('planWorkloadModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <!-- 四个业务类型卡片（可编辑） -->
-                <div class="plan-workload-grid">
-                    <!-- 计划检修 -->
-                    <div class="plan-workload-card editable-card" data-category="maintenance">
-                        <div class="plan-card-header">
-                            <span class="plan-icon">🔧</span>
-                            <span class="plan-title">计划检修</span>
-                        </div>
-                        <div class="plan-card-body">
-                            <div class="plan-stat editable-field">
-                                <span class="plan-label">开展中</span>
-                                <span class="plan-value green field-value" data-field="in_progress"
-                                      ondblclick="editFieldValue(this)" title="双击编辑">0</span>
-                            </div>
-                            <div class="plan-stat editable-field">
-                                <span class="plan-label">已终结</span>
-                                <span class="plan-value blue field-value" data-field="completed"
-                                      ondblclick="editFieldValue(this)" title="双击编辑">0</span>
-                            </div>
-                            <div class="plan-divider"></div>
-                            <div class="plan-stat total">
-                                <span class="plan-label">总计</span>
-                                <span class="plan-value field-total">0</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 转供电 -->
-                    <div class="plan-workload-card editable-card" data-category="transfer">
-                        <div class="plan-card-header">
-                            <span class="plan-icon">🔄</span>
-                            <span class="plan-title">转供电</span>
-                        </div>
-                        <div class="plan-card-body">
-                            <div class="plan-stat editable-field">
-                                <span class="plan-label">开展中</span>
-                                <span class="plan-value green field-value" data-field="in_progress"
-                                      ondblclick="editFieldValue(this)" title="双击编辑">0</span>
-                            </div>
-                            <div class="plan-stat editable-field">
-                                <span class="plan-label">已终结</span>
-                                <span class="plan-value blue field-value" data-field="completed"
-                                      ondblclick="editFieldValue(this)" title="双击编辑">0</span>
-                            </div>
-                            <div class="plan-divider"></div>
-                            <div class="plan-stat total">
-                                <span class="plan-label">总计</span>
-                                <span class="plan-value field-total">0</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 设备投退 -->
-                    <div class="plan-workload-card editable-card" data-category="equipment">
-                        <div class="plan-card-header">
-                            <span class="plan-icon">🔌</span>
-                            <span class="plan-title">设备投退</span>
-                        </div>
-                        <div class="plan-card-body">
-                            <div class="plan-stat editable-field">
-                                <span class="plan-label">开展中</span>
-                                <span class="plan-value green field-value" data-field="in_progress"
-                                      ondblclick="editFieldValue(this)" title="双击编辑">0</span>
-                            </div>
-                            <div class="plan-stat editable-field">
-                                <span class="plan-label">已终结</span>
-                                <span class="plan-value blue field-value" data-field="completed"
-                                      ondblclick="editFieldValue(this)" title="双击编辑">0</span>
-                            </div>
-                            <div class="plan-divider"></div>
-                            <div class="plan-stat total">
-                                <span class="plan-label">总计</span>
-                                <span class="plan-value field-total">0</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 周计划 -->
-                    <div class="plan-workload-card editable-card" data-category="weekly_plan">
-                        <div class="plan-card-header">
-                            <span class="plan-icon">📅</span>
-                            <span class="plan-title">周计划</span>
-                        </div>
-                        <div class="plan-card-body">
-                            <div class="plan-stat editable-field">
-                                <span class="plan-label">开展中</span>
-                                <span class="plan-value green field-value" data-field="in_progress"
-                                      ondblclick="editFieldValue(this)" title="双击编辑">0</span>
-                            </div>
-                            <div class="plan-stat editable-field">
-                                <span class="plan-label">已终结</span>
-                                <span class="plan-value blue field-value" data-field="completed"
-                                      ondblclick="editFieldValue(this)" title="双击编辑">0</span>
-                            </div>
-                            <div class="plan-divider"></div>
-                            <div class="plan-stat total">
-                                <span class="plan-label">总计</span>
-                                <span class="plan-value field-total">0</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 班次分配情况 -->
-                <div class="shift-allocation-section">
-                    <h4 class="section-title">📊 班次分配情况</h4>
-                    <div class="shift-allocation-grid">
-                        <div class="shift-card">
-                            <span class="shift-label">早班 (08:00-14:00)</span>
-                            <span class="shift-value" id="shift-morning-count">0</span>
-                        </div>
-                        <div class="shift-card">
-                            <span class="shift-label">中班 (14:00-21:00)</span>
-                            <span class="shift-value" id="shift-afternoon-count">0</span>
-                        </div>
-                        <div class="shift-card">
-                            <span class="shift-label">晚班 (00:00-08:00)</span>
-                            <span class="shift-value" id="shift-night-count">0</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 保存按钮 -->
-                <div class="modal-actions">
-                    <button class="modal-btn secondary" onclick="closeModal('planWorkloadModal')">取消</button>
-                    <button class="modal-btn primary" onclick="savePlanWorkloadOverride()">
-                        💾 保存修改
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 非计划工作量详情弹窗 -->
-    <div id="nonPlanWorkloadModal" class="modal-overlay hidden">
-        <div class="modal-content large">
-            <div class="modal-header">
-                <h3>⚡ 非计划工作量详情</h3>
-                <button class="modal-close" onclick="closeModal('nonPlanWorkloadModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <!-- 三个业务类型卡片（可编辑） -->
-                <div class="non-plan-workload-grid">
-                    <!-- 故障日志 -->
-                    <div class="non-plan-workload-card editable-card" data-category="fault">
-                        <div class="non-plan-card-header">
-                            <span class="non-plan-icon">⚡</span>
-                            <span class="non-plan-title">故障日志</span>
-                        </div>
-                        <div class="non-plan-card-body">
-                            <div class="non-plan-stat editable-field">
-                                <span class="non-plan-label">数量</span>
-                                <span class="non-plan-value red field-value" data-field="count"
-                                      ondblclick="editFieldValue(this)" title="双击编辑">0</span>
-                            </div>
-                            <div class="non-plan-desc">
-                                <span class="non-plan-desc-label">说明：</span>
-                                <span class="non-plan-desc-value">前三天未交班的故障单数</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 异常缺陷 -->
-                    <div class="non-plan-workload-card editable-card" data-category="defect">
-                        <div class="non-plan-card-header">
-                            <span class="non-plan-icon">⚠️</span>
-                            <span class="non-plan-title">异常缺陷</span>
-                        </div>
-                        <div class="non-plan-card-body">
-                            <div class="non-plan-stat editable-field">
-                                <span class="non-plan-label">数量</span>
-                                <span class="non-plan-value yellow field-value" data-field="count"
-                                      ondblclick="editFieldValue(this)" title="双击编辑">0</span>
-                            </div>
-                            <div class="non-plan-desc">
-                                <span class="non-plan-desc-label">说明：</span>
-                                <span class="non-plan-desc-value">当值记录未交班的缺陷单数</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 重过载 -->
-                    <div class="non-plan-workload-card editable-card" data-category="overload">
-                        <div class="non-plan-card-header">
-                            <span class="non-plan-icon">🔥</span>
-                            <span class="non-plan-title">重过载</span>
-                        </div>
-                        <div class="non-plan-card-body">
-                            <div class="non-plan-stat editable-field">
-                                <span class="non-plan-label">数量</span>
-                                <span class="non-plan-value orange field-value" data-field="count"
-                                      ondblclick="editFieldValue(this)" title="双击编辑">0</span>
-                            </div>
-                            <div class="non-plan-desc">
-                                <span class="non-plan-desc-label">说明：</span>
-                                <span class="non-plan-desc-value">当值记录未解决的重过载数</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 总计 -->
-                <div class="non-plan-total-section">
-                    <h4 class="section-title">📊 总计</h4>
-                    <div class="non-plan-total-card">
-                        <span class="non-plan-total-label">非计划工作量总计</span>
-                        <span class="non-plan-total-value" id="non-plan-total-count">0</span>
-                    </div>
-                </div>
-
-                <!-- 保存按钮 -->
-                <div class="modal-actions">
-                    <button class="modal-btn secondary" onclick="closeModal('nonPlanWorkloadModal')">取消</button>
-                    <button class="modal-btn primary" onclick="saveNonPlanWorkloadOverride()">
-                        💾 保存修改
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- ==================== 弹窗区域（保持不变） ==================== -->
 
     <!-- 人员详情弹窗 -->
     <div id="staffModal" class="modal-overlay hidden">
@@ -748,7 +273,6 @@
                 <button class="modal-close" onclick="closeModal('staffModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <!-- 当值班组信息（从数据动态渲染） -->
                 <div class="on-duty-info-bar" id="onDutyInfoBar">
                     <div class="on-duty-team">
                         <span class="info-label">当值班组</span>
@@ -763,8 +287,6 @@
                         <span class="info-value shift-name" id="modalOnDutyShift">--</span>
                     </div>
                 </div>
-
-                <!-- 班次选择器 -->
                 <div class="shift-selector">
                     <span class="shift-label">班次筛选：</span>
                     <div class="shift-buttons" id="shiftButtons">
@@ -773,8 +295,6 @@
                         <button class="shift-btn" data-shift="中班" onclick="selectShift('中班')">🌆 中班</button>
                     </div>
                 </div>
-
-                <!-- 班组选择器 -->
                 <div class="team-selector">
                     <span class="team-label">班组：</span>
                     <div class="team-buttons" id="teamButtons">
@@ -785,13 +305,11 @@
                         <button class="team-btn" data-team="E" onclick="selectTeam('E')">E班</button>
                     </div>
                 </div>
-
-                <!-- 人员列表容器 -->
                 <div class="staff-lists-container">
                     <div class="staff-detail-container">
                         <div class="staff-section">
                             <h4 class="staff-section-title">
-                                <span class="title-icon">👤</span>
+                                <span class="title-icon"></span>
                                 当值人员
                                 <span class="staff-count" id="onDutyCount">0人</span>
                                 <div class="staff-search-box">
@@ -799,14 +317,12 @@
                                     <span class="staff-search-icon">🔍</span>
                                 </div>
                             </h4>
-                            <div class="staff-list" id="onDutyStaffList">
-                                <!-- 当值人员将通过JavaScript动态生成 -->
-                            </div>
+                            <div class="staff-list" id="onDutyStaffList"></div>
                         </div>
                         <div class="staff-divider"></div>
                         <div class="staff-section">
                             <h4 class="staff-section-title">
-                                <span class="title-icon">💤</span>
+                                <span class="title-icon"></span>
                                 休息人员
                                 <span class="staff-count" id="restingCount">0人</span>
                                 <div class="staff-search-box">
@@ -814,9 +330,7 @@
                                     <span class="staff-search-icon">🔍</span>
                                 </div>
                             </h4>
-                            <div class="staff-list" id="restingStaffList">
-                                <!-- 休息人员将通过JavaScript动态生成 -->
-                            </div>
+                            <div class="staff-list" id="restingStaffList"></div>
                         </div>
                     </div>
                 </div>
@@ -832,37 +346,26 @@
                 <button class="modal-close" onclick="closeModal('timeSlotModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <!-- 当前时间段 -->
                 <div class="form-item">
                     <label class="form-label">当前时间段:</label>
                     <span class="form-value" id="timeSlotTime">23:00-24:00</span>
                 </div>
-
-                <!-- 当值人员数量 -->
                 <div class="form-item">
                     <label class="form-label">当值人员数量:</label>
                     <span class="form-value blue" id="timeSlotTotal">7</span>
                 </div>
-
-                <!-- 班组人员工作量 -->
                 <div class="form-item">
                     <label class="form-label">班组人员工作量:</label>
                     <input type="text" class="form-input" id="timeSlotCapacity" value="5.2">
                 </div>
-
-                <!-- 是否超员人员当量 -->
                 <div class="form-item">
                     <label class="form-label">是否超员人员当量:</label>
                     <input type="text" class="form-input" placeholder="">
                 </div>
-
-                <!-- 需增配人员量 -->
                 <div class="form-item">
                     <label class="form-label">需增配人员量:</label>
                     <input type="text" class="form-input" placeholder="">
                 </div>
-
-                <!-- 气象预警等级 -->
                 <div class="form-item">
                     <label class="form-label">气象预警等级:</label>
                     <select class="form-select" id="weatherWarningLevel">
@@ -875,7 +378,6 @@
                     </select>
                 </div>
             </div>
-            <!-- 底部按钮 -->
             <div class="modal-footer">
                 <button class="form-confirm-btn" onclick="saveTimeSlotConfig()">确认</button>
             </div>
@@ -892,7 +394,7 @@
             <div class="modal-body">
                 <div class="risk-summary">
                     <div class="risk-level danger">
-                        <span class="risk-level-icon">🔴</span>
+                        <span class="risk-level-icon"></span>
                         <div class="risk-level-info">
                             <span class="risk-level-title">高风险</span>
                             <span class="risk-level-count" id="riskHighCount">1</span>
@@ -1124,7 +626,7 @@
         </div>
     </div>
 
-    <!-- Data pre-fetch（在 JS 加载前就发起数据请求） -->
+    <!-- Data pre-fetch -->
     <script>
     (function() {
         var start = Date.now();
@@ -1136,7 +638,7 @@
     })();
     </script>
 
-    <!-- Scripts（所有 script 加 defer，不阻塞 HTML 解析） -->
+    <!-- Scripts -->
     <script src="js/api.js" defer></script>
     <script src="js/charts.js" defer></script>
     <script src="js/app.js" defer></script>

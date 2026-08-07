@@ -905,27 +905,25 @@ function closeModal(modalId) {
  */
 function editWeather() {
     try {
-        // 从天气显示卡片读取当前数据
-        const weatherTempDisplayEl = document.getElementById('weatherTempDisplay');
-        const weatherPrecipDisplayEl = document.getElementById('weatherPrecipDisplay');
-        const weatherWindDisplayEl = document.getElementById('weatherWindDisplay');
-        const weatherExtremeDisplayEl = document.getElementById('weatherExtremeDisplay');
+        // 从天气显示卡片读取当前数据（新布局 ID）
+        const weatherTempEl = document.getElementById('weather-temp');
+        const weatherPrecipEl = document.getElementById('weather-precipitation');
+        const weatherWindEl = document.getElementById('weather-wind');
+        const weatherExtremeEl = document.getElementById('weather-extreme');
 
-        if (weatherTempDisplayEl && weatherPrecipDisplayEl && weatherWindDisplayEl) {
+        if (weatherTempEl && weatherPrecipEl && weatherWindEl) {
             // 从显示卡片提取数据
-            const tempText = weatherTempDisplayEl.textContent || '';
+            const tempText = weatherTempEl.textContent || '';
             const tempMatch = tempText.match(/(\d+)~(\d+)/);
             const tempMin = tempMatch ? tempMatch[1] : '25';
             const tempMax = tempMatch ? tempMatch[2] : '35';
 
-            const precipText = weatherPrecipDisplayEl.textContent || '降水量: 小';
-            const precipitation = precipText.replace('降水量: ', '').trim();
+            const precipitation = (weatherPrecipEl.textContent || '小').trim();
 
-            const windText = weatherWindDisplayEl.textContent || '风力: 小';
-            const wind = windText.replace('风力: ', '').trim();
+            const wind = (weatherWindEl.textContent || '小').trim();
 
-            const extreme = (weatherExtremeDisplayEl && !weatherExtremeDisplayEl.classList.contains('hidden')) ?
-                weatherExtremeDisplayEl.textContent.replace('⚠️ ', '').trim() : '';
+            const extreme = (weatherExtremeEl && weatherExtremeEl.textContent !== '无') ?
+                weatherExtremeEl.textContent.trim() : '';
 
             // 填充到编辑弹窗
             const tempMinEl = document.getElementById('weatherTempMin');
@@ -1047,28 +1045,23 @@ function saveWeather() {
             displayText += ` ${extreme}`;
         }
 
-        // 更新天气显示卡片
-        const weatherTempDisplayEl = document.getElementById('weatherTempDisplay');
-        const weatherPrecipDisplayEl = document.getElementById('weatherPrecipDisplay');
-        const weatherWindDisplayEl = document.getElementById('weatherWindDisplay');
-        const weatherExtremeDisplayEl = document.getElementById('weatherExtremeDisplay');
+        // 更新天气显示卡片（新布局 ID）
+        const weatherTempEl = document.getElementById('weather-temp');
+        const weatherPrecipEl = document.getElementById('weather-precipitation');
+        const weatherWindEl = document.getElementById('weather-wind');
+        const weatherExtremeEl = document.getElementById('weather-extreme');
 
-        if (weatherTempDisplayEl) {
-            weatherTempDisplayEl.innerHTML = `${tempMin}~${tempMax}<span class="unit">℃</span>`;
+        if (weatherTempEl) {
+            weatherTempEl.textContent = `${tempMin}~${tempMax}℃`;
         }
-        if (weatherPrecipDisplayEl) {
-            weatherPrecipDisplayEl.textContent = `降水量: ${precipitation}`;
+        if (weatherPrecipEl) {
+            weatherPrecipEl.textContent = precipitation;
         }
-        if (weatherWindDisplayEl) {
-            weatherWindDisplayEl.textContent = `风力: ${wind}`;
+        if (weatherWindEl) {
+            weatherWindEl.textContent = wind;
         }
-        if (weatherExtremeDisplayEl) {
-            if (extreme) {
-                weatherExtremeDisplayEl.textContent = `⚠️ ${extreme}`;
-                weatherExtremeDisplayEl.classList.add('show');
-            } else {
-                weatherExtremeDisplayEl.classList.remove('show');
-            }
+        if (weatherExtremeEl) {
+            weatherExtremeEl.textContent = extreme || '无';
         }
 
         closeModal('weatherModal');
@@ -2175,14 +2168,11 @@ function updatePlanDashboardCards(data) {
         totalCompleted += item.completed || 0;
     });
     
-    const planCard = document.querySelector('.alert-card[data-type="plan-workload"]');
-    if (planCard) {
-        const values = planCard.querySelectorAll('.alert-value');
-        if (values.length >= 3) {
-            values[0].textContent = totalInProgress;
-            values[1].textContent = totalCompleted;
-        }
-    }
+    // 新布局：直接更新统计卡片
+    const inProgressEl = document.getElementById('stat-plan-in-progress');
+    const completedEl = document.getElementById('stat-plan-completed');
+    if (inProgressEl) inProgressEl.textContent = totalInProgress;
+    if (completedEl) completedEl.textContent = totalCompleted;
     
     if (typeof updateCharts === 'function') {
         updateCharts();
@@ -2198,12 +2188,10 @@ function updateNonPlanDashboardCards(data) {
         total += item.count || 0;
     });
     
-    const nonPlanCard = document.querySelector('.alert-card[data-type="nonplan-workload"]');
-    if (nonPlanCard) {
-        const value = nonPlanCard.querySelector('.alert-value');
-        if (value) {
-            value.textContent = total;
-        }
+    // 新布局：直接更新统计卡片
+    const nonPlanTotalEl = document.getElementById('stat-non-plan-total');
+    if (nonPlanTotalEl) {
+        nonPlanTotalEl.innerHTML = `${total}<span class="unit">起</span>`;
     }
     
     if (typeof updateCharts === 'function') {

@@ -1223,6 +1223,19 @@ function openKnowledgeModal() {
     kbLoadList();
 }
 
+// Alias for HTML onclick handler
+function showKnowledgeModal() {
+    openKnowledgeModal();
+}
+
+// Handle Enter key in chat input
+function handleInputKeydown(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+    }
+}
+
 function closeKnowledgeModal() {
     document.getElementById('knowledgeModal').style.display = 'none';
 }
@@ -1479,16 +1492,16 @@ function savePageSnapshot() {
     if (teamEl) snapshot.staff.on_duty_team = teamEl.textContent;
     if (overloadEl) snapshot.staff.overload_status = overloadEl.textContent;
 
-    // 收集天气数据
-    var tempEl = document.getElementById('weatherTempDisplay');
-    var precipEl = document.getElementById('weatherPrecipDisplay');
-    var windEl = document.getElementById('weatherWindDisplay');
-    var extremeEl = document.getElementById('weatherExtremeDisplay');
+    // 收集天气数据（新布局 ID）
+    var tempEl = document.getElementById('weather-temp');
+    var precipEl = document.getElementById('weather-precipitation');
+    var windEl = document.getElementById('weather-wind');
+    var extremeEl = document.getElementById('weather-extreme');
     if (tempEl) snapshot.weather.temperature = tempEl.textContent.trim();
-    if (precipEl) snapshot.weather.precipitation = precipEl.textContent.replace('降水量: ', '').trim();
-    if (windEl) snapshot.weather.wind = windEl.textContent.replace('风力: ', '').trim();
-    if (extremeEl && extremeEl.classList.contains('show')) {
-        snapshot.weather.extreme = extremeEl.textContent.replace('⚠️ ', '').trim();
+    if (precipEl) snapshot.weather.precipitation = precipEl.textContent.trim();
+    if (windEl) snapshot.weather.wind = windEl.textContent.trim();
+    if (extremeEl && extremeEl.textContent !== '无') {
+        snapshot.weather.extreme = extremeEl.textContent.trim();
     }
 
     // 收集计划工作量弹窗数据（如果有打开过已加载到 DOM 中）

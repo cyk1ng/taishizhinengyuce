@@ -106,6 +106,7 @@ def get_db_url() -> str:
 
 _engine = None
 _SessionLocal = None
+_engine_init_attempted = False  # 标记是否已尝试过初始化，避免反复重试
 
 def _create_engine_with_retry():
     # 本地开发环境跳过数据库
@@ -133,13 +134,13 @@ def _create_engine_with_retry():
         echo=False,  # 生产环境关闭 SQL 日志
     )
     
-    # 验证连接，带重试
+    # 验证连接，带重试（Oracle 必须用 SELECT 1 FROM DUAL）
     start_time = time.time()
     last_error = None
     while time.time() - start_time < MAX_RETRY_TIME:
         try:
             with engine.connect() as conn:
-                conn.execute(text("SELECT 1"))
+                conn.execute(text("SELECT 1 FROM DUAL"))
             logger.info("Database connection established successfully")
             return engine
         except OperationalError as e:
@@ -151,11 +152,12 @@ def _create_engine_with_retry():
                 time.sleep(min(1, remaining_time))
     
     logger.error(f"Database connection failed after {MAX_RETRY_TIME}s: {last_error}")
-    raise last_error  # pyright: ignore [reportGeneralTypeIssues]
+    return None  # 返回 None 而不是抛出异常，避免上层崩溃
 
 def get_engine():
-    global _engine
-    if _engine is None:
+    global _engine, _engine_init_attempted
+    if _engine is None and not _engine_init_attempted:
+        _engine_init_attempted = True
         _engine = _create_engine_with_retry()
     return _engine
 
@@ -177,7 +179,16 @@ def get_session():
 
 def is_database_connected() -> bool:
     """检查数据库是否已连接"""
-    return get_engine() is not None
+    try:
+        engine = get_engine()
+        if engine is None:
+            return False
+        # 快速验证连接是否仍然有效
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1 FROM DUAL"))
+        return True
+    except Exception:
+        return False
 
 __all__ = [
     "get_db_url",

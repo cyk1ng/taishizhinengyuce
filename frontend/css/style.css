@@ -402,7 +402,7 @@ body {
     gap: 12px;
     padding: 0 24px 12px;
     flex: 1;
-    min-height: 0;
+    min-height: 650px;
 }
 
 /* Charts Area (~70%) */
@@ -412,13 +412,14 @@ body {
     flex-direction: column;
     gap: 12px;
     min-width: 0;
+    min-height: 600px;
 }
 
 .charts-row {
     display: flex;
     gap: 12px;
     flex: 1;
-    min-height: 0;
+    min-height: 300px;
 }
 
 .chart-box {
@@ -430,6 +431,7 @@ body {
     display: flex;
     flex-direction: column;
     min-width: 0;
+    min-height: 280px;
     position: relative;
 }
 .chart-box:hover {
@@ -465,7 +467,7 @@ body {
 
 .chart-canvas-wrap {
     flex: 1;
-    min-height: 0;
+    min-height: 200px;
     position: relative;
 }
 .chart-canvas-wrap canvas {

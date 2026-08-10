@@ -464,7 +464,7 @@ async function loadRealTimeData() {
         }
         
         // 发送请求给后端获取数据
-        const response = await fetch(`${window.BASE_PATH}/api/workload_dashboard`);
+        const response = await fetch(`${(window.BASE_PATH || '')}/api/workload_dashboard`);
         
         if (response.ok) {
             const result = await response.json();
@@ -648,7 +648,7 @@ function updateCurrentTime() {
  */
 async function updateWeatherData() {
     try {
-        const response = await fetch(`${window.BASE_PATH}/api/weather`);
+        const response = await fetch(`${(window.BASE_PATH || '')}/api/weather`);
         const result = await response.json();
 
         if (result.success && result.data) {
@@ -953,7 +953,7 @@ function showPlanWorkloadModal(event) {
     event.stopPropagation();
     
     // 调用后端API获取数据
-    fetch(`${window.BASE_PATH}/api/plan_workload_detail`)
+    fetch(`${(window.BASE_PATH || '')}/api/plan_workload_detail`)
         .then(res => res.json())
         .then(data => {
             if (data.success && data.details) {
@@ -1049,7 +1049,7 @@ function showNonPlanWorkloadModal(event) {
     event.stopPropagation();
     
     // 调用后端API获取数据
-    fetch(`${window.BASE_PATH}/api/nonplan_workload_detail`)
+    fetch(`${(window.BASE_PATH || '')}/api/nonplan_workload_detail`)
         .then(res => res.json())
         .then(data => {
             if (data.success && data.details) {
@@ -1122,7 +1122,7 @@ function closeModal(modalId) {
  */
 async function updateWorkloadStats() {
     try {
-        const response = await fetch(`${window.BASE_PATH}/api/workload_dashboard`);
+        const response = await fetch(`${(window.BASE_PATH || '')}/api/workload_dashboard`);
         if (response.ok) {
             const data = await response.json();
             if (data.success) {

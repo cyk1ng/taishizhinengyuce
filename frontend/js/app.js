@@ -1159,6 +1159,67 @@ async function updateWorkloadStats() {
 }
 
 /**
+ * 显示工作量详情弹窗
+ * @param {string} type - 'plan' 或 'non-plan'
+ */
+function showWorkloadModal(type) {
+    const modal = document.getElementById('workloadModal');
+    const title = document.getElementById('workloadModalTitle');
+    const content = document.getElementById('workloadModalContent');
+    if (!modal || !content) return;
+
+    if (type === 'plan') {
+        title.textContent = '📋 计划工作量详情';
+        // 从 dashboard 数据获取
+        fetch(`${(window.BASE_PATH || '')}/api/workload_dashboard`)
+            .then(r => r.json())
+            .then(data => {
+                const plan = data.plan_workload || {};
+                content.innerHTML = `
+                    <div class="plan-workload-card">
+                        <div class="plan-card-header"><span class="plan-icon">📋</span><span class="plan-title">总数</span></div>
+                        <div class="plan-card-body"><div class="plan-value">${plan.total || 0}</div></div>
+                    </div>
+                    <div class="plan-workload-card">
+                        <div class="plan-card-header"><span class="plan-icon">🔄</span><span class="plan-title">开展中</span></div>
+                        <div class="plan-card-body"><div class="plan-value">${plan.in_progress || 0}</div></div>
+                    </div>
+                    <div class="plan-workload-card">
+                        <div class="plan-card-header"><span class="plan-icon">✅</span><span class="plan-title">已终结</span></div>
+                        <div class="plan-card-body"><div class="plan-value">${plan.completed || 0}</div></div>
+                    </div>
+                `;
+            });
+    } else {
+        title.textContent = '⚡ 非计划工作量详情';
+        fetch(`${(window.BASE_PATH || '')}/api/workload_dashboard`)
+            .then(r => r.json())
+            .then(data => {
+                const np = data.non_plan_workload || {};
+                content.innerHTML = `
+                    <div class="plan-workload-card">
+                        <div class="plan-card-header"><span class="plan-icon"></span><span class="plan-title">总数</span></div>
+                        <div class="plan-card-body"><div class="plan-value">${np.total || 0}</div></div>
+                    </div>
+                    <div class="plan-workload-card">
+                        <div class="plan-card-header"><span class="plan-icon">🔧</span><span class="plan-title">故障日志</span></div>
+                        <div class="plan-card-body"><div class="plan-value">${np.fault || 0}</div></div>
+                    </div>
+                    <div class="plan-workload-card">
+                        <div class="plan-card-header"><span class="plan-icon">️</span><span class="plan-title">异常缺陷</span></div>
+                        <div class="plan-card-body"><div class="plan-value">${np.defect || 0}</div></div>
+                    </div>
+                    <div class="plan-workload-card">
+                        <div class="plan-card-header"><span class="plan-icon">🔴</span><span class="plan-title">重过载</span></div>
+                        <div class="plan-card-body"><div class="plan-value">${np.overload || 0}</div></div>
+                    </div>
+                `;
+            });
+    }
+    modal.classList.remove('hidden');
+}
+
+/**
  * 显示风险预警详情弹窗
  */
 function showRiskModal() {
@@ -1555,4 +1616,79 @@ function decodeHtml(str) {
 }
 
 // ========== 内网环境 emoji 图标替换为 SVG ==========
+
+// ========== 点击事件绑定 ==========
+function setupClickHandlers() {
+    // 计划工作量卡片点击
+    var planCard = document.querySelector('.stat-plan');
+    if (planCard) {
+        planCard.style.cursor = 'pointer';
+        planCard.addEventListener('click', function() {
+            showWorkloadModal('plan');
+        });
+    }
+
+    // 非计划工作量卡片点击
+    var nonPlanCard = document.querySelector('.stat-non-plan');
+    if (nonPlanCard) {
+        nonPlanCard.style.cursor = 'pointer';
+        nonPlanCard.addEventListener('click', function() {
+            showWorkloadModal('non-plan');
+        });
+    }
+
+    // 当值班组卡片点击
+    var teamCard = document.querySelector('.stat-team');
+    if (teamCard) {
+        teamCard.style.cursor = 'pointer';
+        teamCard.addEventListener('click', function() {
+            showStaffDetail();
+        });
+    }
+
+    // 人员配置卡片点击
+    var capacityCard = document.querySelector('.stat-capacity');
+    if (capacityCard) {
+        capacityCard.style.cursor = 'pointer';
+        capacityCard.addEventListener('click', function() {
+            showStaffDetail();
+        });
+    }
+
+    // 快速操作按钮
+    var quickActionBtn = document.getElementById('quickActionBtn');
+    if (quickActionBtn) {
+        quickActionBtn.addEventListener('click', function() {
+            sendMessage('请给出人员配置建议');
+        });
+    }
+
+    var riskWarningBtn = document.getElementById('riskWarningBtn');
+    if (riskWarningBtn) {
+        riskWarningBtn.addEventListener('click', function() {
+            showRiskModal();
+        });
+    }
+
+    var workloadStatsBtn = document.getElementById('workloadStatsBtn');
+    if (workloadStatsBtn) {
+        workloadStatsBtn.addEventListener('click', function() {
+            sendMessage('请统计当前工作量');
+        });
+    }
+
+    var decisionReportBtn = document.getElementById('decisionReportBtn');
+    if (decisionReportBtn) {
+        decisionReportBtn.addEventListener('click', function() {
+            sendMessage('请生成决策报告');
+        });
+    }
+}
+
+// DOM 加载完成后绑定点击事件
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupClickHandlers);
+} else {
+    setupClickHandlers();
+}
 

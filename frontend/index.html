@@ -259,6 +259,21 @@
 
     <!-- ==================== 弹窗区域（保持不变） ==================== -->
 
+
+    <!-- 工作量详情弹窗 -->
+    <div id="workloadModal" class="modal-overlay hidden">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3 id="workloadModalTitle">📋 工作量详情</h3>
+                <button class="modal-close" onclick="closeModal('workloadModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="workloadModalContent" class="plan-workload-grid">
+                    <!-- 动态填充 -->
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- 人员详情弹窗 -->
     <div id="staffModal" class="modal-overlay hidden">
         <div class="modal-content large staff-modal">

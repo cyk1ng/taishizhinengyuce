@@ -1,0 +1,138 @@
+INFO:     127.0.0.1:58804 - "GET /api/check_workload_updates?target_date=2026-08-10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58796 - "GET /vendor/chart.umd.min.js HTTP/1.1" 200 OK
+2026-08-10 17:10:10,430 [INFO] __main__: 🔍 尝试访问首页: F:\Work\WorkSpace\aiWork\projects\frontend\index.html
+2026-08-10 17:10:10,431 [INFO] __main__:    文件存在: True
+2026-08-10 17:10:10,436 [INFO] __main__: 🔍 尝试访问首页: F:\Work\WorkSpace\aiWork\projects\frontend\index.html
+2026-08-10 17:10:10,437 [INFO] __main__:    文件存在: True
+INFO:     127.0.0.1:58203 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58203 - "GET /css/style.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58983 - "GET /js/app.js HTTP/1.1" 304 Not Modified
+2026-08-10 17:10:10,521 [INFO] __main__: [timing] workload_dashboard 开始处理
+2026-08-10 17:10:10,521 [INFO] __main__: [timing] 准备今天日期: 0.00s
+2026-08-10 17:10:10,523 [INFO] tools.plan_workload: [timing] get_workload_dashboard 开始, target_date=2026-08-10
+2026-08-10 17:10:10,523 [INFO] tools.plan_workload: [timing] get_workload_dashboard 开始, target_date=2026-08-10, 耗时: 0.00s
+2026-08-10 17:10:10,523 [INFO] tools.plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:10,523 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:10,524 [INFO] tools.plan_workload: [timing] collect_maintenance_workload 完成: 0.00s
+2026-08-10 17:10:10,524 [INFO] tools.plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:10,524 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:10,525 [INFO] tools.plan_workload: [timing] collect_equipment_workload 完成: 0.00s
+2026-08-10 17:10:10,525 [INFO] tools.plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:10,525 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:10,525 [INFO] tools.plan_workload: [timing] collect_transfer_workload 完成: 0.00s
+2026-08-10 17:10:10,525 [INFO] tools.plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:10,525 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:10,525 [INFO] tools.plan_workload: [timing] collect_weekly_plan_workload 完成: 0.00s
+2026-08-10 17:10:10,525 [INFO] tools.plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:10,526 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:10,526 [INFO] tools.plan_workload: [timing] collect_protect_feeder_workload 完成: 0.00s
+2026-08-10 17:10:10,526 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:10,526 [INFO] tools.plan_workload: [timing] collect_fault_workload 完成: 0.00s
+2026-08-10 17:10:10,526 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:10,526 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:10,527 [INFO] __main__: [timing] get_workload_dashboard.invoke 完成: 0.01s
+2026-08-10 17:10:10,527 [INFO] tools.plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:10,527 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:10,528 [INFO] tools.plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:10,528 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:10,528 [INFO] tools.plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:10,528 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:10,528 [INFO] tools.plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:10,528 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:10,529 [INFO] tools.plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:10,529 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:10,529 [INFO] __main__: [timing] calculate_plan_workload.invoke 完成: 0.01s
+2026-08-10 17:10:10,530 [INFO] tools.non_plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:10,530 [WARNING] tools.non_plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:10,530 [INFO] tools.non_plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:10,530 [WARNING] tools.non_plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:10,530 [INFO] tools.non_plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:10,531 [WARNING] tools.non_plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:10,531 [INFO] __main__: [timing] calculate_non_plan_workload.invoke 完成: 0.01s
+2026-08-10 17:10:10,531 [WARNING] __main__: 数据库返回空数据，使用兜底假数据
+INFO:     127.0.0.1:58983 - "GET /api/workload_dashboard HTTP/1.1" 200 OK
+[OracleDB] Oracle Client 初始化失败: DPI-1047: Cannot locate a 64-bit Oracle Client library: "The specified module could not be found". See https://python-oracledb.readthedocs.io/en/latest/user_guide/initialization.html for help
+Help: https://python-oracledb.readthedocs.io/en/latest/user_guide/troubleshooting.html#dpi-1047
+[OracleDB] 连接失败: DPY-6005: cannot connect to database (CONNECTION_ID=A7myNviNtFXuD6qPa1fyKA==).
+timed out
+[Scheduling] Oracle 查询班组失败，降级到 mock: Oracle 不可用，跳过查询
+[OracleDB] Oracle Client 初始化失败: DPI-1047: Cannot locate a 64-bit Oracle Client library: "The specified module could not be found". See https://python-oracledb.readthedocs.io/en/latest/user_guide/initialization.html for help
+Help: https://python-oracledb.readthedocs.io/en/latest/user_guide/troubleshooting.html#dpi-1047
+[OracleDB] 连接失败: DPY-6005: cannot connect to database (CONNECTION_ID=vSpqFN0LdFs90EmBo8iBSw==).
+timed out
+[Scheduling] Oracle 查询排班记录失败，降级到内存: Oracle 不可用，跳过查询
+INFO:     127.0.0.1:58985 - "GET /api/staff/detail?team_name=A%E7%8F%AD&date_str=2026-08-10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58983 - "GET /api/weather HTTP/1.1" 200 OK
+2026-08-10 17:10:50,577 [INFO] __main__: [timing] workload_dashboard 开始处理
+2026-08-10 17:10:50,579 [INFO] __main__: [timing] 准备今天日期: 0.00s
+2026-08-10 17:10:50,583 [INFO] tools.plan_workload: [timing] get_workload_dashboard 开始, target_date=2026-08-10
+2026-08-10 17:10:50,584 [INFO] tools.plan_workload: [timing] get_workload_dashboard 开始, target_date=2026-08-10, 耗时: 0.00s
+2026-08-10 17:10:50,585 [INFO] tools.plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:50,586 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:50,589 [INFO] tools.plan_workload: [timing] collect_maintenance_workload 完成: 0.01s
+2026-08-10 17:10:50,590 [INFO] tools.plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:50,591 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:50,592 [INFO] tools.plan_workload: [timing] collect_equipment_workload 完成: 0.01s
+2026-08-10 17:10:50,592 [INFO] tools.plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:50,593 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:50,593 [INFO] tools.plan_workload: [timing] collect_transfer_workload 完成: 0.01s
+2026-08-10 17:10:50,594 [INFO] tools.plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:50,595 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:50,595 [INFO] tools.plan_workload: [timing] collect_weekly_plan_workload 完成: 0.01s
+2026-08-10 17:10:50,595 [INFO] tools.plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:50,596 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:50,596 [INFO] tools.plan_workload: [timing] collect_protect_feeder_workload 完成: 0.01s
+2026-08-10 17:10:50,597 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:50,597 [INFO] tools.plan_workload: [timing] collect_fault_workload 完成: 0.01s
+2026-08-10 17:10:50,598 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:50,598 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:50,599 [INFO] __main__: [timing] get_workload_dashboard.invoke 完成: 0.02s
+2026-08-10 17:10:50,600 [INFO] tools.plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:50,600 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:50,601 [INFO] tools.plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:50,601 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:50,601 [INFO] tools.plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:50,601 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:50,602 [INFO] tools.plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:50,602 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:50,602 [INFO] tools.plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:50,603 [WARNING] tools.plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:50,604 [INFO] __main__: [timing] calculate_plan_workload.invoke 完成: 0.03s
+2026-08-10 17:10:50,606 [INFO] tools.non_plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:50,606 [WARNING] tools.non_plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:50,606 [INFO] tools.non_plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:50,606 [WARNING] tools.non_plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:50,607 [INFO] tools.non_plan_workload: SKIP_DB=true, 跳过数据库连接
+2026-08-10 17:10:50,607 [WARNING] tools.non_plan_workload: 数据库未连接，返回空列表
+2026-08-10 17:10:50,607 [INFO] __main__: [timing] calculate_non_plan_workload.invoke 完成: 0.03s
+2026-08-10 17:10:50,608 [WARNING] __main__: 数据库返回空数据，使用兜底假数据
+INFO:     127.0.0.1:58987 - "GET /api/workload_dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58804 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+[OracleDB] Oracle Client 初始化失败: DPI-1047: Cannot locate a 64-bit Oracle Client library: "The specified module could not be found". See https://python-oracledb.readthedocs.io/en/latest/user_guide/initialization.html for help
+Help: https://python-oracledb.readthedocs.io/en/latest/user_guide/troubleshooting.html#dpi-1047
+[OracleDB] 连接失败: DPY-6005: cannot connect to database (CONNECTION_ID=cdT1xJ436coGlPlpUVJcIg==).
+timed out
+[Scheduling] Oracle 查询班组失败，降级到 mock: Oracle 不可用，跳过查询
+[OracleDB] Oracle Client 初始化失败: DPI-1047: Cannot locate a 64-bit Oracle Client library: "The specified module could not be found". See https://python-oracledb.readthedocs.io/en/latest/user_guide/initialization.html for help
+Help: https://python-oracledb.readthedocs.io/en/latest/user_guide/troubleshooting.html#dpi-1047
+[OracleDB] 连接失败: DPY-6005: cannot connect to database (CONNECTION_ID=Z8QG94bT+iKFbRTirsPcVw==).
+timed out
+[Scheduling] Oracle 查询排班记录失败，降级到内存: Oracle 不可用，跳过查询
+[OracleDB] Oracle Client 初始化失败: DPI-1047: Cannot locate a 64-bit Oracle Client library: "The specified module could not be found". See https://python-oracledb.readthedocs.io/en/latest/user_guide/initialization.html for help
+Help: https://python-oracledb.readthedocs.io/en/latest/user_guide/troubleshooting.html#dpi-1047
+[OracleDB] 连接失败: DPY-6005: cannot connect to database (CONNECTION_ID=Zm5lRHtYznrkoQDTzpUr8g==).
+timed out
+[Scheduling] Oracle 查询班组失败，降级到 mock: Oracle 不可用，跳过查询
+[OracleDB] Oracle Client 初始化失败: DPI-1047: Cannot locate a 64-bit Oracle Client library: "The specified module could not be found". See https://python-oracledb.readthedocs.io/en/latest/user_guide/initialization.html for help
+Help: https://python-oracledb.readthedocs.io/en/latest/user_guide/troubleshooting.html#dpi-1047
+[OracleDB] 连接失败: DPY-6005: cannot connect to database (CONNECTION_ID=L2M/P/KKBQSS/Tt6ILkYsg==).
+timed out
+[Scheduling] Oracle 查询排班记录失败，降级到内存: Oracle 不可用，跳过查询
+INFO:     127.0.0.1:58989 - "GET /api/check_workload_updates?target_date=2026-08-10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58203 - "GET /vendor/chart.umd.min.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58796 - "GET /vendor/chart.umd.js.map HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58203 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [25076]

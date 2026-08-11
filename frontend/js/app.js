@@ -905,6 +905,17 @@ function showWeatherModal(event) {
     });
 }
 
+/**
+ * 快速操作：发送消息到聊天框
+ */
+function sendQuickMessage(text) {
+    const input = document.getElementById('userInput');
+    if (input) {
+        input.value = text;
+    }
+    sendMessage();
+}
+
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
     // 初始化所有图表（默认显示0，等待真实数据）
@@ -944,13 +955,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 快速操作按钮点击事件
     const quickActionBtn = document.getElementById('quickActionBtn');
-    if (quickActionBtn) quickActionBtn.addEventListener('click', showQuickActionModal);
+    if (quickActionBtn) quickActionBtn.addEventListener('click', () => sendQuickMessage('请给出人员配置建议'));
     const riskWarningBtn = document.getElementById('riskWarningBtn');
-    if (riskWarningBtn) riskWarningBtn.addEventListener('click', showRiskModal);
+    if (riskWarningBtn) riskWarningBtn.addEventListener('click', () => sendQuickMessage('请分析当前风险预警情况'));
     const workloadStatsBtn = document.getElementById('workloadStatsBtn');
-    if (workloadStatsBtn) workloadStatsBtn.addEventListener('click', showWorkloadStatsModal);
+    if (workloadStatsBtn) workloadStatsBtn.addEventListener('click', () => sendQuickMessage('请统计今日工作量'));
     const decisionReportBtn = document.getElementById('decisionReportBtn');
-    if (decisionReportBtn) decisionReportBtn.addEventListener('click', showDecisionReportModal);
+    if (decisionReportBtn) decisionReportBtn.addEventListener('click', () => sendQuickMessage('请生成决策报告'));
 
     console.log('⚡ 配网调度业务量智能预测系统已加载（使用假数据展示）');
 });
@@ -1183,52 +1194,64 @@ function showWorkloadModal(type) {
 
     if (type === 'plan') {
         title.textContent = '📋 计划工作量详情';
-        // 先显示默认值
         content.innerHTML = `
             <div class="plan-workload-grid">
                 <div class="plan-workload-card">
-                    <div class="plan-card-header"><span class="plan-icon">📋</span><span class="plan-title">总数</span></div>
-                    <div class="plan-card-body"><div class="plan-value" id="plan-total">--</div></div>
+                    <div class="plan-card-header"><span class="plan-icon">🔧</span><span class="plan-title">计划检修</span></div>
+                    <div class="plan-card-body">
+                        <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><span class="plan-sub-value" id="plan-maint-ip">--</span></div>
+                        <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><span class="plan-sub-value" id="plan-maint-cp">--</span></div>
+                    </div>
                 </div>
                 <div class="plan-workload-card">
-                    <div class="plan-card-header"><span class="plan-icon">🔄</span><span class="plan-title">开展中</span></div>
-                    <div class="plan-card-body"><div class="plan-value" id="plan-in-progress">--</div></div>
+                    <div class="plan-card-header"><span class="plan-icon"></span><span class="plan-title">转供电</span></div>
+                    <div class="plan-card-body">
+                        <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><span class="plan-sub-value" id="plan-transfer-ip">--</span></div>
+                        <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><span class="plan-sub-value" id="plan-transfer-cp">--</span></div>
+                    </div>
                 </div>
                 <div class="plan-workload-card">
-                    <div class="plan-card-header"><span class="plan-icon">✅</span><span class="plan-title">已终结</span></div>
-                    <div class="plan-card-body"><div class="plan-value" id="plan-completed">--</div></div>
+                    <div class="plan-card-header"><span class="plan-icon">⚙️</span><span class="plan-title">设备投退</span></div>
+                    <div class="plan-card-body">
+                        <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><span class="plan-sub-value" id="plan-equip-ip">--</span></div>
+                        <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><span class="plan-sub-value" id="plan-equip-cp">--</span></div>
+                    </div>
+                </div>
+                <div class="plan-workload-card">
+                    <div class="plan-card-header"><span class="plan-icon">📅</span><span class="plan-title">周计划</span></div>
+                    <div class="plan-card-body">
+                        <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><span class="plan-sub-value" id="plan-weekly-ip">--</span></div>
+                        <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><span class="plan-sub-value" id="plan-weekly-cp">--</span></div>
+                    </div>
                 </div>
             </div>
         `;
         // 异步加载数据
-        fetch(`${(window.BASE_PATH || '')}/api/workload_dashboard`)
+        fetch(`${(window.BASE_PATH || '')}/api/plan_workload_detail`)
             .then(r => r.json())
             .then(data => {
-                const plan = data.plan_workload || {};
-                const el1 = document.getElementById('plan-total');
-                const el2 = document.getElementById('plan-in-progress');
-                const el3 = document.getElementById('plan-completed');
-                if (el1) el1.textContent = plan.total || 0;
-                if (el2) el2.textContent = plan.in_progress || 0;
-                if (el3) el3.textContent = plan.completed || 0;
+                const d = data.details || {};
+                const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val ?? 0; };
+                setVal('plan-maint-ip', d.maintenance?.in_progress);
+                setVal('plan-maint-cp', d.maintenance?.completed);
+                setVal('plan-transfer-ip', d.transfer?.in_progress);
+                setVal('plan-transfer-cp', d.transfer?.completed);
+                setVal('plan-equip-ip', d.equipment?.in_progress);
+                setVal('plan-equip-cp', d.equipment?.completed);
+                setVal('plan-weekly-ip', d.weekly_plan?.in_progress);
+                setVal('plan-weekly-cp', d.weekly_plan?.completed);
             })
-            .catch(() => {
-                // 加载失败时保持默认值
-            });
+            .catch(() => {});
     } else {
         title.textContent = ' 非计划工作量详情';
         content.innerHTML = `
             <div class="plan-workload-grid">
                 <div class="plan-workload-card">
-                    <div class="plan-card-header"><span class="plan-icon">⚡</span><span class="plan-title">总数</span></div>
-                    <div class="plan-card-body"><div class="plan-value" id="np-total">--</div></div>
-                </div>
-                <div class="plan-workload-card">
                     <div class="plan-card-header"><span class="plan-icon">🔧</span><span class="plan-title">故障日志</span></div>
                     <div class="plan-card-body"><div class="plan-value" id="np-fault">--</div></div>
                 </div>
                 <div class="plan-workload-card">
-                    <div class="plan-card-header"><span class="plan-icon">⚠️</span><span class="plan-title">异常缺陷</span></div>
+                    <div class="plan-card-header"><span class="plan-icon">️</span><span class="plan-title">异常缺陷</span></div>
                     <div class="plan-card-body"><div class="plan-value" id="np-defect">--</div></div>
                 </div>
                 <div class="plan-workload-card">
@@ -1237,22 +1260,18 @@ function showWorkloadModal(type) {
                 </div>
             </div>
         `;
-        fetch(`${(window.BASE_PATH || '')}/api/workload_dashboard`)
+        fetch(`${(window.BASE_PATH || '')}/api/nonplan_workload_detail`)
             .then(r => r.json())
             .then(data => {
-                const np = data.non_plan_workload || {};
-                const el1 = document.getElementById('np-total');
-                const el2 = document.getElementById('np-fault');
-                const el3 = document.getElementById('np-defect');
-                const el4 = document.getElementById('np-overload');
-                if (el1) el1.textContent = np.total || 0;
-                if (el2) el2.textContent = np.fault || 0;
-                if (el3) el3.textContent = np.defect || 0;
-                if (el4) el4.textContent = np.overload || 0;
+                const d = data.details || {};
+                const el1 = document.getElementById('np-fault');
+                const el2 = document.getElementById('np-defect');
+                const el3 = document.getElementById('np-overload');
+                if (el1) el1.textContent = d.fault?.count ?? 0;
+                if (el2) el2.textContent = d.defect?.count ?? 0;
+                if (el3) el3.textContent = d.overload?.count ?? 0;
             })
-            .catch(() => {
-                // 加载失败时保持默认值
-            });
+            .catch(() => {});
     }
 }
 
@@ -1364,14 +1383,14 @@ function showStaffDetail() {
     const modalTeam = document.getElementById('modalOnDutyTeam');
     if (modalTeam) modalTeam.textContent = teamName;
     
+    // 立即显示弹窗，不等待数据加载
     modal.classList.remove('hidden');
     
-    // Load staff detail
+    // 异步加载班组详情（不阻塞弹窗显示）
     const today = new Date().toISOString().split('T')[0];
     fetch(`${(window.BASE_PATH || '')}/api/staff/detail?team_name=${encodeURIComponent(teamName)}&date_str=${today}`)
         .then(r => r.json())
         .then(data => {
-            // Update staff list if needed
             console.log('Staff detail loaded:', data);
         })
         .catch(err => {

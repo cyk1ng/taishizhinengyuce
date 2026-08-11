@@ -1542,6 +1542,21 @@ body {
     font-weight: 700;
     color: var(--text-primary, #f1f5f9);
 }
+.plan-sub-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    font-size: 13px;
+}
+.plan-sub-label {
+    color: var(--text-secondary, #94a3b8);
+}
+.plan-sub-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+}
 
 /* 风险预警弹窗样式 */
 .risk-list {

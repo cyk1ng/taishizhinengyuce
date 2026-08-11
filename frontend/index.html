@@ -43,7 +43,7 @@
         <!-- 第二行：5张核心数据卡片 -->
         <div class="stats-row">
             <!-- 卡片1：计划工作量 -->
-            <div class="stat-card stat-plan">
+            <div class="stat-card stat-plan" onclick="showWorkloadModal('plan')" style="cursor:pointer">
                 <div class="stat-header">
                     <span class="stat-icon">📋</span>
                     <span class="stat-title">计划工作量</span>
@@ -60,7 +60,7 @@
             </div>
 
             <!-- 卡片2：非计划工作量 -->
-            <div class="stat-card stat-non-plan">
+            <div class="stat-card stat-non-plan" onclick="showWorkloadModal('non-plan')" style="cursor:pointer">
                 <div class="stat-header">
                     <span class="stat-icon"></span>
                     <span class="stat-title">非计划工作量</span>
@@ -79,7 +79,7 @@
             </div>
 
             <!-- 卡片3：当值班组 -->
-            <div class="stat-card stat-team">
+            <div class="stat-card stat-team" onclick="showStaffDetail()" style="cursor:pointer">
                 <div class="stat-header">
                     <span class="stat-icon"></span>
                     <span class="stat-title">当值班组</span>
@@ -95,7 +95,7 @@
             </div>
 
             <!-- 卡片4：人员配置 -->
-            <div class="stat-card stat-capacity">
+            <div class="stat-card stat-capacity" onclick="showStaffDetail()" style="cursor:pointer">
                 <div class="stat-header">
                     <span class="stat-icon">📊</span>
                     <span class="stat-title">人员配置</span>
@@ -646,6 +646,55 @@
         }).catch(function() { return null; });
     })();
     </script>
+
+    <!-- 快速操作弹窗 -->
+    <div id="quickActionModal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>🚀 快速操作</h3>
+                <button class="modal-close" onclick="closeQuickActionModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <ul class="quick-action-list">
+                    <li onclick="showWorkloadModal('plan')"><span class="quick-action-icon">📋</span> 查看计划工作量详情</li>
+                    <li onclick="showWorkloadModal('non-plan')"><span class="quick-action-icon">⚡</span> 查看非计划工作量详情</li>
+                    <li onclick="showRiskModal()"><span class="quick-action-icon">⚠️</span> 查看风险预警</li>
+                    <li onclick="showKnowledgeModal()"><span class="quick-action-icon"></span> 知识库查询</li>
+                    <li onclick="showStaffDetail()"><span class="quick-action-icon">👥</span> 查看班组详情</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- 工作量统计弹窗 -->
+    <div id="workloadStatsModal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>📊 工作量统计</h3>
+                <button class="modal-close" onclick="closeWorkloadStatsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="plan-workload-grid" id="workloadStatsContent">
+                    <p style="color: var(--text-secondary); text-align: center; padding: 20px;">加载中...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 决策报告弹窗 -->
+    <div id="decisionReportModal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>📝 决策报告</h3>
+                <button class="modal-close" onclick="closeDecisionReportModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="decisionReportContent">
+                    <p style="color: var(--text-secondary); text-align: center; padding: 20px;">报告生成中，请稍候...</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Scripts -->
     <script src="js/api.js" defer></script>

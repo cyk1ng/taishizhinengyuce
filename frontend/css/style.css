@@ -1504,3 +1504,162 @@ body {
         padding: 8px 16px;
     }
 }
+
+/* 工作量弹窗内容样式 */
+.plan-workload-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    padding: 10px 0;
+}
+.plan-workload-card {
+    background: var(--bg-secondary, rgba(255,255,255,0.05));
+    border: 1px solid var(--border-color, rgba(255,255,255,0.1));
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+}
+.plan-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: var(--text-secondary, #94a3b8);
+}
+.plan-icon {
+    font-size: 16px;
+}
+.plan-title {
+    font-weight: 500;
+}
+.plan-card-body {
+    padding: 4px 0;
+}
+.plan-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+}
+
+/* 风险预警弹窗样式 */
+.risk-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.risk-list li {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.1));
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text-primary, #f1f5f9);
+}
+.risk-list li:last-child {
+    border-bottom: none;
+}
+.risk-level {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.risk-level.high {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+.risk-level.medium {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+}
+.risk-level.low {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+}
+
+/* 知识库弹窗样式 */
+.knowledge-search-box {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.knowledge-search-box input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color, rgba(255,255,255,0.1));
+    border-radius: 6px;
+    background: var(--bg-secondary, rgba(255,255,255,0.05));
+    color: var(--text-primary, #f1f5f9);
+    font-size: 14px;
+    outline: none;
+}
+.knowledge-search-box input:focus {
+    border-color: var(--accent-color, #3b82f6);
+}
+.knowledge-search-box button {
+    padding: 8px 16px;
+    background: var(--accent-color, #3b82f6);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+.knowledge-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.knowledge-list li {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.1));
+    font-size: 14px;
+    color: var(--text-primary, #f1f5f9);
+}
+.knowledge-list li:last-child {
+    border-bottom: none;
+}
+.knowledge-list .doc-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+.knowledge-list .doc-desc {
+    font-size: 12px;
+    color: var(--text-secondary, #94a3b8);
+}
+.knowledge-empty {
+    text-align: center;
+    padding: 30px 0;
+    color: var(--text-secondary, #94a3b8);
+    font-size: 14px;
+}
+
+/* 快速操作弹窗样式 */
+.quick-action-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.quick-action-list li {
+    padding: 12px;
+    border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.1));
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--text-primary, #f1f5f9);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.quick-action-list li:hover {
+    background: var(--bg-secondary, rgba(255,255,255,0.05));
+}
+.quick-action-list li:last-child {
+    border-bottom: none;
+}
+.quick-action-icon {
+    font-size: 18px;
+}

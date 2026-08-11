@@ -942,6 +942,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // 快速操作按钮点击事件
+    const quickActionBtn = document.getElementById('quickActionBtn');
+    if (quickActionBtn) quickActionBtn.addEventListener('click', showQuickActionModal);
+    const riskWarningBtn = document.getElementById('riskWarningBtn');
+    if (riskWarningBtn) riskWarningBtn.addEventListener('click', showRiskModal);
+    const workloadStatsBtn = document.getElementById('workloadStatsBtn');
+    if (workloadStatsBtn) workloadStatsBtn.addEventListener('click', showWorkloadStatsModal);
+    const decisionReportBtn = document.getElementById('decisionReportBtn');
+    if (decisionReportBtn) decisionReportBtn.addEventListener('click', showDecisionReportModal);
+
     console.log('⚡ 配网调度业务量智能预测系统已加载（使用假数据展示）');
 });
 
@@ -1168,55 +1178,82 @@ function showWorkloadModal(type) {
     const content = document.getElementById('workloadModalContent');
     if (!modal || !content) return;
 
+    // 先显示内容，再异步加载数据
+    modal.classList.remove('hidden');
+
     if (type === 'plan') {
         title.textContent = '📋 计划工作量详情';
-        // 从 dashboard 数据获取
+        // 先显示默认值
+        content.innerHTML = `
+            <div class="plan-workload-grid">
+                <div class="plan-workload-card">
+                    <div class="plan-card-header"><span class="plan-icon">📋</span><span class="plan-title">总数</span></div>
+                    <div class="plan-card-body"><div class="plan-value" id="plan-total">--</div></div>
+                </div>
+                <div class="plan-workload-card">
+                    <div class="plan-card-header"><span class="plan-icon">🔄</span><span class="plan-title">开展中</span></div>
+                    <div class="plan-card-body"><div class="plan-value" id="plan-in-progress">--</div></div>
+                </div>
+                <div class="plan-workload-card">
+                    <div class="plan-card-header"><span class="plan-icon">✅</span><span class="plan-title">已终结</span></div>
+                    <div class="plan-card-body"><div class="plan-value" id="plan-completed">--</div></div>
+                </div>
+            </div>
+        `;
+        // 异步加载数据
         fetch(`${(window.BASE_PATH || '')}/api/workload_dashboard`)
             .then(r => r.json())
             .then(data => {
                 const plan = data.plan_workload || {};
-                content.innerHTML = `
-                    <div class="plan-workload-card">
-                        <div class="plan-card-header"><span class="plan-icon">📋</span><span class="plan-title">总数</span></div>
-                        <div class="plan-card-body"><div class="plan-value">${plan.total || 0}</div></div>
-                    </div>
-                    <div class="plan-workload-card">
-                        <div class="plan-card-header"><span class="plan-icon">🔄</span><span class="plan-title">开展中</span></div>
-                        <div class="plan-card-body"><div class="plan-value">${plan.in_progress || 0}</div></div>
-                    </div>
-                    <div class="plan-workload-card">
-                        <div class="plan-card-header"><span class="plan-icon">✅</span><span class="plan-title">已终结</span></div>
-                        <div class="plan-card-body"><div class="plan-value">${plan.completed || 0}</div></div>
-                    </div>
-                `;
+                const el1 = document.getElementById('plan-total');
+                const el2 = document.getElementById('plan-in-progress');
+                const el3 = document.getElementById('plan-completed');
+                if (el1) el1.textContent = plan.total || 0;
+                if (el2) el2.textContent = plan.in_progress || 0;
+                if (el3) el3.textContent = plan.completed || 0;
+            })
+            .catch(() => {
+                // 加载失败时保持默认值
             });
     } else {
-        title.textContent = '⚡ 非计划工作量详情';
+        title.textContent = ' 非计划工作量详情';
+        content.innerHTML = `
+            <div class="plan-workload-grid">
+                <div class="plan-workload-card">
+                    <div class="plan-card-header"><span class="plan-icon">⚡</span><span class="plan-title">总数</span></div>
+                    <div class="plan-card-body"><div class="plan-value" id="np-total">--</div></div>
+                </div>
+                <div class="plan-workload-card">
+                    <div class="plan-card-header"><span class="plan-icon">🔧</span><span class="plan-title">故障日志</span></div>
+                    <div class="plan-card-body"><div class="plan-value" id="np-fault">--</div></div>
+                </div>
+                <div class="plan-workload-card">
+                    <div class="plan-card-header"><span class="plan-icon">⚠️</span><span class="plan-title">异常缺陷</span></div>
+                    <div class="plan-card-body"><div class="plan-value" id="np-defect">--</div></div>
+                </div>
+                <div class="plan-workload-card">
+                    <div class="plan-card-header"><span class="plan-icon">🔴</span><span class="plan-title">重过载</span></div>
+                    <div class="plan-card-body"><div class="plan-value" id="np-overload">--</div></div>
+                </div>
+            </div>
+        `;
         fetch(`${(window.BASE_PATH || '')}/api/workload_dashboard`)
             .then(r => r.json())
             .then(data => {
                 const np = data.non_plan_workload || {};
-                content.innerHTML = `
-                    <div class="plan-workload-card">
-                        <div class="plan-card-header"><span class="plan-icon"></span><span class="plan-title">总数</span></div>
-                        <div class="plan-card-body"><div class="plan-value">${np.total || 0}</div></div>
-                    </div>
-                    <div class="plan-workload-card">
-                        <div class="plan-card-header"><span class="plan-icon">🔧</span><span class="plan-title">故障日志</span></div>
-                        <div class="plan-card-body"><div class="plan-value">${np.fault || 0}</div></div>
-                    </div>
-                    <div class="plan-workload-card">
-                        <div class="plan-card-header"><span class="plan-icon">️</span><span class="plan-title">异常缺陷</span></div>
-                        <div class="plan-card-body"><div class="plan-value">${np.defect || 0}</div></div>
-                    </div>
-                    <div class="plan-workload-card">
-                        <div class="plan-card-header"><span class="plan-icon">🔴</span><span class="plan-title">重过载</span></div>
-                        <div class="plan-card-body"><div class="plan-value">${np.overload || 0}</div></div>
-                    </div>
-                `;
+                const el1 = document.getElementById('np-total');
+                const el2 = document.getElementById('np-fault');
+                const el3 = document.getElementById('np-defect');
+                const el4 = document.getElementById('np-overload');
+                if (el1) el1.textContent = np.total || 0;
+                if (el2) el2.textContent = np.fault || 0;
+                if (el3) el3.textContent = np.defect || 0;
+                if (el4) el4.textContent = np.overload || 0;
+            })
+            .catch(() => {
+                // 加载失败时保持默认值
             });
     }
-    modal.classList.remove('hidden');
 }
 
 /**
@@ -1224,471 +1261,121 @@ function showWorkloadModal(type) {
  */
 function showRiskModal() {
     const modal = document.getElementById('riskModal');
-    if (modal) {
-        modal.classList.remove('hidden');
-    }
-}
-
-/**
- * 显示今日待办详情弹窗
- */
-function showTodoModal() {
-    const modal = document.getElementById('todoModal');
-    if (modal) {
-        modal.classList.remove('hidden');
-    }
-}
-
-/**
- * 切换待办事项完成状态
- */
-function toggleTodo(el) {
-    const item = el.closest('.todo-detail-item');
-    if (!item) return;
-    
-    const isDone = item.classList.contains('done');
-    if (isDone) {
-        item.classList.remove('done');
-        item.classList.add('pending');
-        el.classList.remove('checked');
-        el.textContent = '';
-    } else {
-        item.classList.remove('pending');
-        item.classList.add('done');
-        el.classList.add('checked');
-        el.textContent = '✓';
-    }
-    
-    // 更新统计数字
-    const totalEl = document.getElementById('todoTotalCount');
-    const pendingEl = document.getElementById('todoPendingCount');
-    const doneEl = document.getElementById('todoDoneCount');
-    if (totalEl && pendingEl && doneEl) {
-        const total = document.querySelectorAll('.todo-detail-item').length;
-        const done = document.querySelectorAll('.todo-detail-item.done').length;
-        const pending = total - done;
-        totalEl.textContent = total;
-        pendingEl.textContent = pending;
-        doneEl.textContent = done;
-    }
-}
-
-// ==================== 知识库 CRUD ====================
-
-let kbCurrentPage = 1;
-let kbTotalPages = 1;
-const KB_API_BASE = (window.BASE_PATH || '') + '/api/knowledge';
-
-function openKnowledgeModal() {
-    document.getElementById('knowledgeModal').style.display = 'flex';
-    kbLoadList();
-}
-
-// Alias for HTML onclick handler
-function showKnowledgeModal() {
-    openKnowledgeModal();
-}
-
-// Handle Enter key in chat input
-function handleInputKeydown(event) {
-    if (event.key === 'Enter' && !event.shiftKey) {
-        event.preventDefault();
-        sendMessage();
-    }
-}
-
-function closeKnowledgeModal() {
-    document.getElementById('knowledgeModal').style.display = 'none';
-}
-
-async function kbLoadList(page) {
-    if (page) kbCurrentPage = page;
-    const tbody = document.getElementById('kbTableBody');
-    tbody.innerHTML = '<tr><td colspan="4" class="kb-empty">加载中...</td></tr>';
-    
-    try {
-        const resp = await fetch(`${KB_API_BASE}/list?page=${kbCurrentPage}&page_size=15`);
-        const data = await resp.json();
-        
-        const docs = data.documents || [];
-        document.getElementById('kbCount').textContent = `共 ${data.total} 条`;
-        
-        const totalPages = Math.max(1, Math.ceil(data.total / 15));
-        kbTotalPages = totalPages;
-        
-        if (docs.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" class="kb-empty">知识库为空，点击"+ 新增知识"添加</td></tr>';
-            document.getElementById('kbPagination').innerHTML = '';
-            return;
-        }
-        
-        let html = '';
-        docs.forEach((doc, i) => {
-            const idx = (kbCurrentPage - 1) * 15 + i + 1;
-            const source = (doc.metadata && doc.metadata.source) || doc.source || '未命名';
-            const content = doc.content || doc.document || '';
-            const id = doc.id || doc.doc_id || '';
-            // 截断过长内容，保留前100字符
-            const shortContent = content.length > 100 ? content.substring(0, 100) + '...' : content;
-            // 安全转义 onclick 参数（处理单引号）
-            const safeId = escapeHtml(id).replace(/'/g, "\\'");
-            const safeSource = escapeHtml(source).replace(/'/g, "\\'");
-            const safeContent = escapeHtml(content).replace(/'/g, "\\'").replace(/\n/g, "\\n").replace(/\r/g, "\\r");
-            html += `<tr>
-                <td>${idx}</td>
-                <td>${escapeHtml(source)}</td>
-                <td title="${escapeHtml(content.substring(0, 300))}">${escapeHtml(shortContent)}</td>
-                <td>
-                    <div class="kb-actions">
-                        <button class="kb-edit-btn" onclick="kbEditDoc('${safeId}', '${safeSource}', '${safeContent}')">编辑</button>
-                        <button class="kb-del-btn" onclick="kbDeleteDoc('${safeId}')">删除</button>
-                    </div>
-                </td>
-            </tr>`;
-        });
-        tbody.innerHTML = html;
-        
-        // 分页
-        let pgHtml = '';
-        pgHtml += `<button onclick="kbLoadList(${kbCurrentPage - 1})" ${kbCurrentPage <= 1 ? 'disabled' : ''}>&lt; 上一页</button>`;
-        pgHtml += `<span>第 ${kbCurrentPage}/${totalPages} 页</span>`;
-        pgHtml += `<button onclick="kbLoadList(${kbCurrentPage + 1})" ${kbCurrentPage >= totalPages ? 'disabled' : ''}>下一页 &gt;</button>`;
-        document.getElementById('kbPagination').innerHTML = pgHtml;
-    } catch (e) {
-        tbody.innerHTML = '<tr><td colspan="4" class="kb-empty">加载失败，请刷新重试</td></tr>';
-    }
-}
-
-async function kbSearch() {
-    const q = document.getElementById('kbSearchInput').value.trim();
-    const tbody = document.getElementById('kbTableBody');
-    
-    if (!q) {
-        kbLoadList(1);
-        return;
-    }
-    
-    tbody.innerHTML = '<tr><td colspan="4" class="kb-empty">搜索中...</td></tr>';
-    
-    try {
-        const resp = await fetch(`${KB_API_BASE}/search?q=${encodeURIComponent(q)}&top_k=20`);
-        const data = await resp.json();
-        
-        const results = data.results || [];
-        document.getElementById('kbCount').textContent = `搜索 ${results.length} 条`;
-        document.getElementById('kbPagination').innerHTML = '';
-        
-        if (results.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" class="kb-empty">未找到匹配内容</td></tr>';
-            return;
-        }
-        
-        let html = '';
-        results.forEach((r, i) => {
-            const source = r.source || '搜索结果';
-            const content = r.content || '';
-            const shortContent = content.length > 100 ? content.substring(0, 100) + '...' : content;
-            html += `<tr>
-                <td>${i + 1}</td>
-                <td>${escapeHtml(source)}</td>
-                <td title="${escapeHtml(content.substring(0, 300))}">${escapeHtml(shortContent)}</td>
-                <td><span style="color:var(--accent-cyan);font-size:12px;">匹配度 ${(r.score * 100).toFixed(0)}%</span></td>
-            </tr>`;
-        });
-        tbody.innerHTML = html;
-    } catch (e) {
-        tbody.innerHTML = '<tr><td colspan="4" class="kb-empty">搜索失败</td></tr>';
-    }
-}
-
-function kbShowAdd() {
-    document.getElementById('kbEditTitle').textContent = '➕ 新增知识';
-    document.getElementById('kbEditId').value = '';
-    document.getElementById('kbEditSource').value = '';
-    document.getElementById('kbEditContent').value = '';
-    document.getElementById('kbEditModal').style.display = 'flex';
-    
-}
-
-function kbEditDoc(id, source, content) {
-    document.getElementById('kbEditTitle').textContent = '✏️ 编辑知识';
-    document.getElementById('kbEditId').value = id;
-    document.getElementById('kbEditSource').value = decodeHtml(source);
-    document.getElementById('kbEditContent').value = decodeHtml(content);
-    document.getElementById('kbEditModal').style.display = 'flex';
-    
-}
-
-function kbCloseEdit() {
-    document.getElementById('kbEditModal').style.display = 'none';
-}
-
-async function kbSaveEdit(event) {
-    event.preventDefault();
-    const id = document.getElementById('kbEditId').value;
-    const source = document.getElementById('kbEditSource').value.trim() || '用户手动添加';
-    const content = document.getElementById('kbEditContent').value.trim();
-    
-    if (!content) {
-        alert('请输入内容');
-        return;
-    }
-    
-    try {
-        let resp;
-        if (id) {
-            resp = await fetch(`${KB_API_BASE}/update`, {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({id, content, source})
-            });
-        } else {
-            resp = await fetch(`${KB_API_BASE}/add`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({content, source})
-            });
-        }
-        const result = await resp.json();
-        if (result.success) {
-            kbCloseEdit();
-            kbLoadList(1);
-        } else {
-            alert('保存失败: ' + (result.error || '未知错误'));
-        }
-    } catch (e) {
-        alert('保存失败: ' + e.message);
-    }
-}
-
-async function kbDeleteDoc(id) {
-    if (!confirm('确认删除该条知识？')) return;
-    
-    try {
-        const resp = await fetch(`${KB_API_BASE}/delete`, {
-            method: 'DELETE',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({id})
-        });
-        const result = await resp.json();
-        if (result.success) {
-            kbLoadList(1);
-        } else {
-            alert('删除失败: ' + (result.error || '未知错误'));
-        }
-    } catch (e) {
-        alert('删除失败: ' + e.message);
-    }
-}
-
-// ========== 页面数据快照 ==========
-
-/**
- * 保存当前页面数据快照。
- * 页面加载数据后、用户修改数据后自动调用，
- * 确保 AI 分析时读取的是用户当前看到的页面数据。
- */
-function savePageSnapshot() {
-    var bp = window.BASE_PATH || '';
-    var today = new Date().toISOString().slice(0, 10);
-
-    // 收集页面上的关键数据
-    var snapshot = {
-        plan_workload: {
-            maintenance: { in_progress: 0, completed: 0 },
-            transfer: { in_progress: 0, completed: 0 },
-            equipment: { in_progress: 0, completed: 0 },
-            weekly_plan: { in_progress: 0, completed: 0 },
-            protect: { in_progress: 0, completed: 0 }
-        },
-        non_plan_workload: {
-            fault: { count: 0 },
-            defect: { count: 0 },
-            overload: { count: 0 }
-        },
-        weather: {
-            temperature: '',
-            precipitation: '',
-            wind: '',
-            extreme: ''
-        },
-        staff: {
-            current_staff: '',
-            on_duty_team: '',
-            overload_status: ''
-        },
-        statistics: {
-            total_plan: 0,
-            in_progress: 0,
-            completed: 0,
-            total_non_plan: 0,
-            fault_count: 0,
-            defect_count: 0,
-            overload_count: 0
-        },
-        captured_at: new Date().toISOString()
-    };
-
-    // 收集统计卡片数据
-    var statPlanTotal = document.getElementById('stat-plan-total');
-    var statPlanInProgress = document.getElementById('stat-plan-in-progress');
-    var statPlanCompleted = document.getElementById('stat-plan-completed');
-    var statNonPlanFault = document.getElementById('stat-non-plan-fault');
-    var statNonPlanDefect = document.getElementById('stat-non-plan-defect');
-    var statNonPlanOverload = document.getElementById('stat-non-plan-overload');
-
-    if (statPlanTotal) snapshot.statistics.total_plan = parseInt(statPlanTotal.textContent) || 0;
-    if (statPlanInProgress) snapshot.statistics.in_progress = parseInt(statPlanInProgress.textContent) || 0;
-    if (statPlanCompleted) snapshot.statistics.completed = parseInt(statPlanCompleted.textContent) || 0;
-    if (statNonPlanFault) snapshot.statistics.fault_count = parseInt(statNonPlanFault.textContent) || 0;
-    if (statNonPlanDefect) snapshot.statistics.defect_count = parseInt(statNonPlanDefect.textContent) || 0;
-    if (statNonPlanOverload) snapshot.statistics.overload_count = parseInt(statNonPlanOverload.textContent) || 0;
-    snapshot.statistics.total_non_plan = snapshot.statistics.fault_count + snapshot.statistics.defect_count + snapshot.statistics.overload_count;
-
-    // 收集人员信息
-    var staffEl = document.getElementById('currentStaff');
-    var teamEl = document.getElementById('onDutyTeamName');
-    var overloadEl = document.getElementById('overloadStatus');
-    if (staffEl) snapshot.staff.current_staff = staffEl.textContent;
-    if (teamEl) snapshot.staff.on_duty_team = teamEl.textContent;
-    if (overloadEl) snapshot.staff.overload_status = overloadEl.textContent;
-
-    // 收集天气数据（新布局 ID）
-    var tempEl = document.getElementById('weather-temp');
-    var precipEl = document.getElementById('weather-precipitation');
-    var windEl = document.getElementById('weather-wind');
-    var extremeEl = document.getElementById('weather-extreme');
-    if (tempEl) snapshot.weather.temperature = tempEl.textContent.trim();
-    if (precipEl) snapshot.weather.precipitation = precipEl.textContent.trim();
-    if (windEl) snapshot.weather.wind = windEl.textContent.trim();
-    if (extremeEl && extremeEl.textContent !== '无') {
-        snapshot.weather.extreme = extremeEl.textContent.trim();
-    }
-
-    // 收集计划工作量弹窗数据（如果有打开过已加载到 DOM 中）
-    _collectModalData('planWorkloadModal', snapshot.plan_workload);
-    _collectModalData('nonPlanWorkloadModal', snapshot.non_plan_workload);
-
-    // 发送到后端保存
-    fetch(bp + '/api/save_page_snapshot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            page_data: snapshot,
-            target_date: today
-        })
-    }).then(function(r) { return r.json(); }).then(function(result) {
-        if (result.success) {
-            console.log('[snapshot] 页面快照已保存');
-        }
-    }).catch(function(err) {
-        console.warn('[snapshot] 保存快照失败:', err);
-    });
-}
-
-/** 从弹窗 DOM 中收集各分类数据 */
-function _collectModalData(modalId, target) {
-    var modal = document.getElementById(modalId);
     if (!modal) return;
-    var cards = modal.querySelectorAll('.editable-card');
-    cards.forEach(function(card) {
-        var cat = card.getAttribute('data-category');
-        if (!cat || !target[cat]) return;
-        var fields = card.querySelectorAll('.field-value');
-        fields.forEach(function(el) {
-            var field = el.getAttribute('data-field');
-            if (field) {
-                target[cat][field] = parseInt(el.textContent) || 0;
-            }
-        });
-    });
+    modal.classList.remove('hidden');
 }
 
-// ========== 工具函数 ==========
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+/**
+ * 显示知识库弹窗
+ */
+function showKnowledgeModal() {
+    const modal = document.getElementById('knowledgeModal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    modal.style.display = '';
 }
 
-function decodeHtml(str) {
-    if (!str) return '';
-    return str.replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+/**
+ * 关闭知识库弹窗
+ */
+function closeKnowledgeModal() {
+    const modal = document.getElementById('knowledgeModal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
 }
 
-// ========== 内网环境 emoji 图标替换为 SVG ==========
-
-// ========== 点击事件绑定 ==========
-function setupClickHandlers() {
-    // 计划工作量卡片点击
-    var planCard = document.querySelector('.stat-plan');
-    if (planCard) {
-        planCard.style.cursor = 'pointer';
-        planCard.addEventListener('click', function() {
-            showWorkloadModal('plan');
-        });
-    }
-
-    // 非计划工作量卡片点击
-    var nonPlanCard = document.querySelector('.stat-non-plan');
-    if (nonPlanCard) {
-        nonPlanCard.style.cursor = 'pointer';
-        nonPlanCard.addEventListener('click', function() {
-            showWorkloadModal('non-plan');
-        });
-    }
-
-    // 当值班组卡片点击
-    var teamCard = document.querySelector('.stat-team');
-    if (teamCard) {
-        teamCard.style.cursor = 'pointer';
-        teamCard.addEventListener('click', function() {
-            showStaffDetail();
-        });
-    }
-
-    // 人员配置卡片点击
-    var capacityCard = document.querySelector('.stat-capacity');
-    if (capacityCard) {
-        capacityCard.style.cursor = 'pointer';
-        capacityCard.addEventListener('click', function() {
-            showStaffDetail();
-        });
-    }
-
-    // 快速操作按钮
-    var quickActionBtn = document.getElementById('quickActionBtn');
-    if (quickActionBtn) {
-        quickActionBtn.addEventListener('click', function() {
-            sendMessage('请给出人员配置建议');
-        });
-    }
-
-    var riskWarningBtn = document.getElementById('riskWarningBtn');
-    if (riskWarningBtn) {
-        riskWarningBtn.addEventListener('click', function() {
-            showRiskModal();
-        });
-    }
-
-    var workloadStatsBtn = document.getElementById('workloadStatsBtn');
-    if (workloadStatsBtn) {
-        workloadStatsBtn.addEventListener('click', function() {
-            sendMessage('请统计当前工作量');
-        });
-    }
-
-    var decisionReportBtn = document.getElementById('decisionReportBtn');
-    if (decisionReportBtn) {
-        decisionReportBtn.addEventListener('click', function() {
-            sendMessage('请生成决策报告');
-        });
+/**
+ * 处理知识库输入框回车事件
+ */
+function handleInputKeydown(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        // TODO: 实现知识库搜索
     }
 }
 
-// DOM 加载完成后绑定点击事件
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupClickHandlers);
-} else {
-    setupClickHandlers();
+/**
+ * 显示快速操作弹窗
+ */
+function showQuickActionModal() {
+    const modal = document.getElementById('quickActionModal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+}
+
+/**
+ * 关闭快速操作弹窗
+ */
+function closeQuickActionModal() {
+    const modal = document.getElementById('quickActionModal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+}
+
+/**
+ * 显示工作量统计弹窗
+ */
+function showWorkloadStatsModal() {
+    const modal = document.getElementById('workloadStatsModal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+}
+
+/**
+ * 关闭工作量统计弹窗
+ */
+function closeWorkloadStatsModal() {
+    const modal = document.getElementById('workloadStatsModal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+}
+
+/**
+ * 显示决策报告弹窗
+ */
+function showDecisionReportModal() {
+    const modal = document.getElementById('decisionReportModal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+}
+
+/**
+ * 关闭决策报告弹窗
+ */
+function closeDecisionReportModal() {
+    const modal = document.getElementById('decisionReportModal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+}
+
+
+// ========== 显示班组详情弹窗 ==========
+function showStaffDetail() {
+    const modal = document.getElementById('staffModal');
+    if (!modal) return;
+    
+    // Update modal info
+    const teamName = document.getElementById('onDutyTeamName')?.textContent || 'A 班';
+    const currentStaff = document.getElementById('currentStaff')?.textContent || '--';
+    const suggestedStaff = document.getElementById('suggestedStaff')?.textContent || '--';
+    const overloadStatus = document.getElementById('overloadStatus')?.textContent || '--';
+    
+    const modalTeam = document.getElementById('modalOnDutyTeam');
+    if (modalTeam) modalTeam.textContent = teamName;
+    
+    modal.classList.remove('hidden');
+    
+    // Load staff detail
+    const today = new Date().toISOString().split('T')[0];
+    fetch(`${(window.BASE_PATH || '')}/api/staff/detail?team_name=${encodeURIComponent(teamName)}&date_str=${today}`)
+        .then(r => r.json())
+        .then(data => {
+            // Update staff list if needed
+            console.log('Staff detail loaded:', data);
+        })
+        .catch(err => {
+            console.error('Failed to load staff detail:', err);
+        });
 }
 

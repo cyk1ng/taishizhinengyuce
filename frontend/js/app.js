@@ -1195,34 +1195,32 @@ function showWorkloadModal(type) {
     if (type === 'plan') {
         title.textContent = '📋 计划工作量详情';
         content.innerHTML = `
-            <div class="plan-workload-grid">
-                <div class="plan-workload-card">
-                    <div class="plan-card-header"><span class="plan-icon">🔧</span><span class="plan-title">计划检修</span></div>
-                    <div class="plan-card-body">
-                        <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><span class="plan-sub-value" id="plan-maint-ip">--</span></div>
-                        <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><span class="plan-sub-value" id="plan-maint-cp">--</span></div>
-                    </div>
+            <div class="plan-workload-card">
+                <div class="plan-card-header"><span class="plan-icon"></span><span class="plan-title">计划检修</span></div>
+                <div class="plan-card-body">
+                    <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><span class="plan-sub-value" id="plan-maint-ip">--</span></div>
+                    <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><span class="plan-sub-value" id="plan-maint-cp">--</span></div>
                 </div>
-                <div class="plan-workload-card">
-                    <div class="plan-card-header"><span class="plan-icon"></span><span class="plan-title">转供电</span></div>
-                    <div class="plan-card-body">
-                        <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><span class="plan-sub-value" id="plan-transfer-ip">--</span></div>
-                        <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><span class="plan-sub-value" id="plan-transfer-cp">--</span></div>
-                    </div>
+            </div>
+            <div class="plan-workload-card">
+                <div class="plan-card-header"><span class="plan-icon">⚡</span><span class="plan-title">转供电</span></div>
+                <div class="plan-card-body">
+                    <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><span class="plan-sub-value" id="plan-transfer-ip">--</span></div>
+                    <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><span class="plan-sub-value" id="plan-transfer-cp">--</span></div>
                 </div>
-                <div class="plan-workload-card">
-                    <div class="plan-card-header"><span class="plan-icon">⚙️</span><span class="plan-title">设备投退</span></div>
-                    <div class="plan-card-body">
-                        <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><span class="plan-sub-value" id="plan-equip-ip">--</span></div>
-                        <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><span class="plan-sub-value" id="plan-equip-cp">--</span></div>
-                    </div>
+            </div>
+            <div class="plan-workload-card">
+                <div class="plan-card-header"><span class="plan-icon">⚙️</span><span class="plan-title">设备投退</span></div>
+                <div class="plan-card-body">
+                    <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><span class="plan-sub-value" id="plan-equip-ip">--</span></div>
+                    <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><span class="plan-sub-value" id="plan-equip-cp">--</span></div>
                 </div>
-                <div class="plan-workload-card">
-                    <div class="plan-card-header"><span class="plan-icon">📅</span><span class="plan-title">周计划</span></div>
-                    <div class="plan-card-body">
-                        <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><span class="plan-sub-value" id="plan-weekly-ip">--</span></div>
-                        <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><span class="plan-sub-value" id="plan-weekly-cp">--</span></div>
-                    </div>
+            </div>
+            <div class="plan-workload-card">
+                <div class="plan-card-header"><span class="plan-icon"></span><span class="plan-title">周计划</span></div>
+                <div class="plan-card-body">
+                    <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><span class="plan-sub-value" id="plan-weekly-ip">--</span></div>
+                    <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><span class="plan-sub-value" id="plan-weekly-cp">--</span></div>
                 </div>
             </div>
         `;
@@ -1245,19 +1243,17 @@ function showWorkloadModal(type) {
     } else {
         title.textContent = ' 非计划工作量详情';
         content.innerHTML = `
-            <div class="plan-workload-grid">
-                <div class="plan-workload-card">
-                    <div class="plan-card-header"><span class="plan-icon">🔧</span><span class="plan-title">故障日志</span></div>
-                    <div class="plan-card-body"><div class="plan-value" id="np-fault">--</div></div>
-                </div>
-                <div class="plan-workload-card">
-                    <div class="plan-card-header"><span class="plan-icon">️</span><span class="plan-title">异常缺陷</span></div>
-                    <div class="plan-card-body"><div class="plan-value" id="np-defect">--</div></div>
-                </div>
-                <div class="plan-workload-card">
-                    <div class="plan-card-header"><span class="plan-icon">🔴</span><span class="plan-title">重过载</span></div>
-                    <div class="plan-card-body"><div class="plan-value" id="np-overload">--</div></div>
-                </div>
+            <div class="plan-workload-card">
+                <div class="plan-card-header"><span class="plan-icon"></span><span class="plan-title">故障日志</span></div>
+                <div class="plan-card-body"><div class="plan-value" id="np-fault">--</div></div>
+            </div>
+            <div class="plan-workload-card">
+                <div class="plan-card-header"><span class="plan-icon">⚠️</span><span class="plan-title">异常缺陷</span></div>
+                <div class="plan-card-body"><div class="plan-value" id="np-defect">--</div></div>
+            </div>
+            <div class="plan-workload-card">
+                <div class="plan-card-header"><span class="plan-icon">🔴</span><span class="plan-title">重过载</span></div>
+                <div class="plan-card-body"><div class="plan-value" id="np-overload">--</div></div>
             </div>
         `;
         fetch(`${(window.BASE_PATH || '')}/api/nonplan_workload_detail`)

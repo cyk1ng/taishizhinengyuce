@@ -216,6 +216,16 @@
                             <!-- 动态内容 -->
                         </div>
                     </div>
+                    <!-- 今日待办 -->
+                    <div class="todo-box">
+                        <div class="panel-title-bar">
+                            <h3>📋 今日待办</h3>
+                            <span class="risk-link" onclick="showTodoModal()">点击查看详情</span>
+                        </div>
+                        <div class="todo-list" id="todoList">
+                            <!-- 动态内容 -->
+                        </div>
+                    </div>
                 </div>
                 <!-- 智能对话 -->
                 <div class="chat-box">
@@ -575,6 +585,21 @@
             </div>
             <div class="modal-footer">
                 <button class="form-confirm-btn" onclick="quickAction('report')">🤖 AI 生成决策报告</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 今日待办弹窗 -->
+    <div id="todoModal" class="modal-overlay hidden">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>📋 今日待办</h3>
+                <button class="modal-close" onclick="closeTodoModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="todoModalContent" class="todo-modal-content">
+                    <p style="color: var(--text-muted); text-align: center;">加载中...</p>
+                </div>
             </div>
         </div>
     </div>

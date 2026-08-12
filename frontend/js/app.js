@@ -1191,30 +1191,34 @@ function showWorkloadModal(type) {
             <div class="plan-workload-card">
                 <div class="plan-card-header"><span class="plan-icon"></span><span class="plan-title">计划检修</span></div>
                 <div class="plan-card-body">
-                    <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><span class="plan-sub-value" id="plan-maint-ip">--</span></div>
-                    <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><span class="plan-sub-value" id="plan-maint-cp">--</span></div>
+                    <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><input type="number" class="plan-sub-input" id="plan-maint-ip" /></div>
+                    <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><input type="number" class="plan-sub-input" id="plan-maint-cp" /></div>
                 </div>
             </div>
             <div class="plan-workload-card">
                 <div class="plan-card-header"><span class="plan-icon">⚡</span><span class="plan-title">转供电</span></div>
                 <div class="plan-card-body">
-                    <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><span class="plan-sub-value" id="plan-transfer-ip">--</span></div>
-                    <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><span class="plan-sub-value" id="plan-transfer-cp">--</span></div>
+                    <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><input type="number" class="plan-sub-input" id="plan-transfer-ip" /></div>
+                    <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><input type="number" class="plan-sub-input" id="plan-transfer-cp" /></div>
                 </div>
             </div>
             <div class="plan-workload-card">
-                <div class="plan-card-header"><span class="plan-icon">⚙️</span><span class="plan-title">设备投退</span></div>
+                <div class="plan-card-header"><span class="plan-icon">️</span><span class="plan-title">设备投退</span></div>
                 <div class="plan-card-body">
-                    <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><span class="plan-sub-value" id="plan-equip-ip">--</span></div>
-                    <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><span class="plan-sub-value" id="plan-equip-cp">--</span></div>
+                    <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><input type="number" class="plan-sub-input" id="plan-equip-ip" /></div>
+                    <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><input type="number" class="plan-sub-input" id="plan-equip-cp" /></div>
                 </div>
             </div>
             <div class="plan-workload-card">
                 <div class="plan-card-header"><span class="plan-icon"></span><span class="plan-title">周计划</span></div>
                 <div class="plan-card-body">
-                    <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><span class="plan-sub-value" id="plan-weekly-ip">--</span></div>
-                    <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><span class="plan-sub-value" id="plan-weekly-cp">--</span></div>
+                    <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><input type="number" class="plan-sub-input" id="plan-weekly-ip" /></div>
+                    <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><input type="number" class="plan-sub-input" id="plan-weekly-cp" /></div>
                 </div>
+            </div>
+            <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end; margin-top: 16px; gap: 12px;">
+                <button class="btn-cancel" onclick="closeWorkloadModal()">取消</button>
+                <button class="btn-save" onclick="savePlanWorkload()">保存</button>
             </div>
         `;
         // 异步加载数据
@@ -1222,7 +1226,7 @@ function showWorkloadModal(type) {
             .then(r => r.json())
             .then(data => {
                 const d = data.details || {};
-                const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val ?? 0; };
+                const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? 0; };
                 setVal('plan-maint-ip', d.maintenance?.in_progress);
                 setVal('plan-maint-cp', d.maintenance?.completed);
                 setVal('plan-transfer-ip', d.transfer?.in_progress);
@@ -1238,15 +1242,19 @@ function showWorkloadModal(type) {
         content.innerHTML = `
             <div class="plan-workload-card">
                 <div class="plan-card-header"><span class="plan-icon"></span><span class="plan-title">故障日志</span></div>
-                <div class="plan-card-body"><div class="plan-value" id="np-fault">--</div></div>
+                <div class="plan-card-body"><div class="plan-sub-row"><span class="plan-sub-label">数量</span><input type="number" class="plan-sub-input" id="np-fault" /></div></div>
             </div>
             <div class="plan-workload-card">
                 <div class="plan-card-header"><span class="plan-icon">⚠️</span><span class="plan-title">异常缺陷</span></div>
-                <div class="plan-card-body"><div class="plan-value" id="np-defect">--</div></div>
+                <div class="plan-card-body"><div class="plan-sub-row"><span class="plan-sub-label">数量</span><input type="number" class="plan-sub-input" id="np-defect" /></div></div>
             </div>
             <div class="plan-workload-card">
                 <div class="plan-card-header"><span class="plan-icon">🔴</span><span class="plan-title">重过载</span></div>
-                <div class="plan-card-body"><div class="plan-value" id="np-overload">--</div></div>
+                <div class="plan-card-body"><div class="plan-sub-row"><span class="plan-sub-label">数量</span><input type="number" class="plan-sub-input" id="np-overload" /></div></div>
+            </div>
+            <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end; margin-top: 16px; gap: 12px;">
+                <button class="btn-cancel" onclick="closeWorkloadModal()">取消</button>
+                <button class="btn-save" onclick="saveNonPlanWorkload()">保存</button>
             </div>
         `;
         fetch(`${(window.BASE_PATH || '')}/api/nonplan_workload_detail`)
@@ -1256,17 +1264,101 @@ function showWorkloadModal(type) {
                 const el1 = document.getElementById('np-fault');
                 const el2 = document.getElementById('np-defect');
                 const el3 = document.getElementById('np-overload');
-                if (el1) el1.textContent = d.fault?.count ?? 0;
-                if (el2) el2.textContent = d.defect?.count ?? 0;
-                if (el3) el3.textContent = d.overload?.count ?? 0;
+                if (el1) el1.value = d.fault?.count ?? 0;
+                if (el2) el2.value = d.defect?.count ?? 0;
+                if (el3) el3.value = d.overload?.count ?? 0;
             })
             .catch(() => {});
     }
 }
 
 /**
- * 显示风险预警详情弹窗
+ * 关闭工作量弹窗
  */
+function closeWorkloadModal() {
+    const modal = document.getElementById('workloadModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+/**
+ * 保存计划工作量
+ */
+function savePlanWorkload() {
+    const data = {
+        maintenance: {
+            in_progress: parseInt(document.getElementById('plan-maint-ip')?.value || 0),
+            completed: parseInt(document.getElementById('plan-maint-cp')?.value || 0)
+        },
+        transfer: {
+            in_progress: parseInt(document.getElementById('plan-transfer-ip')?.value || 0),
+            completed: parseInt(document.getElementById('plan-transfer-cp')?.value || 0)
+        },
+        equipment: {
+            in_progress: parseInt(document.getElementById('plan-equip-ip')?.value || 0),
+            completed: parseInt(document.getElementById('plan-equip-cp')?.value || 0)
+        },
+        weekly_plan: {
+            in_progress: parseInt(document.getElementById('plan-weekly-ip')?.value || 0),
+            completed: parseInt(document.getElementById('plan-weekly-cp')?.value || 0)
+        }
+    };
+    
+    fetch(`${(window.BASE_PATH || '')}/api/plan_workload_detail`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(result => {
+        if (result.success) {
+            alert('保存成功！');
+            closeWorkloadModal();
+            // 刷新页面数据
+            if (typeof updatePlanDashboardCards === 'function') updatePlanDashboardCards();
+        } else {
+            alert('保存失败：' + (result.message || '未知错误'));
+        }
+    })
+    .catch(err => {
+        alert('保存失败：' + err.message);
+    });
+}
+
+/**
+ * 保存非计划工作量
+ */
+function saveNonPlanWorkload() {
+    const data = {
+        fault: { count: parseInt(document.getElementById('np-fault')?.value || 0) },
+        defect: { count: parseInt(document.getElementById('np-defect')?.value || 0) },
+        overload: { count: parseInt(document.getElementById('np-overload')?.value || 0) }
+    };
+    
+    fetch(`${(window.BASE_PATH || '')}/api/nonplan_workload_detail`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(result => {
+        if (result.success) {
+            alert('保存成功！');
+            closeWorkloadModal();
+            if (typeof updateNonPlanDashboardCards === 'function') updateNonPlanDashboardCards();
+        } else {
+            alert('保存失败：' + (result.message || '未知错误'));
+        }
+    })
+    .catch(err => {
+        alert('保存失败：' + err.message);
+    });
+}
+function showTodoModal() {
+    const modal = document.getElementById('todoModal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+}
+
 function showRiskModal() {
     const modal = document.getElementById('riskModal');
     if (!modal) return;

@@ -1679,3 +1679,128 @@ body {
 .quick-action-icon {
     font-size: 18px;
 }
+
+/* 今日待办 */
+.todo-box {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 12px;
+}
+.todo-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.todo-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.todo-item:hover {
+    background: var(--bg-secondary, rgba(255,255,255,0.05));
+}
+.todo-item:last-child {
+    border-bottom: none;
+}
+.todo-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+.todo-content {
+    flex: 1;
+    min-width: 0;
+}
+.todo-title {
+    font-size: 13px;
+    color: #fff;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.todo-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.todo-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+.todo-badge.urgent {
+    background: rgba(255, 107, 107, 0.2);
+    color: #ff6b6b;
+}
+.todo-badge.normal {
+    background: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+}
+
+/* 待办弹窗 */
+.todo-modal-content {
+    padding: 20px;
+}
+.todo-modal-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    background: var(--bg-secondary);
+}
+.todo-modal-item:last-child {
+    margin-bottom: 0;
+}
+.todo-modal-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+.todo-modal-content-item {
+    flex: 1;
+}
+.todo-modal-title {
+    font-size: 14px;
+    color: #fff;
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+.todo-modal-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+.todo-modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+.todo-modal-btn {
+    padding: 4px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.todo-modal-btn:hover {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+}
+.todo-modal-btn.primary {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+}

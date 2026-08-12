@@ -954,14 +954,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // 快速操作按钮点击事件
-    const quickActionBtn = document.getElementById('quickActionBtn');
-    if (quickActionBtn) quickActionBtn.addEventListener('click', () => sendQuickMessage('请给出人员配置建议'));
-    const riskWarningBtn = document.getElementById('riskWarningBtn');
-    if (riskWarningBtn) riskWarningBtn.addEventListener('click', () => sendQuickMessage('请分析当前风险预警情况'));
-    const workloadStatsBtn = document.getElementById('workloadStatsBtn');
-    if (workloadStatsBtn) workloadStatsBtn.addEventListener('click', () => sendQuickMessage('请统计今日工作量'));
-    const decisionReportBtn = document.getElementById('decisionReportBtn');
-    if (decisionReportBtn) decisionReportBtn.addEventListener('click', () => sendQuickMessage('请生成决策报告'));
+    // 快速操作按钮已改为 onclick 直接调用 sendQuickMessage
 
     console.log('⚡ 配网调度业务量智能预测系统已加载（使用假数据展示）');
 });

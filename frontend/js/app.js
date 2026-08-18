@@ -521,16 +521,14 @@ function updateDashboardWithData(data) {
     document.getElementById('stat-plan-in-progress').textContent = inProgress;
     document.getElementById('stat-plan-completed').textContent = completed;
     
-    // 非计划工作量
-    const faultCount = summary.fault_count || 0;
-    const defectCount = summary.defect_count || 0;
-    const overloadCount = summary.overload_count || 0;
-    const nonPlanTotal = faultCount + defectCount + overloadCount;
+    // 非计划工作量 - 显示开展中/已终结
+    const nonPlanInProgress = summary.non_plan_in_progress || 0;
+    const nonPlanCompleted = summary.non_plan_completed || 0;
+    const nonPlanTotal = nonPlanInProgress + nonPlanCompleted;
     
     document.getElementById('stat-non-plan-total').innerHTML = `${nonPlanTotal}<span class="unit">起</span>`;
-    document.getElementById('stat-non-plan-fault').textContent = faultCount;
-    document.getElementById('stat-non-plan-defect').textContent = defectCount;
-    document.getElementById('stat-non-plan-overload').textContent = overloadCount;
+    document.getElementById('stat-non-plan-in-progress').textContent = nonPlanInProgress;
+    document.getElementById('stat-non-plan-completed').textContent = nonPlanCompleted;
     
     // 更新当值人员信息
     const totalStaff = hourlyDetails.reduce((sum, h) => sum + (h.staff_count || 0), 0) / 24 || 0;
@@ -542,11 +540,15 @@ function updateDashboardWithData(data) {
         if (teamEl) teamEl.textContent = data.on_duty_team_name;
     }
     
-    // 更新超负荷状态
+    // 更新建议人数和超负荷状态
+    const suggestedStaff = summary.suggested_staff || Math.round(totalStaff);
+    document.getElementById('suggestedStaff').textContent = suggestedStaff + '人';
+    
     const overloadEl = document.getElementById('overloadStatus');
     if (overloadEl) {
-        overloadEl.textContent = overloadCount > 0 ? '是' : '否';
-        overloadEl.className = 'staff-value ' + (overloadCount > 0 ? 'warning' : 'success');
+        const isOverload = summary.is_overload || (nonPlanTotal > suggestedStaff * 2);
+        overloadEl.textContent = isOverload ? '是' : '否';
+        overloadEl.className = 'stat-info-value ' + (isOverload ? 'warning' : 'success');
     }
     
     // 更新图表（直接传入完整 data，updateWorkloadData 会解析 hourly_details）
@@ -956,8 +958,118 @@ document.addEventListener('DOMContentLoaded', function() {
     // 快速操作按钮点击事件
     // 快速操作按钮已改为 onclick 直接调用 sendQuickMessage
 
-    console.log('⚡ 配网调度业务量智能预测系统已加载（使用假数据展示）');
+    // 初始化风险预警和今日待办假数据
+    initFakeRiskAlerts();
+    initFakeTodos();
+
+    console.log(' 配网调度业务量智能预测系统已加载（使用假数据展示）');
 });
+
+/**
+ * 初始化风险预警假数据
+ */
+function initFakeRiskAlerts() {
+    const container = document.getElementById('riskAlertsContainer');
+    if (!container) return;
+    
+    // 检查是否有真实数据
+    fetch(`${(window.BASE_PATH || '')}/api/risk_alerts`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.alerts && data.alerts.length > 0) {
+                renderRiskAlerts(data.alerts);
+            } else {
+                // 使用假数据
+                const fakeAlerts = [
+                    { id: 1, title: '明日预测工作量偏高', level: 'warning', desc: '预计明日工作量将达到35单，超出日常均值20%' },
+                    { id: 2, title: '人员配置合理', level: 'success', desc: '当前值班人员配置充足，可满足日常工作需求' },
+                    { id: 3, title: '设备重过载风险', level: 'danger', desc: '2台变压器负载率超过80%，需关注' }
+                ];
+                renderRiskAlerts(fakeAlerts);
+            }
+        })
+        .catch(() => {
+            // API失败，使用假数据
+            const fakeAlerts = [
+                { id: 1, title: '明日预测工作量偏高', level: 'warning', desc: '预计明日工作量将达到35单，超出日常均值20%' },
+                { id: 2, title: '人员配置合理', level: 'success', desc: '当前值班人员配置充足，可满足日常工作需求' },
+                { id: 3, title: '设备重过载风险', level: 'danger', desc: '2台变压器负载率超过80%，需关注' }
+            ];
+            renderRiskAlerts(fakeAlerts);
+        });
+}
+
+/**
+ * 渲染风险预警
+ */
+function renderRiskAlerts(alerts) {
+    const container = document.getElementById('riskAlertsContainer');
+    if (!container) return;
+    
+    container.innerHTML = alerts.map(alert => `
+        <div class="risk-alert-item ${alert.level}">
+            <span class="risk-alert-icon">${alert.level === 'danger' ? '🔴' : alert.level === 'warning' ? '🟡' : ''}</span>
+            <div class="risk-alert-content">
+                <div class="risk-alert-title">${alert.title}</div>
+                <div class="risk-alert-desc">${alert.desc}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+/**
+ * 初始化今日待办假数据
+ */
+function initFakeTodos() {
+    const container = document.getElementById('todoContainer');
+    if (!container) return;
+    
+    // 检查是否有真实数据
+    fetch(`${(window.BASE_PATH || '')}/api/todos`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.todos && data.todos.length > 0) {
+                renderTodos(data.todos);
+            } else {
+                // 使用假数据
+                const fakeTodos = [
+                    { id: 1, title: '故障日志处理', priority: 'high', status: 'pending' },
+                    { id: 2, title: '检修单审核', priority: 'medium', status: 'pending' },
+                    { id: 3, title: '操作票审核', priority: 'medium', status: 'pending' },
+                    { id: 4, title: '周计划确认', priority: 'low', status: 'pending' }
+                ];
+                renderTodos(fakeTodos);
+            }
+        })
+        .catch(() => {
+            // API失败，使用假数据
+            const fakeTodos = [
+                { id: 1, title: '故障日志处理', priority: 'high', status: 'pending' },
+                { id: 2, title: '检修单审核', priority: 'medium', status: 'pending' },
+                { id: 3, title: '操作票审核', priority: 'medium', status: 'pending' },
+                { id: 4, title: '周计划确认', priority: 'low', status: 'pending' }
+            ];
+            renderTodos(fakeTodos);
+        });
+}
+
+/**
+ * 渲染待办事项
+ */
+function renderTodos(todos) {
+    const container = document.getElementById('todoContainer');
+    if (!container) return;
+    
+    container.innerHTML = todos.map(todo => `
+        <div class="todo-item ${todo.priority}">
+            <span class="todo-icon">${todo.priority === 'high' ? '🔴' : todo.priority === 'medium' ? '🟡' : '🟢'}</span>
+            <div class="todo-content">
+                <div class="todo-title">${todo.title}</div>
+            </div>
+            <span class="todo-status">${todo.status === 'completed' ? '✓' : '○'}</span>
+        </div>
+    `).join('');
+}
 
 /**
  * 显示计划工作量弹窗

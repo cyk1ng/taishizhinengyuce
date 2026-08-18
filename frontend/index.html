@@ -18,12 +18,6 @@
     <div class="electric-line electric-line-2"></div>
     <div class="electric-line electric-line-3"></div>
 
-    <!-- 加载遮罩 -->
-    <div id="loadingOverlay" class="loading-overlay hidden">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">AI 正在思考中...</div>
-    </div>
-
     <!-- ==================== 主仪表盘（新布局） ==================== -->
     <div class="dashboard">
         <!-- 顶部导航栏 -->
@@ -35,7 +29,7 @@
 
             <div class="header-right">
                 <button class="header-btn refresh-btn" onclick="location.reload()" title="刷新">🔄</button>
-                <button class="header-btn" id="flexibleDutyBtn" title="柔性值班计算"></button>
+                <button class="header-btn" id="flexibleDutyBtn" title="柔性值班计算">🧮</button>
                 <div class="clock" id="currentTime">--:--:--</div>
             </div>
         </header>
@@ -62,19 +56,17 @@
             <!-- 卡片2：非计划工作量 -->
             <div class="stat-card stat-non-plan" onclick="showWorkloadModal('non-plan')" style="cursor:pointer">
                 <div class="stat-header">
-                    <span class="stat-icon"></span>
+                    <span class="stat-icon">⚡</span>
                     <span class="stat-title">非计划工作量</span>
                 </div>
                 <div class="stat-total">
                     <span class="stat-number red" id="stat-non-plan-total">--<span class="unit">起</span></span>
                 </div>
-                <div class="stat-sub-label">故障日志 / 异常缺陷 / 重过载</div>
-                <div class="stat-detail-row triple">
-                    <span class="stat-detail-val" id="stat-non-plan-fault">--</span>
+                <div class="stat-sub-label">开展中 / 已终结</div>
+                <div class="stat-detail-row">
+                    <span class="stat-detail-val" id="stat-non-plan-in-progress">--</span>
                     <span class="stat-detail-sep">/</span>
-                    <span class="stat-detail-val" id="stat-non-plan-defect">--</span>
-                    <span class="stat-detail-sep">/</span>
-                    <span class="stat-detail-val" id="stat-non-plan-overload">--</span>
+                    <span class="stat-detail-val" id="stat-non-plan-completed">--</span>
                 </div>
             </div>
 
@@ -196,14 +188,6 @@
                                 <span class="qa-icon">⚠️</span>
                                 <span>风险预警</span>
                             </button>
-                            <button class="qa-btn" onclick="sendQuickMessage('工作量统计')">
-                                <span class="qa-icon">📉</span>
-                                <span>工作量统计</span>
-                            </button>
-                            <button class="qa-btn" onclick="sendQuickMessage('决策报告')">
-                                <span class="qa-icon">📝</span>
-                                <span>决策报告</span>
-                            </button>
                         </div>
                     </div>
                     <!-- 风险预警 -->
@@ -231,6 +215,11 @@
                 <div class="chat-box">
                     <div class="panel-title-bar">
                         <h3>💬 智能对话</h3>
+                    </div>
+                    <!-- 加载遮罩（仅在对话框区域显示） -->
+                    <div id="loadingOverlay" class="chat-loading-overlay hidden">
+                        <div class="loading-spinner"></div>
+                        <div class="loading-text">AI 正在思考中...</div>
                     </div>
                     <div class="chat-messages" id="messagesContainer">
                         <div class="message ai-message">

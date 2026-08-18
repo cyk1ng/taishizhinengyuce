@@ -537,7 +537,7 @@ function updateDashboardWithData(data) {
     // 更新当值班组名称
     const teamEl = document.getElementById('onDutyTeamName');
     if (teamEl) {
-        teamEl.textContent = data.on_duty_team_name || '调度一班';
+        teamEl.textContent = data.on_duty_team_name || 'A 班';
     }
     
     // 更新建议人数和超负荷状态

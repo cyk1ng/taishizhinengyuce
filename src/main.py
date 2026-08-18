@@ -580,7 +580,7 @@ def _mock_dashboard_response(today):
             "suggested_staff": 5,
             "is_overload": False
         },
-        "on_duty_team_name": "调度一班",
+        "on_duty_team_name": "A 班",
         "hourly_details": [
             {
                 "hour": h,
@@ -687,7 +687,7 @@ async def workload_dashboard():
                 "suggested_staff": suggested_staff,
                 "is_overload": is_overload
             },
-            "on_duty_team_name": "调度一班",
+            "on_duty_team_name": "A 班",
             "hourly_details": [],
             "plan_allocation": plan_data.get("shift_allocation", {}),
             "moduleBusiness": {

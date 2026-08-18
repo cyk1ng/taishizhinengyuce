@@ -43,13 +43,11 @@ from coze_coding_utils.error.classifier import ErrorClassifier, classify_error
 from coze_coding_utils.helper.stream_runner import AgentStreamRunner, WorkflowStreamRunner,agent_stream_handler,workflow_stream_handler, RunOpt
 from tools.local_knowledge import search_knowledge, import_document, get_all_documents, delete_document, update_document, count_documents, get_info
 from tools.scheduling import (
-    get_staff_detail as tool_get_staff_detail,
-    add_temp_personnel as tool_add_temp_personnel,
-    remove_temp_personnel as tool_remove_temp_personnel,
-    end_shift as tool_end_shift,
     get_all_teams,
     ScheduleDataProvider,
 )
+from tools.scheduling import get_staff_detail, end_shift  # 原始函数，非 @tool 装饰
+from tools.scheduling import add_temp_personnel, remove_temp_personnel  # 原始函数
 from tools.plan_workload import get_workload_dashboard, calculate_plan_workload, PlanWorkloadDatabase
 from tools.non_plan_workload import calculate_non_plan_workload, NonPlanWorkloadDatabase
 
@@ -1098,7 +1096,7 @@ async def knowledge_search(q: str = "", top_k: int = 5):
     try:
         if not q.strip():
             return get_all_documents(page=1, page_size=top_k)
-        results = search_knowledge(query=q, top_k=top_k)
+        results = search_knowledge.func(query=q, top_k=top_k)
         return {"total": len(results), "results": results}
     except Exception as e:
         logger.error(f"知识库搜索失败: {e}")
@@ -1180,7 +1178,7 @@ async def api_get_staff_detail(team_name: str = "", date_str: str = ""):
     - date_str: 日期 YYYY-MM-DD（可选，默认今天）
     """
     try:
-        result = json.loads(tool_get_staff_detail(team_name=team_name, date_str=date_str))
+        result = json.loads(get_staff_detail(team_name=team_name, date_str=date_str))
         if result.get("code") == 0:
             return {"success": True, "data": result}
         return {"success": False, "error": result.get("error", "获取失败")}
@@ -1196,7 +1194,7 @@ async def api_add_temp_personnel(request: Request):
     """
     try:
         body = await request.json()
-        result = json.loads(tool_add_temp_personnel(
+        result = json.loads(add_temp_personnel.func(
             record_id=body.get("record_id", ""),
             person_id=body.get("person_id", ""),
             person_name=body.get("person_name", ""),
@@ -1217,7 +1215,7 @@ async def api_remove_temp_personnel(request: Request):
     """
     try:
         body = await request.json()
-        result = json.loads(tool_remove_temp_personnel(
+        result = json.loads(remove_temp_personnel.func(
             record_id=body.get("record_id", ""),
             person_id=body.get("person_id", ""),
         ))
@@ -1236,7 +1234,7 @@ async def api_end_shift(request: Request):
     """
     try:
         body = await request.json()
-        result = json.loads(tool_end_shift(
+        result = json.loads(end_shift.func(
             record_id=body.get("record_id", ""),
         ))
         if result.get("code") == 0:

@@ -561,6 +561,8 @@ def _mock_dashboard_response(today):
     """生成兜底假数据（与 plan_workload_detail 和 nonplan_workload_detail 的 mock 数据保持一致）"""
     # 计划工作量各模块：检修11 + 投退5 + 方式单7 + 周计划18 + 保供电9 = 50
     # 非计划工作量各模块：跳闸(故障)7 + 缺陷3 + 重过载2 = 12
+    # 计划：开展中35，已终结15
+    # 非计划：开展中8，已终结4
     return {
         "success": True,
         "date": today,
@@ -572,8 +574,13 @@ def _mock_dashboard_response(today):
             "in_progress": 35,
             "completed": 15,
             "fault_count": 7,
-            "defect_count": 3
+            "defect_count": 3,
+            "non_plan_in_progress": 8,
+            "non_plan_completed": 4,
+            "suggested_staff": 5,
+            "is_overload": False
         },
+        "on_duty_team_name": "调度一班",
         "hourly_details": [
             {
                 "hour": h,
@@ -650,10 +657,18 @@ async def workload_dashboard():
         defect_count = nonplan_workload.get("defect_records", {}).get("count", 0)
         overload_count = nonplan_workload.get("overload_records", {}).get("count", 0)
         
+        # 非计划工作量：开展中/已终结
+        non_plan_in_progress = nonplan_workload.get("in_progress", fault_count + defect_count)
+        non_plan_completed = nonplan_workload.get("completed", overload_count)
+        
         # 如果真实数据全为0，也使用兜底假数据（避免Oracle空表导致界面空白）
         if total_plan == 0 and total_nonplan == 0 and fault_count == 0:
             logger.warning("数据库返回空数据，使用兜底假数据")
             return _mock_dashboard_response(today)
+        
+        # 计算建议人数和超负荷状态
+        suggested_staff = 5  # 默认建议人数
+        is_overload = total_nonplan > suggested_staff * 2
         
         return {
             "success": True,
@@ -666,8 +681,13 @@ async def workload_dashboard():
                 "in_progress": in_progress,
                 "completed": completed,
                 "fault_count": fault_count,
-                "defect_count": defect_count
+                "defect_count": defect_count,
+                "non_plan_in_progress": non_plan_in_progress,
+                "non_plan_completed": non_plan_completed,
+                "suggested_staff": suggested_staff,
+                "is_overload": is_overload
             },
+            "on_duty_team_name": "调度一班",
             "hourly_details": [],
             "plan_allocation": plan_data.get("shift_allocation", {}),
             "moduleBusiness": {
@@ -1020,6 +1040,45 @@ async def predict_workload(target_date: str = ""):
 async def health_check():
     """健康检查接口"""
     return {"status": "ok", "service": "配网调度业务量智能预测系统"}
+
+# 风险预警接口
+@app.get("/api/risk_alerts")
+async def risk_alerts():
+    """获取风险预警数据"""
+    try:
+        # TODO: 从数据库获取真实风险预警数据
+        # 暂时返回假数据
+        return {
+            "success": True,
+            "alerts": [
+                {"level": "warning", "title": "明日预测工作量偏高", "desc": "预计明日工作量超出人员承载能力，建议提前调配人员"},
+                {"level": "success", "title": "人员配置合理", "desc": "当前值班人员数量满足工作需求"},
+                {"level": "danger", "title": "设备重过载风险", "desc": "2台设备存在重过载风险，需重点关注"}
+            ]
+        }
+    except Exception as e:
+        logger.error(f"获取风险预警失败: {e}")
+        return {"success": False, "alerts": []}
+
+# 今日待办接口
+@app.get("/api/todos")
+async def todos():
+    """获取今日待办数据"""
+    try:
+        # TODO: 从数据库获取真实待办数据
+        # 暂时返回假数据
+        return {
+            "success": True,
+            "todos": [
+                {"title": "故障日志处理", "status": "pending"},
+                {"title": "检修单审核", "status": "pending"},
+                {"title": "操作票审核", "status": "pending"},
+                {"title": "周计划确认", "status": "completed"}
+            ]
+        }
+    except Exception as e:
+        logger.error(f"获取待办数据失败: {e}")
+        return {"success": False, "todos": []}
 
 # ===== 知识库 API（放在通配路由之前，避免被拦截）=====
 

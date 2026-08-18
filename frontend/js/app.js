@@ -535,18 +535,18 @@ function updateDashboardWithData(data) {
     document.getElementById('currentStaff').textContent = Math.round(totalStaff) + '人';
     
     // 更新当值班组名称
-    if (data.on_duty_team_name) {
-        const teamEl = document.getElementById('onDutyTeamName');
-        if (teamEl) teamEl.textContent = data.on_duty_team_name;
+    const teamEl = document.getElementById('onDutyTeamName');
+    if (teamEl) {
+        teamEl.textContent = data.on_duty_team_name || '调度一班';
     }
     
     // 更新建议人数和超负荷状态
-    const suggestedStaff = summary.suggested_staff || Math.round(totalStaff);
+    const suggestedStaff = summary.suggested_staff || Math.round(totalStaff) || 5;
     document.getElementById('suggestedStaff').textContent = suggestedStaff + '人';
     
     const overloadEl = document.getElementById('overloadStatus');
     if (overloadEl) {
-        const isOverload = summary.is_overload || (nonPlanTotal > suggestedStaff * 2);
+        const isOverload = summary.is_overload !== undefined ? summary.is_overload : (nonPlanTotal > suggestedStaff * 2);
         overloadEl.textContent = isOverload ? '是' : '否';
         overloadEl.className = 'stat-info-value ' + (isOverload ? 'warning' : 'success');
     }
@@ -918,6 +918,107 @@ function sendQuickMessage(text) {
     sendMessage();
 }
 
+/**
+ * 初始化风险预警假数据
+ */
+function initRiskAlerts() {
+    const container = document.getElementById('riskAlerts');
+    if (!container) return;
+    
+    // 尝试从API获取数据
+    fetch(`${(window.BASE_PATH || '')}/api/risk_alerts`)
+        .then(res => res.json())
+        .then(data => {
+            if (data && data.success && data.alerts && data.alerts.length > 0) {
+                renderRiskAlerts(data.alerts);
+            } else {
+                // 使用假数据
+                renderRiskAlerts([
+                    { level: 'warning', title: '明日预测工作量偏高', desc: '预计明日工作量超出人员承载能力，建议提前调配人员' },
+                    { level: 'success', title: '人员配置合理', desc: '当前值班人员数量满足工作需求' },
+                    { level: 'danger', title: '设备重过载风险', desc: '2台设备存在重过载风险，需重点关注' }
+                ]);
+            }
+        })
+        .catch(() => {
+            // API失败，使用假数据
+            renderRiskAlerts([
+                { level: 'warning', title: '明日预测工作量偏高', desc: '预计明日工作量超出人员承载能力，建议提前调配人员' },
+                { level: 'success', title: '人员配置合理', desc: '当前值班人员数量满足工作需求' },
+                { level: 'danger', title: '设备重过载风险', desc: '2台设备存在重过载风险，需重点关注' }
+            ]);
+        });
+}
+
+function renderRiskAlerts(alerts) {
+    const container = document.getElementById('riskAlerts');
+    if (!container) return;
+    
+    container.innerHTML = alerts.map(alert => {
+        const icon = alert.level === 'danger' ? '🔴' : alert.level === 'warning' ? '⚠️' : '✅';
+        const color = alert.level === 'danger' ? 'var(--accent-red)' : alert.level === 'warning' ? 'var(--accent-orange)' : 'var(--accent-green)';
+        return `
+            <div class="todo-item">
+                <span style="color: ${color}; margin-right: 8px;">${icon}</span>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">${alert.title}</div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">${alert.desc}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * 初始化今日待办假数据
+ */
+function initTodos() {
+    const container = document.getElementById('todoList');
+    if (!container) return;
+    
+    // 尝试从API获取数据
+    fetch(`${(window.BASE_PATH || '')}/api/todos`)
+        .then(res => res.json())
+        .then(data => {
+            if (data && data.success && data.todos && data.todos.length > 0) {
+                renderTodos(data.todos);
+            } else {
+                // 使用假数据
+                renderTodos([
+                    { title: '故障日志处理', status: 'pending' },
+                    { title: '检修单审核', status: 'pending' },
+                    { title: '操作票审核', status: 'pending' },
+                    { title: '周计划确认', status: 'completed' }
+                ]);
+            }
+        })
+        .catch(() => {
+            // API失败，使用假数据
+            renderTodos([
+                { title: '故障日志处理', status: 'pending' },
+                { title: '检修单审核', status: 'pending' },
+                { title: '操作票审核', status: 'pending' },
+                { title: '周计划确认', status: 'completed' }
+            ]);
+        });
+}
+
+function renderTodos(todos) {
+    const container = document.getElementById('todoList');
+    if (!container) return;
+    
+    container.innerHTML = todos.map(todo => {
+        const icon = todo.status === 'completed' ? '✅' : '⏳';
+        const color = todo.status === 'completed' ? 'var(--accent-green)' : 'var(--accent-orange)';
+        return `
+            <div class="todo-item">
+                <span style="color: ${color}; margin-right: 8px;">${icon}</span>
+                <span style="flex: 1; color: var(--text-primary);">${todo.title}</span>
+            </div>
+        `;
+    }).join('');
+}
+
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
     // 初始化所有图表（默认显示0，等待真实数据）
@@ -944,6 +1045,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 更新工作量统计数据
     updateWorkloadStats();
+    
+    // 初始化风险预警和今日待办
+    initRiskAlerts();
+    initTodos();
 
     // 为天气卡片添加事件监听器
     const weatherCard = document.getElementById('weather-card');

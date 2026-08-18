@@ -505,6 +505,7 @@ body {
     border-radius: 10px;
     padding: 12px;
     min-width: 0;
+    min-height: 180px;
 }
 .quick-actions-box:hover,
 .risk-alerts-box:hover,

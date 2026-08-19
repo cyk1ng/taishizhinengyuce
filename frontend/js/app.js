@@ -1403,10 +1403,10 @@ function showWorkloadModal(type) {
     modal.classList.remove('hidden');
 
     if (type === 'plan') {
-        title.textContent = '📋 计划工作量详情';
+        title.textContent = ' 计划工作量详情';
         content.innerHTML = `
             <div class="plan-workload-card">
-                <div class="plan-card-header"><span class="plan-icon"></span><span class="plan-title">计划检修</span></div>
+                <div class="plan-card-header"><span class="plan-icon">🔧</span><span class="plan-title">计划检修</span></div>
                 <div class="plan-card-body">
                     <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><input type="number" class="plan-sub-input" id="plan-maint-ip" /></div>
                     <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><input type="number" class="plan-sub-input" id="plan-maint-cp" /></div>
@@ -1420,14 +1420,14 @@ function showWorkloadModal(type) {
                 </div>
             </div>
             <div class="plan-workload-card">
-                <div class="plan-card-header"><span class="plan-icon">️</span><span class="plan-title">设备投退</span></div>
+                <div class="plan-card-header"><span class="plan-icon">⚙️</span><span class="plan-title">设备投退</span></div>
                 <div class="plan-card-body">
                     <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><input type="number" class="plan-sub-input" id="plan-equip-ip" /></div>
                     <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><input type="number" class="plan-sub-input" id="plan-equip-cp" /></div>
                 </div>
             </div>
             <div class="plan-workload-card">
-                <div class="plan-card-header"><span class="plan-icon"></span><span class="plan-title">周计划</span></div>
+                <div class="plan-card-header"><span class="plan-icon">📅</span><span class="plan-title">周计划</span></div>
                 <div class="plan-card-body">
                     <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><input type="number" class="plan-sub-input" id="plan-weekly-ip" /></div>
                     <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><input type="number" class="plan-sub-input" id="plan-weekly-cp" /></div>
@@ -1458,7 +1458,7 @@ function showWorkloadModal(type) {
         title.textContent = ' 非计划工作量详情';
         content.innerHTML = `
             <div class="plan-workload-card">
-                <div class="plan-card-header"><span class="plan-icon"></span><span class="plan-title">故障日志</span></div>
+                <div class="plan-card-header"><span class="plan-icon">📝</span><span class="plan-title">故障日志</span></div>
                 <div class="plan-card-body"><div class="plan-sub-row"><span class="plan-sub-label">数量</span><input type="number" class="plan-sub-input" id="np-fault" /></div></div>
             </div>
             <div class="plan-workload-card">

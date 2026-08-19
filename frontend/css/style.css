@@ -1157,6 +1157,29 @@ body {
     color: var(--text-secondary);
 }
 
+/* 加入当值按钮 */
+.btn-join-duty {
+    padding: 6px 14px;
+    background: linear-gradient(135deg, var(--accent-blue), #0066cc);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.btn-join-duty:hover {
+    background: linear-gradient(135deg, #0066cc, #0055aa);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(79, 195, 247, 0.3);
+}
+.btn-join-duty:active {
+    transform: translateY(0);
+}
+
 /* Risk summary */
 .risk-summary {
     display: flex;

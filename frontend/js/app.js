@@ -530,9 +530,9 @@ function updateDashboardWithData(data) {
     document.getElementById('stat-non-plan-in-progress').textContent = nonPlanInProgress;
     document.getElementById('stat-non-plan-completed').textContent = nonPlanCompleted;
     
-    // 更新当值人员信息
-    const totalStaff = hourlyDetails.reduce((sum, h) => sum + (h.staff_count || 0), 0) / 24 || 0;
-    document.getElementById('currentStaff').textContent = Math.round(totalStaff) + '人';
+    // 更新当值人员信息 - 优先使用 API 返回的 on_duty_staff_count
+    const onDutyStaffCount = data.on_duty_staff_count || Math.round(hourlyDetails.reduce((sum, h) => sum + (h.staff_count || 0), 0) / 24) || 0;
+    document.getElementById('currentStaff').textContent = onDutyStaffCount + '人';
     
     // 更新当值班组名称
     const teamEl = document.getElementById('onDutyTeamName');
@@ -541,7 +541,7 @@ function updateDashboardWithData(data) {
     }
     
     // 更新建议人数和超负荷状态
-    const suggestedStaff = summary.suggested_staff || Math.round(totalStaff) || 5;
+    const suggestedStaff = summary.suggested_staff || onDutyStaffCount || 5;
     document.getElementById('suggestedStaff').textContent = suggestedStaff + '人';
     
     const overloadEl = document.getElementById('overloadStatus');
@@ -1690,9 +1690,95 @@ function showStaffDetail() {
         .then(r => r.json())
         .then(data => {
             console.log('Staff detail loaded:', data);
+            if (data.success && data.data) {
+                renderStaffDetail(data.data);
+            }
         })
         .catch(err => {
             console.error('Failed to load staff detail:', err);
         });
+}
+
+/**
+ * 渲染值班人员详情
+ */
+function renderStaffDetail(data) {
+    // 更新弹窗头部信息
+    const modalTeam = document.getElementById('modalOnDutyTeam');
+    if (modalTeam) modalTeam.textContent = data.on_duty_team_name || 'A 班';
+    
+    // 找到当前班组的当值人员
+    const currentTeam = data.teams?.find(t => t.team_name === data.on_duty_team_name);
+    const onDutyPersonnel = currentTeam?.on_duty_personnel || [];
+    const restingPersonnel = data.resting_personnel || [];
+    
+    // 更新人数统计
+    const onDutyCount = document.getElementById('onDutyCount');
+    if (onDutyCount) onDutyCount.textContent = onDutyPersonnel.length + '人';
+    
+    const restingCount = document.getElementById('restingCount');
+    if (restingCount) restingCount.textContent = restingPersonnel.length + '人';
+    
+    // 渲染当值人员列表
+    const onDutyList = document.getElementById('onDutyStaffList');
+    if (onDutyList) {
+        onDutyList.innerHTML = onDutyPersonnel.map(p => `
+            <div class="staff-card">
+                <div class="staff-avatar">${p.name.charAt(0)}</div>
+                <div class="staff-info">
+                    <div class="staff-name">${p.name}</div>
+                    <div class="staff-role">${p.role} ${p.team}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    // 渲染休息人员列表（带加入当值按钮）
+    const restingList = document.getElementById('restingStaffList');
+    if (restingList) {
+        restingList.innerHTML = restingPersonnel.map(p => `
+            <div class="staff-card">
+                <div class="staff-avatar">${p.name.charAt(0)}</div>
+                <div class="staff-info">
+                    <div class="staff-name">${p.name}</div>
+                    <div class="staff-role">${p.role} ${p.team}</div>
+                </div>
+                <button class="btn-join-duty" onclick="joinDuty('${p.id}', '${p.name}', '${p.team}')">加入当值</button>
+            </div>
+        `).join('');
+    }
+}
+
+/**
+ * 加入当值
+ */
+async function joinDuty(personId, personName, homeTeamName) {
+    try {
+        const response = await fetch(`${(window.BASE_PATH || '')}/api/staff/temp/add`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                record_id: '',
+                person_id: personId,
+                person_name: personName,
+                home_team_name: homeTeamName
+            })
+        });
+        const result = await response.json();
+        if (result.success) {
+            alert(`${personName} 已成功加入当值`);
+            // 重新加载数据
+            const teamName = document.getElementById('onDutyTeamName')?.textContent || 'A 班';
+            const today = new Date().toISOString().split('T')[0];
+            const data = await fetch(`${(window.BASE_PATH || '')}/api/staff/detail?team_name=${encodeURIComponent(teamName)}&date_str=${today}`).then(r => r.json());
+            if (data.success && data.data) {
+                renderStaffDetail(data.data);
+            }
+        } else {
+            alert('加入失败：' + (result.error || '未知错误'));
+        }
+    } catch (err) {
+        alert('加入失败：' + err.message);
+    }
 }
 

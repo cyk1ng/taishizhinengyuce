@@ -579,6 +579,7 @@ def _mock_dashboard_response(today):
             "is_overload": False
         },
         "on_duty_team_name": "A 班",
+        "on_duty_staff_count": 7,
         "hourly_details": [
             {
                 "hour": h,

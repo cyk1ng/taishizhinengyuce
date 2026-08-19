@@ -1105,6 +1105,13 @@ body {
 .staff-list::-webkit-scrollbar { width: 4px; }
 .staff-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
 
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
 .staff-card {
     display: flex;
     align-items: center;

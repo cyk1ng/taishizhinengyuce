@@ -1668,6 +1668,10 @@ function closeDecisionReportModal() {
 
 
 // ========== 显示班组详情弹窗 ==========
+// 全局存储班组详情数据，供班次切换使用
+let staffDetailData = null;
+let currentSelectedShift = '早班';
+
 function showStaffDetail() {
     const modal = document.getElementById('staffModal');
     if (!modal) return;
@@ -1691,7 +1695,19 @@ function showStaffDetail() {
         .then(data => {
             console.log('Staff detail loaded:', data);
             if (data.success && data.data) {
-                renderStaffDetail(data.data);
+                staffDetailData = data.data;
+                // 根据当前时间自动选择班次
+                const now = new Date();
+                const hour = now.getHours();
+                if (hour >= 0 && hour < 8) {
+                    currentSelectedShift = '晚班';
+                } else if (hour >= 8 && hour < 16) {
+                    currentSelectedShift = '早班';
+                } else {
+                    currentSelectedShift = '中班';
+                }
+                renderStaffDetail(staffDetailData, currentSelectedShift);
+                updateShiftButtons(currentSelectedShift);
             }
         })
         .catch(err => {
@@ -1700,16 +1716,45 @@ function showStaffDetail() {
 }
 
 /**
+ * 切换班次筛选
+ */
+function selectShift(shiftName) {
+    currentSelectedShift = shiftName;
+    updateShiftButtons(shiftName);
+    if (staffDetailData) {
+        renderStaffDetail(staffDetailData, shiftName);
+    }
+}
+
+/**
+ * 更新班次按钮高亮状态
+ */
+function updateShiftButtons(activeShift) {
+    const buttons = document.querySelectorAll('.shift-btn');
+    buttons.forEach(btn => {
+        if (btn.dataset.shift === activeShift) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+}
+
+/**
  * 渲染值班人员详情
  */
-function renderStaffDetail(data) {
+function renderStaffDetail(data, shiftName) {
     // 更新弹窗头部信息
     const modalTeam = document.getElementById('modalOnDutyTeam');
     if (modalTeam) modalTeam.textContent = data.on_duty_team_name || 'A 班';
     
-    // 找到当前班组的当值人员
-    const currentTeam = data.teams?.find(t => t.team_name === data.on_duty_team_name);
-    const onDutyPersonnel = currentTeam?.on_duty_personnel || [];
+    // 更新班次显示
+    const modalShift = document.getElementById('modalOnDutyShift');
+    if (modalShift) modalShift.textContent = shiftName || '早班';
+    
+    // 根据班次筛选对应的班组
+    const targetTeam = data.teams?.find(t => t.shift_type === shiftName);
+    const onDutyPersonnel = targetTeam?.on_duty_personnel || [];
     const restingPersonnel = data.resting_personnel || [];
     
     // 更新人数统计
@@ -1722,30 +1767,38 @@ function renderStaffDetail(data) {
     // 渲染当值人员列表
     const onDutyList = document.getElementById('onDutyStaffList');
     if (onDutyList) {
-        onDutyList.innerHTML = onDutyPersonnel.map(p => `
-            <div class="staff-card">
-                <div class="staff-avatar">${p.name.charAt(0)}</div>
-                <div class="staff-info">
-                    <div class="staff-name">${p.name}</div>
-                    <div class="staff-role">${p.role} ${p.team}</div>
+        if (onDutyPersonnel.length === 0) {
+            onDutyList.innerHTML = '<div class="empty-state">该班次暂无当值人员</div>';
+        } else {
+            onDutyList.innerHTML = onDutyPersonnel.map(p => `
+                <div class="staff-card">
+                    <div class="staff-avatar">${p.name.charAt(0)}</div>
+                    <div class="staff-info">
+                        <div class="staff-name">${p.name}</div>
+                        <div class="staff-role">${p.role} ${p.team}</div>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `).join('');
+        }
     }
     
     // 渲染休息人员列表（带加入当值按钮）
     const restingList = document.getElementById('restingStaffList');
     if (restingList) {
-        restingList.innerHTML = restingPersonnel.map(p => `
-            <div class="staff-card">
-                <div class="staff-avatar">${p.name.charAt(0)}</div>
-                <div class="staff-info">
-                    <div class="staff-name">${p.name}</div>
-                    <div class="staff-role">${p.role} ${p.team}</div>
+        if (restingPersonnel.length === 0) {
+            restingList.innerHTML = '<div class="empty-state">暂无休息人员</div>';
+        } else {
+            restingList.innerHTML = restingPersonnel.map(p => `
+                <div class="staff-card">
+                    <div class="staff-avatar">${p.name.charAt(0)}</div>
+                    <div class="staff-info">
+                        <div class="staff-name">${p.name}</div>
+                        <div class="staff-role">${p.role} ${p.team}</div>
+                    </div>
+                    <button class="btn-join-duty" onclick="joinDuty('${p.id}', '${p.name}', '${p.team}')">加入当值</button>
                 </div>
-                <button class="btn-join-duty" onclick="joinDuty('${p.id}', '${p.name}', '${p.team}')">加入当值</button>
-            </div>
-        `).join('');
+            `).join('');
+        }
     }
 }
 

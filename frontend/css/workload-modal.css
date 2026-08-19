@@ -13,14 +13,16 @@
 .plan-workload-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: 12px;
     overflow: hidden;
     transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .plan-workload-card:hover {
     border-color: var(--accent-blue);
-    box-shadow: var(--glow-blue);
+    box-shadow: 0 4px 12px rgba(79, 195, 247, 0.3);
+    transform: translateY(-2px);
 }
 
 .plan-card-header {
@@ -141,14 +143,16 @@
 .non-plan-workload-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: 12px;
     overflow: hidden;
     transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .non-plan-workload-card:hover {
     border-color: var(--accent-orange);
-    box-shadow: 0 0 20px rgba(249, 115, 22, 0.2);
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+    transform: translateY(-2px);
 }
 
 .non-plan-card-header {

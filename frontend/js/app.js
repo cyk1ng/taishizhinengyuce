@@ -1459,15 +1459,24 @@ function showWorkloadModal(type) {
         content.innerHTML = `
             <div class="plan-workload-card">
                 <div class="plan-card-header"><span class="plan-icon">📝</span><span class="plan-title">故障日志</span></div>
-                <div class="plan-card-body"><div class="plan-sub-row"><span class="plan-sub-label">数量</span><input type="number" class="plan-sub-input" id="np-fault" /></div></div>
+                <div class="plan-card-body">
+                    <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><input type="number" class="plan-sub-input" id="np-fault-inprogress" /></div>
+                    <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><input type="number" class="plan-sub-input" id="np-fault-completed" /></div>
+                </div>
             </div>
             <div class="plan-workload-card">
                 <div class="plan-card-header"><span class="plan-icon">⚠️</span><span class="plan-title">异常缺陷</span></div>
-                <div class="plan-card-body"><div class="plan-sub-row"><span class="plan-sub-label">数量</span><input type="number" class="plan-sub-input" id="np-defect" /></div></div>
+                <div class="plan-card-body">
+                    <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><input type="number" class="plan-sub-input" id="np-defect-inprogress" /></div>
+                    <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><input type="number" class="plan-sub-input" id="np-defect-completed" /></div>
+                </div>
             </div>
             <div class="plan-workload-card">
                 <div class="plan-card-header"><span class="plan-icon">🔴</span><span class="plan-title">重过载</span></div>
-                <div class="plan-card-body"><div class="plan-sub-row"><span class="plan-sub-label">数量</span><input type="number" class="plan-sub-input" id="np-overload" /></div></div>
+                <div class="plan-card-body">
+                    <div class="plan-sub-row"><span class="plan-sub-label">开展中</span><input type="number" class="plan-sub-input" id="np-overload-inprogress" /></div>
+                    <div class="plan-sub-row"><span class="plan-sub-label">已终结</span><input type="number" class="plan-sub-input" id="np-overload-completed" /></div>
+                </div>
             </div>
             <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end; margin-top: 16px; gap: 12px;">
                 <button class="btn-cancel" onclick="closeWorkloadModal()">取消</button>
@@ -1478,12 +1487,18 @@ function showWorkloadModal(type) {
             .then(r => r.json())
             .then(data => {
                 const d = data.details || {};
-                const el1 = document.getElementById('np-fault');
-                const el2 = document.getElementById('np-defect');
-                const el3 = document.getElementById('np-overload');
-                if (el1) el1.value = d.fault?.count ?? 0;
-                if (el2) el2.value = d.defect?.count ?? 0;
-                if (el3) el3.value = d.overload?.count ?? 0;
+                const el1 = document.getElementById('np-fault-inprogress');
+                const el2 = document.getElementById('np-fault-completed');
+                const el3 = document.getElementById('np-defect-inprogress');
+                const el4 = document.getElementById('np-defect-completed');
+                const el5 = document.getElementById('np-overload-inprogress');
+                const el6 = document.getElementById('np-overload-completed');
+                if (el1) el1.value = d.fault?.in_progress ?? 0;
+                if (el2) el2.value = d.fault?.completed ?? 0;
+                if (el3) el3.value = d.defect?.in_progress ?? 0;
+                if (el4) el4.value = d.defect?.completed ?? 0;
+                if (el5) el5.value = d.overload?.in_progress ?? 0;
+                if (el6) el6.value = d.overload?.completed ?? 0;
             })
             .catch(() => {});
     }

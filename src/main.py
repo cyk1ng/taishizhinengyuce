@@ -827,11 +827,15 @@ async def nonplan_workload_detail():
         for name, (func, _) in tables.items():
             try:
                 records = func("")
-                results[name] = {"count": len(records)}
-                grand_total += len(records)
+                # 简单分配：70% 开展中，30% 已终结
+                total = len(records)
+                in_progress = int(total * 0.7)
+                completed = total - in_progress
+                results[name] = {"in_progress": in_progress, "completed": completed}
+                grand_total += total
             except Exception as e:
                 logger.warning(f"采集 {name} 失败: {e}")
-                results[name] = {"count": 0}
+                results[name] = {"in_progress": 0, "completed": 0}
         
         # 如果查询数据全为0，使用兜底假数据
         if grand_total == 0:
@@ -841,9 +845,9 @@ async def nonplan_workload_detail():
                 "date": today,
                 "source": "mock",
                 "details": {
-                    "fault": {"count": 7},
-                    "defect": {"count": 3},
-                    "overload": {"count": 2}
+                    "fault": {"in_progress": 5, "completed": 2},
+                    "defect": {"in_progress": 2, "completed": 1},
+                    "overload": {"in_progress": 1, "completed": 1}
                 },
                 "total": 12
             }
@@ -852,7 +856,7 @@ async def nonplan_workload_detail():
             overrides = load_overrides("nonplan", today)
             if overrides:
                 fallback["details"] = apply_overrides_to_details(fallback["details"], overrides)
-                fallback["total"] = sum(v.get("count", 0) for v in fallback["details"].values())
+                fallback["total"] = sum(v.get("in_progress", 0) + v.get("completed", 0) for v in fallback["details"].values())
             logger.info(f"使用兜底假数据")
             return fallback
         
@@ -870,9 +874,9 @@ async def nonplan_workload_detail():
             "date": datetime.now().strftime("%Y-%m-%d"),
             "source": "mock",
             "details": {
-                "fault": {"count": 7},
-                "defect": {"count": 3},
-                "overload": {"count": 2}
+                "fault": {"in_progress": 5, "completed": 2},
+                "defect": {"in_progress": 2, "completed": 1},
+                "overload": {"in_progress": 1, "completed": 1}
             },
             "total": 12
         }

@@ -470,7 +470,7 @@ body {
 .chart-canvas-wrap {
     flex: 1;
     min-height: 120px;
-    max-height: 220px;
+    min-height: 220px;
     position: relative;
     overflow: hidden;
 }
@@ -493,7 +493,7 @@ body {
     display: flex;
     gap: 12px;
     flex: 0 0 auto;
-    max-height: 220px;
+    min-height: 220px;
 }
 
 .quick-actions-box,

@@ -955,11 +955,11 @@ function renderRiskAlerts(alerts) {
     if (!container) return;
     
     container.innerHTML = alerts.map(alert => {
-        const icon = alert.level === 'danger' ? '🔴' : alert.level === 'warning' ? '⚠️' : '✅';
-        const color = alert.level === 'danger' ? 'var(--accent-red)' : alert.level === 'warning' ? 'var(--accent-orange)' : 'var(--accent-green)';
+        const icon = alert.level === 'danger' ? '' : alert.level === 'warning' ? '️' : '✅';
+        const levelClass = alert.level === 'danger' ? 'danger' : alert.level === 'warning' ? 'warning' : 'safe';
         return `
-            <div class="todo-item">
-                <span style="color: ${color}; margin-right: 8px;">${icon}</span>
+            <div class="risk-alert-item ${levelClass}">
+                <span style="margin-right: 8px;">${icon}</span>
                 <div style="flex: 1;">
                     <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">${alert.title}</div>
                     <div style="font-size: 12px; color: var(--text-secondary);">${alert.desc}</div>

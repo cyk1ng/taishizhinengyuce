@@ -1063,18 +1063,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // 快速操作按钮点击事件
     // 快速操作按钮已改为 onclick 直接调用 sendQuickMessage
 
-    // 初始化风险预警和今日待办假数据
-    initFakeRiskAlerts();
-    initFakeTodos();
-
-    console.log(' 配网调度业务量智能预测系统已加载（使用假数据展示）');
+    console.log(' 配网调度业务量智能预测系统已加载');
 });
 
 /**
  * 初始化风险预警假数据
  */
 function initFakeRiskAlerts() {
-    const container = document.getElementById('riskAlertsContainer');
+    const container = document.getElementById('riskAlerts');
     if (!container) return;
     
     // 检查是否有真实数据
@@ -1108,7 +1104,7 @@ function initFakeRiskAlerts() {
  * 渲染风险预警
  */
 function renderRiskAlerts(alerts) {
-    const container = document.getElementById('riskAlertsContainer');
+    const container = document.getElementById('riskAlerts');
     if (!container) return;
     
     container.innerHTML = alerts.map(alert => `
@@ -1126,7 +1122,7 @@ function renderRiskAlerts(alerts) {
  * 初始化今日待办假数据
  */
 function initFakeTodos() {
-    const container = document.getElementById('todoContainer');
+    const container = document.getElementById('todoList');
     if (!container) return;
     
     // 检查是否有真实数据
@@ -1162,7 +1158,7 @@ function initFakeTodos() {
  * 渲染待办事项
  */
 function renderTodos(todos) {
-    const container = document.getElementById('todoContainer');
+    const container = document.getElementById('todoList');
     if (!container) return;
     
     container.innerHTML = todos.map(todo => `

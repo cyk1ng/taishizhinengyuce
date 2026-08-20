@@ -568,7 +568,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    max-height: 120px;
+    max-height: 160px;
     overflow-y: auto;
 }
 .risk-list::-webkit-scrollbar { width: 4px; }
@@ -1654,6 +1654,7 @@ body {
 
 /* 风险预警弹窗样式 */
 .risk-list {
+    max-height: 160px;
     list-style: none;
     padding: 0;
     margin: 0;
@@ -1837,7 +1838,6 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
 }
 .todo-desc {
     font-size: 11px;

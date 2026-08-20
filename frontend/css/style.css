@@ -577,40 +577,50 @@ body {
 .risk-alert-item {
     display: flex;
     align-items: flex-start;
-    gap: 6px;
-    padding: 6px 8px;
-    border-radius: 6px;
-    font-size: 12px;
-    line-height: 1.4;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border-left: 4px solid transparent;
+    margin-bottom: 8px;
+    background: rgba(30, 41, 59, 0.5);
+    transition: all 0.2s;
+}
+.risk-alert-item:hover {
+    background: rgba(30, 41, 59, 0.8);
+    transform: translateX(2px);
 }
 .risk-alert-item.danger {
-    background: rgba(239, 83, 80, 0.1);
-    border-left: 3px solid var(--accent-red);
+    border-left-color: #f59e0b;
 }
 .risk-alert-item.warning {
-    background: rgba(255, 213, 79, 0.1);
-    border-left: 3px solid var(--accent-yellow);
+    border-left-color: #f59e0b;
 }
 .risk-alert-item.safe {
-    background: rgba(105, 240, 174, 0.1);
-    border-left: 3px solid var(--accent-green);
+    border-left-color: #10b981;
 }
-.risk-alert-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
+.risk-alert-icon {
+    font-size: 18px;
     flex-shrink: 0;
-    margin-top: 4px;
+    margin-top: 2px;
 }
-.risk-alert-item.danger .risk-alert-dot { background: var(--accent-red); }
-.risk-alert-item.warning .risk-alert-dot { background: var(--accent-yellow); }
-.risk-alert-item.safe .risk-alert-dot { background: var(--accent-green); }
-.risk-alert-text {
-    color: var(--text-primary);
+.risk-alert-content {
+    flex: 1;
+    min-width: 0;
+}
+.risk-alert-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+.risk-alert-desc {
     font-size: 12px;
-}
-.risk-alert-text strong {
-    display: block;
-    margin-bottom: 2px;
+    color: #94a3b8;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* Chat Box */
@@ -1786,32 +1796,48 @@ body {
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    padding: 10px 12px;
-    border-bottom: 1px solid var(--border-color);
+    padding: 12px 14px;
+    border-radius: 8px;
+    border-left: 4px solid transparent;
+    margin-bottom: 8px;
+    background: rgba(30, 41, 59, 0.5);
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s;
 }
 .todo-item:hover {
-    background: var(--bg-secondary, rgba(255,255,255,0.05));
+    background: rgba(30, 41, 59, 0.8);
+    transform: translateX(2px);
 }
-.todo-item:last-child {
-    border-bottom: none;
+.todo-item.pending {
+    border-left-color: #f59e0b;
+}
+.todo-item.completed {
+    border-left-color: #10b981;
 }
 .todo-icon {
     font-size: 18px;
     flex-shrink: 0;
+    margin-top: 2px;
 }
 .todo-content {
     flex: 1;
     min-width: 0;
 }
 .todo-title {
-    font-size: 13px;
+    font-size: 14px;
+    font-weight: 600;
     color: #fff;
     margin-bottom: 4px;
-    white-space: nowrap;
+    line-height: 1.4;
+}
+.todo-desc {
+    font-size: 12px;
+    color: #94a3b8;
+    line-height: 1.4;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+}
 }
 .todo-desc {
     font-size: 11px;

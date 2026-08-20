@@ -985,10 +985,8 @@ function initTodos() {
             } else {
                 // 使用假数据
                 renderTodos([
-                    { title: '故障日志处理', status: 'pending' },
-                    { title: '检修单审核', status: 'pending' },
-                    { title: '操作票审核', status: 'pending' },
-                    { title: '周计划确认', status: 'completed' }
+                    { title: '审核调度计划', status: 'pending', desc: '明日调度计划 A1-A3 待审核确认' },
+                    { title: '设备巡检完成', status: 'completed', desc: '110kV 变电站巡检已完成，无异常' }
                 ]);
             }
         })

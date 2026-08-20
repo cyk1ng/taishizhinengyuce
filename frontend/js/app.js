@@ -1531,10 +1531,14 @@ function savePlanWorkload() {
         }
     };
     
-    fetch(`${(window.BASE_PATH || '')}/api/plan_workload_detail`, {
+    fetch(`${(window.BASE_PATH || '')}/api/save_workload_override`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify({
+            workload_type: 'plan',
+            data: data,
+            target_date: new Date().toISOString().split('T')[0]
+        })
     })
     .then(r => r.json())
     .then(result => {
@@ -1557,15 +1561,28 @@ function savePlanWorkload() {
  */
 function saveNonPlanWorkload() {
     const data = {
-        fault: { count: parseInt(document.getElementById('np-fault')?.value || 0) },
-        defect: { count: parseInt(document.getElementById('np-defect')?.value || 0) },
-        overload: { count: parseInt(document.getElementById('np-overload')?.value || 0) }
+        fault: {
+            in_progress: parseInt(document.getElementById('np-fault-inprogress')?.value || 0),
+            completed: parseInt(document.getElementById('np-fault-completed')?.value || 0)
+        },
+        defect: {
+            in_progress: parseInt(document.getElementById('np-defect-inprogress')?.value || 0),
+            completed: parseInt(document.getElementById('np-defect-completed')?.value || 0)
+        },
+        overload: {
+            in_progress: parseInt(document.getElementById('np-overload-inprogress')?.value || 0),
+            completed: parseInt(document.getElementById('np-overload-completed')?.value || 0)
+        }
     };
     
-    fetch(`${(window.BASE_PATH || '')}/api/nonplan_workload_detail`, {
+    fetch(`${(window.BASE_PATH || '')}/api/save_workload_override`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify({
+            workload_type: 'nonplan',
+            data: data,
+            target_date: new Date().toISOString().split('T')[0]
+        })
     })
     .then(r => r.json())
     .then(result => {

@@ -993,10 +993,8 @@ function initTodos() {
         .catch(() => {
             // API失败，使用假数据
             renderTodos([
-                { title: '故障日志处理', status: 'pending' },
-                { title: '检修单审核', status: 'pending' },
-                { title: '操作票审核', status: 'pending' },
-                { title: '周计划确认', status: 'completed' }
+                { title: '审核调度计划', status: 'pending', desc: '明日调度计划 A1-A3 待审核确认' },
+                { title: '设备巡检完成', status: 'completed', desc: '110kV 变电站巡检已完成，无异常' }
             ]);
         });
 }
@@ -1006,12 +1004,15 @@ function renderTodos(todos) {
     if (!container) return;
     
     container.innerHTML = todos.map(todo => {
-        const icon = todo.status === 'completed' ? '✅' : '⏳';
-        const color = todo.status === 'completed' ? 'var(--accent-green)' : 'var(--accent-orange)';
+        const icon = todo.status === 'completed' ? '✓' : '📋';
+        const statusClass = todo.status === 'completed' ? 'completed' : 'pending';
         return `
-            <div class="todo-item">
-                <span style="color: ${color}; margin-right: 8px;">${icon}</span>
-                <span style="flex: 1; color: var(--text-primary);">${todo.title}</span>
+            <div class="todo-item ${statusClass}">
+                <span class="todo-icon">${icon}</span>
+                <div class="todo-content">
+                    <div class="todo-title">${todo.title}</div>
+                    <div class="todo-desc">${todo.desc || ''}</div>
+                </div>
             </div>
         `;
     }).join('');

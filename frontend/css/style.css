@@ -568,7 +568,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    max-height: 160px;
+    flex: 1;
     overflow-y: auto;
 }
 .risk-list::-webkit-scrollbar { width: 4px; }

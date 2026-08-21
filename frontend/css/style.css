@@ -505,6 +505,9 @@ body {
     border-radius: 10px;
     padding: 12px;
     min-width: 0;
+}
+
+.quick-actions-box {
     min-height: 180px;
 }
 .quick-actions-box:hover,
@@ -568,7 +571,6 @@ body {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    flex: 1;
     overflow-y: auto;
 }
 .risk-list::-webkit-scrollbar { width: 4px; }

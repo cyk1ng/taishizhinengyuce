@@ -23,7 +23,7 @@ venv
 # 打包文件
 *.zip
 # 允许 Oracle Instant Client 进入构建上下文
-!instantclient-basiclite-linux.x64-*.zip
+!instantclient-basic-linux.x64-*.zip
 *.tar.gz
 *.tgz
 

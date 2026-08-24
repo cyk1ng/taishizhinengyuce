@@ -1,5 +1,24 @@
+# =============================================
+# 配网调度业务量智能预测系统 - Docker Compose 配置
+# =============================================
+# 使用说明：
+# 1. 生产模式（连接 Oracle 数据库）：
+#    docker compose up -d dispatch-app
+#    访问：http://localhost:5000
+#
+# 2. 测试模式（使用假数据）：
+#    docker compose up -d dispatch-app-test
+#    访问：http://localhost:5001
+#
+# 3. 查看日志：
+#    docker compose logs -f dispatch-app
+#
+# 4. 停止服务：
+#    docker compose down
+# =============================================
+
 services:
-  # ========== 生产模式（连接 Oracle） ==========
+  # ========== 生产模式（连接 Oracle 数据库） ==========
   dispatch-app:
     build: .
     image: dispatch-app:latest
@@ -7,29 +26,43 @@ services:
     ports:
       - "5000:5000"
     environment:
-      # LLM 配置（Docker 内用 Ollama）
-      - COZE_LLM_CONFIG=config/agent_llm_config_docker.json
-      - COZE_INTEGRATION_MODEL_BASE_URL=http://host.docker.internal:11434/v1
-      # Oracle 数据库（与 Java 系统共用，10.111.134.209:1521/omscsdb）
-      - DATABASE_URL=oracle+oracledb://OMSCS1:omscs_oms123@10.111.134.209:1521/?service_name=omscsdb
-      - DB_TYPE=oracle
-      - DB_HOST=10.111.134.209
-      - DB_PORT=1521
-      - DB_NAME=omscsdb
-      - DB_USER=OMSCS1
-      - DB_PASSWORD=omscs_oms123
-      - ORACLE_HOST=10.111.134.209
-      - ORACLE_PORT=1521
-      - ORACLE_SERVICE_NAME=omscsdb
-      - ORACLE_USER=OMSCS1
-      - ORACLE_PASSWORD=omscs_oms123
-      # 天气 API
-      - WEATHER_API_KEY=44ff4071f86641979f59da2daed5505e
-      - WEATHER_API_ENDPOINT=https://devapi.qweather.com/v7
-      - DEFAULT_CITY=101280101
+      # LLM 配置（Docker 内通过 host.docker.internal 访问宿主机 Ollama）
+      - COZE_WORKLOAD_IDENTITY_API_KEY=${COZE_WORKLOAD_IDENTITY_API_KEY:-ollama}
+      - COZE_INTEGRATION_MODEL_BASE_URL=${COZE_INTEGRATION_MODEL_BASE_URL:-http://host.docker.internal:11434/v1}
+      
+      # Oracle 数据库配置（与 Java 系统共用，10.111.134.209:1521/omscsdb）
+      - DB_TYPE=${DB_TYPE:-oracle}
+      - DB_HOST=${DB_HOST:-10.111.134.209}
+      - DB_PORT=${DB_PORT:-1521}
+      - DB_NAME=${DB_NAME:-omscsdb}
+      - DB_USER=${DB_USER:-OMSCS1}
+      - DB_PASSWORD=${DB_PASSWORD:-omscs_oms123}
+      - DATABASE_URL=${DATABASE_URL:-oracle+oracledb://OMSCS1:omscs_oms123@10.111.134.209:1521/?service_name=omscsdb}
+      
+      # Oracle 专用配置（oracle_db.py 使用）
+      - ORACLE_HOST=${ORACLE_HOST:-10.111.134.209}
+      - ORACLE_PORT=${ORACLE_PORT:-1521}
+      - ORACLE_SERVICE_NAME=${ORACLE_SERVICE_NAME:-omscsdb}
+      - ORACLE_USER=${ORACLE_USER:-OMSCS1}
+      - ORACLE_PASSWORD=${ORACLE_PASSWORD:-omscs_oms123}
+      
+      # 天气 API（如内网无外网，可注释掉）
+      - WEATHER_API_KEY=${WEATHER_API_KEY:-44ff4071f86641979f59da2daed5505e}
+      - WEATHER_API_ENDPOINT=${WEATHER_API_ENDPOINT:-https://devapi.qweather.com/v7}
+      - DEFAULT_CITY=${DEFAULT_CITY:-101280101}
+      
+      # 应用配置
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - TIMEOUT_SECONDS=${TIMEOUT_SECONDS:-600}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # ========== 测试模式（跳过数据库，用假数据） ==========
   dispatch-app-test:
@@ -39,12 +72,37 @@ services:
     ports:
       - "5001:5000"
     environment:
-      - COZE_LLM_CONFIG=config/agent_llm_config_docker.json
-      - COZE_INTEGRATION_MODEL_BASE_URL=http://host.docker.internal:11434/v1
+      # LLM 配置
+      - COZE_WORKLOAD_IDENTITY_API_KEY=${COZE_WORKLOAD_IDENTITY_API_KEY:-ollama}
+      - COZE_INTEGRATION_MODEL_BASE_URL=${COZE_INTEGRATION_MODEL_BASE_URL:-http://host.docker.internal:11434/v1}
+      
+      # 跳过数据库，使用假数据
       - SKIP_DB=true
-      - WEATHER_API_KEY=44ff4071f86641979f59da2daed5505e
-      - WEATHER_API_ENDPOINT=https://devapi.qweather.com/v7
-      - DEFAULT_CITY=101280101
+      
+      # 天气 API
+      - WEATHER_API_KEY=${WEATHER_API_KEY:-44ff4071f86641979f59da2daed5505e}
+      - WEATHER_API_ENDPOINT=${WEATHER_API_ENDPOINT:-https://devapi.qweather.com/v7}
+      - DEFAULT_CITY=${DEFAULT_CITY:-101280101}
+      
+      # 应用配置
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - TIMEOUT_SECONDS=${TIMEOUT_SECONDS:-600}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# 网络配置（可选，用于多容器通信）
+# networks:
+#   dispatch-network:
+#     driver: bridge
+
+# 卷配置（可选，用于持久化数据）
+# volumes:
+#   app-data:
+#     driver: local

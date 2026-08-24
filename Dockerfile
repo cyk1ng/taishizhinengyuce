@@ -11,14 +11,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# 复制本地下载的 Oracle Instant Client 19.21（支持 Oracle 11g+）
-COPY instantclient-basiclite-linux.x64-19.21.0.0.0dbru.zip /tmp/instantclient.zip
+# 复制本地下载的 Oracle Instant Client 23.26（支持 Oracle 11g+）
+COPY instantclient-basic-linux.x64-23.26.3.0.0.zip /tmp/instantclient.zip
 RUN unzip -q /tmp/instantclient.zip -d /opt/oracle \
     && rm /tmp/instantclient.zip \
-    && echo /opt/oracle/instantclient_19_21 > /etc/ld.so.conf.d/oracle-instantclient.conf \
+    && echo /opt/oracle/instantclient_23_26 > /etc/ld.so.conf.d/oracle-instantclient.conf \
     && ldconfig
 
-ENV LD_LIBRARY_PATH=/opt/oracle/instantclient_19_21
+ENV LD_LIBRARY_PATH=/opt/oracle/instantclient_23_26
 
 # 安装 Python 依赖（只装实际使用的包，移除未使用的重型包）
 COPY pyproject.toml ./

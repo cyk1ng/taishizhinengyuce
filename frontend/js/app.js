@@ -1219,10 +1219,10 @@ function showNonPlanWorkloadModal(event) {
         .catch(err => {
             console.warn('API请求失败，使用兜底数据:', err);
             const fallback = {
-                fault: {count: 8},
-                defect: {count: 5},
-                overload: {count: 2},
-                total: 15
+                fault: {in_progress: 5, completed: 2},
+                defect: {in_progress: 2, completed: 1},
+                overload: {in_progress: 1, completed: 1},
+                total: 12
             };
             updateNonPlanWorkloadModal(fallback);
         });

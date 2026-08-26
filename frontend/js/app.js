@@ -537,7 +537,7 @@ function updateDashboardWithData(data) {
     // 更新当值班组名称
     const teamEl = document.getElementById('onDutyTeamName');
     if (teamEl) {
-        teamEl.textContent = data.on_duty_team_name || 'A 班';
+        teamEl.textContent = data.on_duty_team_name || 'A班';
     }
     
     // 更新建议人数和超负荷状态
@@ -1626,19 +1626,42 @@ function closeDecisionReportModal() {
 // 全局存储班组详情数据，供班次切换使用
 let staffDetailData = null;
 let currentSelectedShift = '早班';
+let currentSelectedTeam = 'A';
 
 function showStaffDetail() {
     const modal = document.getElementById('staffModal');
     if (!modal) return;
     
     // Update modal info
-    const teamName = document.getElementById('onDutyTeamName')?.textContent || 'A 班';
+    const teamName = document.getElementById('onDutyTeamName')?.textContent || 'A班';
     const currentStaff = document.getElementById('currentStaff')?.textContent || '--';
     const suggestedStaff = document.getElementById('suggestedStaff')?.textContent || '--';
     const overloadStatus = document.getElementById('overloadStatus')?.textContent || '--';
     
     const modalTeam = document.getElementById('modalOnDutyTeam');
     if (modalTeam) modalTeam.textContent = teamName;
+    
+    // 立即设置弹窗第一行信息（根据当前时间自动判断班次）
+    const now = new Date();
+    const hour = now.getHours();
+    let currentShift, shiftTimeRange;
+    if (hour >= 0 && hour < 8) {
+        currentShift = '晚班';
+        shiftTimeRange = '00:00-08:00';
+    } else if (hour >= 8 && hour < 16) {
+        currentShift = '早班';
+        shiftTimeRange = '08:00-16:00';
+    } else {
+        currentShift = '中班';
+        shiftTimeRange = '16:00-24:00';
+    }
+    
+    // 立即更新弹窗第一行的班次和值班时间
+    const modalShift = document.getElementById('modalOnDutyShift');
+    if (modalShift) modalShift.textContent = currentShift;
+    
+    const modalTime = document.getElementById('modalOnDutyTime');
+    if (modalTime) modalTime.textContent = shiftTimeRange;
     
     // 立即显示弹窗，不等待数据加载
     modal.classList.remove('hidden');
@@ -1651,16 +1674,7 @@ function showStaffDetail() {
             console.log('Staff detail loaded:', data);
             if (data.success && data.data) {
                 staffDetailData = data.data;
-                // 根据当前时间自动选择班次
-                const now = new Date();
-                const hour = now.getHours();
-                if (hour >= 0 && hour < 8) {
-                    currentSelectedShift = '晚班';
-                } else if (hour >= 8 && hour < 16) {
-                    currentSelectedShift = '早班';
-                } else {
-                    currentSelectedShift = '中班';
-                }
+                currentSelectedShift = currentShift;
                 renderStaffDetail(staffDetailData, currentSelectedShift);
                 updateShiftButtons(currentSelectedShift);
             }
@@ -1696,19 +1710,64 @@ function updateShiftButtons(activeShift) {
 }
 
 /**
+ * 切换班组筛选
+ */
+function selectTeam(teamName) {
+    currentSelectedTeam = teamName;
+    updateTeamButtons(teamName);
+    if (staffDetailData) {
+        renderStaffDetail(staffDetailData, currentSelectedShift);
+    }
+}
+
+/**
+ * 更新班组按钮高亮状态
+ */
+function updateTeamButtons(activeTeam) {
+    const buttons = document.querySelectorAll('.team-btn');
+    buttons.forEach(btn => {
+        if (btn.dataset.team === activeTeam) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+}
+
+/**
  * 渲染值班人员详情
  */
 function renderStaffDetail(data, shiftName) {
     // 更新弹窗头部信息
     const modalTeam = document.getElementById('modalOnDutyTeam');
-    if (modalTeam) modalTeam.textContent = data.on_duty_team_name || 'A 班';
+    if (modalTeam) modalTeam.textContent = data.on_duty_team_name || 'A班';
     
     // 更新班次显示
     const modalShift = document.getElementById('modalOnDutyShift');
     if (modalShift) modalShift.textContent = shiftName || '早班';
     
-    // 根据班次筛选对应的班组
-    const targetTeam = data.teams?.find(t => t.shift_type === shiftName);
+    // 更新值班时间显示
+    const modalTime = document.getElementById('modalOnDutyTime');
+    if (modalTime) {
+        const shiftTimeMap = {
+            '早班': '08:00-16:00',
+            '中班': '16:00-24:00',
+            '晚班': '00:00-08:00'
+        };
+        modalTime.textContent = shiftTimeMap[shiftName] || '08:00-16:00';
+    }
+    
+    // 根据班组和班次筛选
+    const targetTeam = data.teams?.find(t => {
+        const teamMatch = !currentSelectedTeam || t.team_name === currentSelectedTeam || 
+                         (currentSelectedTeam === 'A' && t.team_name === 'A班') ||
+                         (currentSelectedTeam === 'B' && t.team_name === 'B班') ||
+                         (currentSelectedTeam === 'C' && t.team_name === 'C班') ||
+                         (currentSelectedTeam === 'D值' && t.team_name === 'D值') ||
+                         (currentSelectedTeam === 'E' && t.team_name === 'E班');
+        const shiftMatch = t.shift_type === shiftName;
+        return teamMatch && shiftMatch;
+    });
     const onDutyPersonnel = targetTeam?.on_duty_personnel || [];
     const restingPersonnel = data.resting_personnel || [];
     
@@ -1723,7 +1782,7 @@ function renderStaffDetail(data, shiftName) {
     const onDutyList = document.getElementById('onDutyStaffList');
     if (onDutyList) {
         if (onDutyPersonnel.length === 0) {
-            onDutyList.innerHTML = '<div class="empty-state">该班次暂无当值人员</div>';
+            onDutyList.innerHTML = '<div class="empty-state">该班组该班次暂无当值人员</div>';
         } else {
             onDutyList.innerHTML = onDutyPersonnel.map(p => `
                 <div class="staff-card">
@@ -1758,6 +1817,28 @@ function renderStaffDetail(data, shiftName) {
 }
 
 /**
+ * 筛选人员列表（搜索功能）
+ */
+function filterStaffLists() {
+    const onDutySearch = document.getElementById('onDutySearch')?.value?.toLowerCase() || '';
+    const restingSearch = document.getElementById('restingSearch')?.value?.toLowerCase() || '';
+    
+    // 筛选当值人员
+    const onDutyCards = document.querySelectorAll('#onDutyStaffList .staff-card');
+    onDutyCards.forEach(card => {
+        const name = card.querySelector('.staff-name')?.textContent?.toLowerCase() || '';
+        card.style.display = name.includes(onDutySearch) ? '' : 'none';
+    });
+    
+    // 筛选休息人员
+    const restingCards = document.querySelectorAll('#restingStaffList .staff-card');
+    restingCards.forEach(card => {
+        const name = card.querySelector('.staff-name')?.textContent?.toLowerCase() || '';
+        card.style.display = name.includes(restingSearch) ? '' : 'none';
+    });
+}
+
+/**
  * 加入当值
  */
 async function joinDuty(personId, personName, homeTeamName) {
@@ -1776,7 +1857,7 @@ async function joinDuty(personId, personName, homeTeamName) {
         if (result.success) {
             alert(`${personName} 已成功加入当值`);
             // 重新加载数据
-            const teamName = document.getElementById('onDutyTeamName')?.textContent || 'A 班';
+            const teamName = document.getElementById('onDutyTeamName')?.textContent || 'A班';
             const today = new Date().toISOString().split('T')[0];
             const data = await fetch(`${(window.BASE_PATH || '')}/api/staff/detail?team_name=${encodeURIComponent(teamName)}&date_str=${today}`).then(r => r.json());
             if (data.success && data.data) {

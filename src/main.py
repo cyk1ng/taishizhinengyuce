@@ -561,6 +561,7 @@ def _mock_dashboard_response(today):
     # 非计划工作量各模块：跳闸(故障)7 + 缺陷3 + 重过载2 = 12
     # 计划：开展中35，已终结15
     # 非计划：开展中8，已终结4
+    # 当值班组：A班（11人：1值班长+10值班人员）
     return {
         "success": True,
         "date": today,
@@ -578,8 +579,8 @@ def _mock_dashboard_response(today):
             "suggested_staff": 5,
             "is_overload": False
         },
-        "on_duty_team_name": "A 班",
-        "on_duty_staff_count": 7,
+        "on_duty_team_name": "A班",
+        "on_duty_staff_count": 11,
         "hourly_details": [
             {
                 "hour": h,
@@ -589,7 +590,7 @@ def _mock_dashboard_response(today):
                 "staff_capacity": max(0, 4 - abs(h - 10)) + max(0, 2 - abs(h - 14)) + 1,
                 "plan_equivalent": max(0, 4 - abs(h - 10)),
                 "non_plan_equivalent": max(0, 2 - abs(h - 14)),
-                "staff_count": 3
+                "staff_count": 11
             }
             for h in range(6, 23)
         ],
@@ -686,7 +687,8 @@ async def workload_dashboard():
                 "suggested_staff": suggested_staff,
                 "is_overload": is_overload
             },
-            "on_duty_team_name": "A 班",
+            "on_duty_team_name": "A班",
+            "on_duty_staff_count": 11,
             "hourly_details": [],
             "plan_allocation": plan_data.get("shift_allocation", {}),
             "moduleBusiness": {

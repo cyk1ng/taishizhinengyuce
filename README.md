@@ -197,7 +197,14 @@ docker exec -it dispatch-app bash
 
 ### 修改模型
 
-编辑 `config/agent_llm_config.json`：
+项目有两个模型配置文件：
+
+| 文件 | 用途 |
+|------|------|
+| `config/agent_llm_config.json` | 本地开发用 |
+| `config/agent_llm_config_docker.json` | Docker 容器用 |
+
+**Docker 部署时修改 `config/agent_llm_config_docker.json`：**
 
 ```json
 {
@@ -206,7 +213,8 @@ docker exec -it dispatch-app bash
     "temperature": 0.7,
     "top_p": 0.9,
     "max_tokens": 8000,
-    "timeout": 600
+    "timeout": 600,
+    "ollama": true  // Ollama 为 true，其他模型为 false
   }
 }
 ```

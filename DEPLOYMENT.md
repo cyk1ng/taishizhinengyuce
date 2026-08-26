@@ -86,17 +86,25 @@ COZE_INTEGRATION_MODEL_BASE_URL=http://host.docker.internal:11434/v1
 
 ### 2.3 修改模型配置文件
 
-编辑 `config/agent_llm_config.json`，确保模型名称正确：
+项目有两个模型配置文件，通过 `COZE_LLM_CONFIG` 环境变量切换：
+
+| 文件 | 用途 | 使用场景 |
+|------|------|---------|
+| `config/agent_llm_config.json` | 本地开发用 | 直接在本地运行 Python |
+| `config/agent_llm_config_docker.json` | Docker 容器用 | 容器内运行时使用 |
+
+**Docker 部署时，修改 `config/agent_llm_config_docker.json`：**
 
 ```json
 {
   "config": {
-    "model": "qwen2.5:7b",  // Ollama 模型名称
+    "model": "qwen2.5:7b",  // ← 改成你使用的模型名称
     "temperature": 0.7,
     "top_p": 0.9,
     "max_tokens": 8000,
     "timeout": 600,
-    "thinking": "disabled"
+    "thinking": "disabled",
+    "ollama": true  // ← 使用 Ollama 时为 true，其他模型为 false
   },
   "sp": "...",
   "tools": [...]
@@ -105,11 +113,29 @@ COZE_INTEGRATION_MODEL_BASE_URL=http://host.docker.internal:11434/v1
 
 **常用模型名称对照：**
 
-| 模型服务 | 模型名称 |
-|---------|---------|
-| Ollama | `qwen2.5:7b`, `llama3:8b`, `glm4:9b` |
-| 火山引擎 | `doubao-seed-1-8-251228` |
-| vLLM | `Qwen/Qwen2.5-7B-Instruct` |
+| 模型服务 | 模型名称 | ollama 字段 | 说明 |
+|---------|---------|------------|------|
+| Ollama | `qwen2.5:7b` | `true` | 本地模型，8GB 内存 |
+| Ollama | `qwen2.5:14b` | `true` | 本地模型，16GB 内存 |
+| Ollama | `llama3:8b` | `true` | 本地模型，8GB 内存 |
+| 火山引擎 | `doubao-seed-1-8-251228` | `false` | 云端模型，需要 API Key |
+| vLLM | `Qwen/Qwen2.5-7B-Instruct` | `false` | 本地服务，16GB 内存 |
+
+**docker-compose.yml 中的配置：**
+
+```yaml
+environment:
+  - COZE_LLM_CONFIG=config/agent_llm_config_docker.json  # 指定使用 Docker 配置
+  - COZE_INTEGRATION_MODEL_BASE_URL=http://host.docker.internal:11434/v1  # Ollama 地址
+```
+
+**agent.py 中的切换逻辑：**
+
+```python
+LLM_CONFIG = "config/agent_llm_config.json"  # 默认配置
+# 支持通过 COZE_LLM_CONFIG 环境变量切换配置文件（Docker 部署用）
+llm_config_file = os.getenv("COZE_LLM_CONFIG", LLM_CONFIG)
+```
 
 ---
 

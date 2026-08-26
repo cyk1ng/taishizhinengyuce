@@ -26,9 +26,11 @@
   ```
 
 - [ ] 模型配置已修改
-  - 文件：`config/agent_llm_config.json`
+  - **本地开发**：修改 `config/agent_llm_config.json`
+  - **Docker 部署**：修改 `config/agent_llm_config_docker.json`
   - 字段：`config.model`
   - 示例：`qwen2.5:7b`（Ollama）或 `doubao-seed-1-8-251228`（火山引擎）
+  - 注意：使用 Ollama 时 `"ollama": true`，其他模型 `"ollama": false`
 
 - [ ] 数据库配置已修改（如需要）
   - 文件：`.env`

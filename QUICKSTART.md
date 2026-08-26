@@ -49,18 +49,40 @@ COZE_WORKLOAD_IDENTITY_API_KEY=ollama
 COZE_INTEGRATION_MODEL_BASE_URL=http://host.docker.internal:11434/v1
 ```
 
-### 2.3 修改模型配置
+### 2.3 修改模型配置文件
 
-打开 `config/agent_llm_config.json`，修改模型名称：
+项目有两个模型配置文件：
+
+| 文件 | 用途 | 使用场景 |
+|------|------|---------|
+| `config/agent_llm_config.json` | 本地开发用 | 直接在本地运行 Python |
+| `config/agent_llm_config_docker.json` | Docker 容器用 | 容器内运行时使用 |
+
+**Docker 部署时，修改 `config/agent_llm_config_docker.json`：**
 
 ```json
 {
   "config": {
     "model": "qwen2.5:7b",  ← 改成你使用的模型名称
-    ...
-  }
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_tokens": 8000,
+    "timeout": 600,
+    "thinking": "disabled",
+    "ollama": true  ← 使用 Ollama 时为 true
+  },
+  "sp": "...",
+  "tools": [...]
 }
 ```
+
+**常用模型名称对照：**
+
+| 模型服务 | 模型名称 | ollama 字段 |
+|---------|---------|------------|
+| Ollama | `qwen2.5:7b`, `llama3:8b` | `true` |
+| 火山引擎 | `doubao-seed-1-8-251228` | `false` |
+| vLLM | `Qwen/Qwen2.5-7B-Instruct` | `false` |
 
 ## 第三步：安装 Ollama（如使用本地模型）
 

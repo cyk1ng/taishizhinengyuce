@@ -1048,6 +1048,27 @@ document.addEventListener('DOMContentLoaded', function() {
     // 初始化风险预警和今日待办
     initRiskAlerts();
     initTodos();
+    
+    // 1 分钟后如果没有 AI 计算结果，使用假数据
+    setTimeout(() => {
+        const suggestedStaff = document.getElementById('suggestedStaff')?.textContent || '--';
+        const overloadStatus = document.getElementById('overloadStatus')?.textContent || '--';
+        
+        // 如果还是初始值（--），说明 AI 没有返回结果，使用假数据
+        if (suggestedStaff === '--人' || suggestedStaff === '--') {
+            console.log('AI 计算超时，使用假数据');
+            const onDutyStaffCount = parseInt(document.getElementById('currentStaff')?.textContent) || 11;
+            const fallbackSuggested = Math.ceil(onDutyStaffCount * 1.2); // 建议人数 = 当值人数 * 1.2
+            const isOverload = onDutyStaffCount > fallbackSuggested;
+            
+            document.getElementById('suggestedStaff').textContent = fallbackSuggested + '人';
+            const overloadEl = document.getElementById('overloadStatus');
+            if (overloadEl) {
+                overloadEl.textContent = isOverload ? '是' : '否';
+                overloadEl.className = 'stat-info-value ' + (isOverload ? 'warning' : 'success');
+            }
+        }
+    }, 60000); // 1 分钟 = 60000 毫秒
 
     // 为天气卡片添加事件监听器
     const weatherCard = document.getElementById('weather-card');
@@ -1662,6 +1683,21 @@ function showStaffDetail() {
     
     const modalTime = document.getElementById('modalOnDutyTime');
     if (modalTime) modalTime.textContent = shiftTimeRange;
+    
+    // 更新建议人数和超负荷状态
+    const modalSuggestedStaff = document.getElementById('modalSuggestedStaff');
+    if (modalSuggestedStaff) modalSuggestedStaff.textContent = suggestedStaff;
+    
+    const modalOverloadStatus = document.getElementById('modalOverloadStatus');
+    if (modalOverloadStatus) {
+        modalOverloadStatus.textContent = overloadStatus;
+        // 根据状态设置颜色
+        if (overloadStatus === '是') {
+            modalOverloadStatus.style.color = 'var(--accent-red)';
+        } else if (overloadStatus === '否') {
+            modalOverloadStatus.style.color = 'var(--accent-green)';
+        }
+    }
     
     // 立即显示弹窗，不等待数据加载
     modal.classList.remove('hidden');

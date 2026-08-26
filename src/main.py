@@ -576,7 +576,7 @@ def _mock_dashboard_response(today):
             "defect_count": 3,
             "non_plan_in_progress": 8,
             "non_plan_completed": 4,
-            "suggested_staff": 5,
+            "suggested_staff": 13,
             "is_overload": False
         },
         "on_duty_team_name": "A班",
@@ -667,7 +667,8 @@ async def workload_dashboard():
             return _mock_dashboard_response(today)
         
         # 计算建议人数和超负荷状态
-        suggested_staff = 5  # 默认建议人数
+        # 建议人数 = 计划工作量 + 非计划工作量 * 1.5（非计划工作需要更多人）
+        suggested_staff = max(5, total_plan + int(total_nonplan * 1.5))
         is_overload = total_nonplan > suggested_staff * 2
         
         return {

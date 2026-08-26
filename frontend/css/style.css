@@ -997,7 +997,7 @@ body {
     margin-bottom: 20px;
     box-shadow: 0 2px 8px rgba(79, 195, 247, 0.1);
 }
-.on-duty-team, .on-duty-time, .on-duty-shift {
+.on-duty-team, .on-duty-time, .on-duty-shift, .on-duty-staffing {
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -1015,6 +1015,7 @@ body {
 .info-value.team-name { color: var(--accent-blue); }
 .info-value.time-range { color: var(--accent-cyan); }
 .info-value.shift-name { color: var(--accent-yellow); }
+.info-value.staffing-value { color: var(--accent-cyan); }
 
 /* Shift selector */
 .shift-selector, .team-selector {

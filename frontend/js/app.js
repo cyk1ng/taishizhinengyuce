@@ -1710,7 +1710,34 @@ function showStaffDetail() {
             console.log('Staff detail loaded:', data);
             if (data.success && data.data) {
                 staffDetailData = data.data;
-                currentSelectedShift = currentShift;
+                
+                // 使用后端返回的班次信息更新弹窗显示
+                const targetTeam = staffDetailData.teams?.find(t => {
+                    return t.team_name === teamName || 
+                           (teamName === 'A班' && t.team_name === 'A班') ||
+                           (teamName === 'B班' && t.team_name === 'B班') ||
+                           (teamName === 'C班' && t.team_name === 'C班') ||
+                           (teamName === 'D值' && t.team_name === 'D值') ||
+                           (teamName === 'E班' && t.team_name === 'E班');
+                });
+                
+                if (targetTeam && targetTeam.shift_type) {
+                    currentSelectedShift = targetTeam.shift_type;
+                    // 更新弹窗第一行的班次和值班时间
+                    const modalShift = document.getElementById('modalOnDutyShift');
+                    if (modalShift) modalShift.textContent = targetTeam.shift_type;
+                    
+                    const shiftTimeMap = {
+                        '早班': '08:00-16:00',
+                        '中班': '16:00-24:00',
+                        '晚班': '00:00-08:00'
+                    };
+                    const modalTime = document.getElementById('modalOnDutyTime');
+                    if (modalTime) modalTime.textContent = shiftTimeMap[targetTeam.shift_type] || '--';
+                } else {
+                    currentSelectedShift = currentShift;
+                }
+                
                 renderStaffDetail(staffDetailData, currentSelectedShift);
                 updateShiftButtons(currentSelectedShift);
             }

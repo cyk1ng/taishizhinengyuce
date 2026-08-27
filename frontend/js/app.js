@@ -1793,16 +1793,14 @@ function renderStaffDetail(data, shiftName) {
         modalTime.textContent = shiftTimeMap[shiftName] || '08:00-16:00';
     }
     
-    // 根据班组和班次筛选
+    // 根据班组筛选（每个班组只有一个固定班次，不需要匹配班次）
     const targetTeam = data.teams?.find(t => {
-        const teamMatch = !currentSelectedTeam || t.team_name === currentSelectedTeam || 
-                         (currentSelectedTeam === 'A' && t.team_name === 'A班') ||
-                         (currentSelectedTeam === 'B' && t.team_name === 'B班') ||
-                         (currentSelectedTeam === 'C' && t.team_name === 'C班') ||
-                         (currentSelectedTeam === 'D值' && t.team_name === 'D值') ||
-                         (currentSelectedTeam === 'E' && t.team_name === 'E班');
-        const shiftMatch = t.shift_type === shiftName;
-        return teamMatch && shiftMatch;
+        return !currentSelectedTeam || t.team_name === currentSelectedTeam || 
+               (currentSelectedTeam === 'A' && t.team_name === 'A班') ||
+               (currentSelectedTeam === 'B' && t.team_name === 'B班') ||
+               (currentSelectedTeam === 'C' && t.team_name === 'C班') ||
+               (currentSelectedTeam === 'D值' && t.team_name === 'D值') ||
+               (currentSelectedTeam === 'E' && t.team_name === 'E班');
     });
     const onDutyPersonnel = targetTeam?.on_duty_personnel || [];
     const restingPersonnel = data.resting_personnel || [];

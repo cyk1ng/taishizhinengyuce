@@ -955,7 +955,14 @@ def get_staff_detail(team_name: str = "", date_str: str = "") -> str:
         records = ScheduleDataProvider.get_records(target_date, target_date)
 
         # 按当前时间确定当值班次
-        current_shift = get_current_shift_key()
+        now = datetime.now()
+        h = now.hour
+        if h < 8:
+            current_shift = "晚班"
+        elif h < 16:
+            current_shift = "早班"
+        else:
+            current_shift = "中班"
         # 找到匹配当值班次的排班记录
         on_duty_records = []
         for r in records:

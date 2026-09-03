@@ -263,22 +263,98 @@ class OracleDB:
 ```
 
 #### 2.4.2 数据访问层
+
+项目采用 DAO（Data Access Object）模式，每个业务模块对应一个数据访问类：
+
 ```python
-# 数据访问对象
+# 1. 工作量数据访问
 class WorkloadDAO:
     async def get_daily_workload(self, date: str) -> List[Dict]:
-        # 查询每日工作量
+        # 查询每日工作量统计
         ...
     
     async def get_workload_by_module(self, date: str) -> Dict:
-        # 按模块查询工作量
+        # 按模块查询工作量（计划/非计划）
+        ...
+    
+    async def get_hourly_workload(self, date: str) -> List[Dict]:
+        # 查询每小时工作量明细
         ...
 
+# 2. 排班数据访问
 class ScheduleDAO:
     async def get_schedule_records(self, start_date: str, end_date: str) -> List[Dict]:
         # 查询排班记录
         ...
+    
+    async def get_team_schedule(self, team_name: str, date: str) -> Dict:
+        # 查询指定班组的排班
+        ...
+    
+    async def get_staff_on_duty(self, date: str) -> List[Dict]:
+        # 查询当值人员
+        ...
+
+# 3. 预测数据访问
+class PredictionDAO:
+    async def save_prediction_result(self, date: str, result: Dict) -> None:
+        # 保存预测结果
+        ...
+    
+    async def get_historical_predictions(self, start_date: str, end_date: str) -> List[Dict]:
+        # 查询历史预测记录
+        ...
+
+# 4. 知识库数据访问
+class KnowledgeDAO:
+    async def search_documents(self, query: str, top_k: int = 5) -> List[Dict]:
+        # 向量搜索知识库文档
+        ...
+    
+    async def add_document(self, title: str, content: str, metadata: Dict) -> str:
+        # 添加文档到知识库
+        ...
+    
+    async def delete_document(self, doc_id: str) -> bool:
+        # 删除知识库文档
+        ...
+
+# 5. 风险预警数据访问
+class RiskAlertDAO:
+    async def get_active_alerts(self, date: str) -> List[Dict]:
+        # 查询活跃风险预警
+        ...
+    
+    async def create_alert(self, alert_type: str, description: str, level: str) -> str:
+        # 创建风险预警
+        ...
+
+# 6. 设备数据访问
+class EquipmentDAO:
+    async def get_equipment_status(self, equipment_id: str) -> Dict:
+        # 查询设备状态
+        ...
+    
+    async def get_overload_equipment(self, date: str) -> List[Dict]:
+        # 查询重过载设备
+        ...
+
+# 7. 天气数据访问
+class WeatherDAO:
+    async def get_weather_forecast(self, date: str, region: str) -> Dict:
+        # 查询天气预报
+        ...
+    
+    async def save_weather_data(self, date: str, data: Dict) -> None:
+        # 保存天气数据
+        ...
 ```
+
+**DAO 层设计原则：**
+- 每个 DAO 类对应一个业务领域
+- 方法命名清晰，遵循 `get_*`、`save_*`、`create_*`、`delete_*` 规范
+- 返回类型统一使用 `Dict` 或 `List[Dict]`
+- 支持异步操作（`async/await`）
 
 ---
 

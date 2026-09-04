@@ -1748,11 +1748,49 @@ function showStaffDetail() {
 }
 
 /**
- * 切换班次筛选
+ * 切换班次筛选（联动班组和当值人员）
  */
 function selectShift(shiftName) {
     currentSelectedShift = shiftName;
     updateShiftButtons(shiftName);
+    
+    // 根据班次自动匹配对应的班组
+    const shiftTeamMap = {
+        '早班': 'A',
+        '中班': 'B',
+        '晚班': 'C'
+    };
+    const autoTeam = shiftTeamMap[shiftName];
+    if (autoTeam) {
+        currentSelectedTeam = autoTeam;
+        updateTeamButtons(autoTeam);
+        
+        // 更新弹窗头部的班组显示
+        const teamNameMap = {
+            'A': 'A班',
+            'B': 'B班',
+            'C': 'C班',
+            'D值': 'D值',
+            'E': 'E班'
+        };
+        const modalTeam = document.getElementById('modalOnDutyTeam');
+        if (modalTeam) modalTeam.textContent = teamNameMap[autoTeam] || autoTeam;
+    }
+    
+    // 更新值班时间
+    const shiftTimeMap = {
+        '早班': '08:00-16:00',
+        '中班': '16:00-24:00',
+        '晚班': '00:00-08:00'
+    };
+    const modalTime = document.getElementById('modalOnDutyTime');
+    if (modalTime) modalTime.textContent = shiftTimeMap[shiftName] || '--';
+    
+    // 更新班次显示
+    const modalShift = document.getElementById('modalOnDutyShift');
+    if (modalShift) modalShift.textContent = shiftName;
+    
+    // 重新渲染人员列表
     if (staffDetailData) {
         renderStaffDetail(staffDetailData, shiftName);
     }
@@ -1773,11 +1811,50 @@ function updateShiftButtons(activeShift) {
 }
 
 /**
- * 切换班组筛选
+ * 切换班组筛选（联动班次和当值人员）
  */
 function selectTeam(teamName) {
     currentSelectedTeam = teamName;
     updateTeamButtons(teamName);
+    
+    // 根据班组自动匹配对应的班次
+    const teamShiftMap = {
+        'A': '早班',
+        'B': '中班',
+        'C': '晚班',
+        'D值': null,
+        'E': null
+    };
+    const autoShift = teamShiftMap[teamName];
+    if (autoShift) {
+        currentSelectedShift = autoShift;
+        updateShiftButtons(autoShift);
+        
+        // 更新弹窗头部的班次和值班时间显示
+        const modalShift = document.getElementById('modalOnDutyShift');
+        if (modalShift) modalShift.textContent = autoShift;
+        
+        const shiftTimeMap = {
+            '早班': '08:00-16:00',
+            '中班': '16:00-24:00',
+            '晚班': '00:00-08:00'
+        };
+        const modalTime = document.getElementById('modalOnDutyTime');
+        if (modalTime) modalTime.textContent = shiftTimeMap[autoShift] || '--';
+    }
+    
+    // 更新弹窗头部的班组显示
+    const teamNameMap = {
+        'A': 'A班',
+        'B': 'B班',
+        'C': 'C班',
+        'D值': 'D值',
+        'E': 'E班'
+    };
+    const modalTeam = document.getElementById('modalOnDutyTeam');
+    if (modalTeam) modalTeam.textContent = teamNameMap[teamName] || teamName;
+    
+    // 重新渲染人员列表
     if (staffDetailData) {
         renderStaffDetail(staffDetailData, currentSelectedShift);
     }
